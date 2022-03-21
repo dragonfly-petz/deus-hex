@@ -8,7 +8,7 @@ import {
   useReactiveNode,
 } from '../../reactive-state/reactive-hooks';
 import { classNames } from '../../../common/react';
-import { isNully, nullable } from '../../../common/null';
+import { isNotNully, isNully, nullable } from '../../../common/null';
 import { E } from '../../../common/fp-ts/fp';
 import { renderResult } from '../result';
 
@@ -44,7 +44,9 @@ export const DropFile = ({
         paths.push(file.path);
       }
       const filter = paths.filter((it) => {
-        return validExtensions.has(it.split('.').pop() ?? '');
+        const ext = it.split('.').pop();
+        const extWithDot = isNotNully(ext) ? `.${ext}` : '';
+        return validExtensions.has(extWithDot);
       });
       const pickedPath = safeHead(filter);
       if (isNully(pickedPath)) {

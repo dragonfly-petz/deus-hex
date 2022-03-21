@@ -31,11 +31,13 @@ export const ClothingRename = () => {
   const renameResultNode = useMkReactiveNodeMemo(
     nullable<RenameClothingFileResult>()
   );
-  setTimeout(() => {
-    pickedPathNode.setValue(
-      'C:\\Users\\franc\\Documents\\Petz\\Petz 4\\Resource\\Clothes\\Antennae.clo'
-    );
-  }, 500);
+  if (isDev()) {
+    setTimeout(() => {
+      pickedPathNode.setValue(
+        'C:\\Users\\franc\\Documents\\Petz\\Petz 4\\Resource\\Clothes\\Antennae.clo'
+      );
+    }, 500);
+  }
   const mainIpc = useMainIpc();
   useListenReactiveNode(pickedPathNode, (it) => {
     if (isNully(it)) {

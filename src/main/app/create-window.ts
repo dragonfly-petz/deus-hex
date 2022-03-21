@@ -3,7 +3,8 @@ import { getAssetPath, getPreloadPath, resolveHtmlPath } from './asset-path';
 import MenuBuilder from './menu';
 import { checkForUpdates } from './updater';
 import { isDev } from './util';
-import { globalLogger } from '../../common/logger';
+import { globalLogger, Logger, LogLevel } from '../../common/logger';
+import { isNotNully } from '../../common/null';
 
 const installExtensions = async () => {
   // eslint-disable-next-line global-require
@@ -59,6 +60,21 @@ export async function createWindow() {
     shell.openExternal(edata.url);
     return { action: 'deny' };
   });
-
+  addDomLogHandler('mainDom', window);
   checkForUpdates();
+}
+
+const electronLevelToLogLevel: Partial<Record<number, LogLevel>> = {
+  1: 'info',
+  2: 'warn',
+  3: 'error',
+};
+
+export function addDomLogHandler(name: string, renderer: BrowserWindow) {
+  const domLogger = new Logger(`mainProxy<${name}>`);
+  renderer.webContents.on('console-message', (_ev, numericLevel, message) => {
+    const logLevel = electronLevelToLogLevel[numericLevel];
+    const level = isNotNully(logLevel) ? logLevel : 'info';
+    domLogger[level](message);
+  });
 }
