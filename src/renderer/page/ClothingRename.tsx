@@ -21,8 +21,8 @@ import { classNames } from '../../common/react';
 import { Button } from '../framework/Button';
 import { isDev } from '../../main/app/util';
 
-const debugNewFileName = isDev() ? 'Zragonly' : '';
-const debugNewItemName = isDev() ? 'Zrangonlier' : '';
+const debugNewFileName = isDev() ? 'Zragonl ffffff' : '';
+const debugNewItemName = isDev() ? 'Zrangonlierfs' : '';
 export const ClothingRename = () => {
   const pickedPathNode = useMkReactiveNodeMemo(nullable<string>());
   const newFileNameNode = useMkReactiveNodeMemo(debugNewFileName);
@@ -34,7 +34,7 @@ export const ClothingRename = () => {
   if (isDev()) {
     setTimeout(() => {
       pickedPathNode.setValue(
-        'C:\\Users\\franc\\Documents\\Petz\\Petz 4\\Resource\\Clothes\\Antennae.clo'
+        'C:\\Users\\franc\\Documents\\Petz\\Petz 4\\Resource\\Clothes\\Argyle Sweater.clo'
       );
     }, 500);
   }

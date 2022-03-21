@@ -198,11 +198,21 @@ export async function getBreedInfoOffsets(pe: PE.NtExecutable) {
 async function getExistingBreedInfos(targetFile: string) {
   const dir = path.dirname(targetFile);
   const files = await fsPromises.readdir(dir);
+  globalLogger.info(`Processing ${files.length} files`);
+
   const promises = files.map(async (it) => {
     const innerPath = path.join(dir, it);
     const stat = await fsPromises.stat(innerPath);
     if (stat.isDirectory()) return null;
     return getFileInfo(innerPath);
+  });
+  let promisesFinished = 0;
+  promises.map(async (it) => {
+    await it;
+    promisesFinished++;
+    globalLogger.info(
+      `${promisesFinished} out of ${promises.length} files processed `
+    );
   });
   const res = await Promise.all(promises);
   return res.filter(isNotNully);
@@ -271,6 +281,7 @@ export async function renameClothingFile(
   return withTempFile(async (tempPath) => {
     await fsPromises.copyFile(filePath, tempPath);
     const buf = await fsPromises.readFile(tempPath);
+    const fromFileName = path.parse(filePath).name;
     removeSymbolsNumber(buf);
 
     const offsetsChanged = Array<RenameResultBytes>();
@@ -300,14 +311,14 @@ export async function renameClothingFile(
     offsetsChanged.push(
       renameInBuffer(
         buf,
-        stringToLengthUnicodeUint8('Antennae'),
+        stringToLengthUnicodeUint8(fromFileName),
         stringToLengthUnicodeUint8(toFileName)
       )
     );
     offsetsChanged.push(
       renameInBuffer(
         buf,
-        stringToAsciiUint8('Antennae'),
+        stringToAsciiUint8(fromFileName),
         stringToAsciiUint8(toFileName)
       )
     );
