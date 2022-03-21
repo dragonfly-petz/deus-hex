@@ -6,7 +6,11 @@ import { globalLogger } from '../common/logger';
 import { installErrorHandler } from '../common/error';
 
 installErrorHandler((err) => {
-  dialog.showErrorBox('Error in main', err.toStringMessage());
+  if (isDev()) {
+    globalLogger.error(err.toStringMessage());
+  } else {
+    dialog.showErrorBox('Error in main', err.toStringMessage());
+  }
 });
 initElectronLogger();
 

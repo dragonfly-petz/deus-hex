@@ -39,3 +39,4 @@ npm-debug.log.*
 
 # These files may contain references to local folders like Program Files.
 *.iml
+tmp

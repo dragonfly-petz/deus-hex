@@ -11,15 +11,13 @@ import { ClothingInfo } from '../../common/petz/files/clothing';
 import { useMainIpc } from '../context/context';
 import { throwRejection } from '../../common/promise';
 import { renderReactiveResult } from '../framework/result';
+import { Button } from '../framework/Button';
 
 export const ClothingRename = () => {
   const pickedPathNode = useMkReactiveNodeMemo(nullable<string>());
   const fileInfoNode = useMkReactiveNodeMemo(nullable<Result<ClothingInfo>>());
   const mainIpc = useMainIpc();
-  throwRejection(async () => {
-    const res = await mainIpc.debugParseClo();
-    console.log(res);
-  });
+  mainIpc.renameClothingFile();
   useListenReactiveNode(pickedPathNode, (it) => {
     if (isNully(it)) {
       fileInfoNode.setValue(null);
@@ -42,6 +40,14 @@ export const ClothingRename = () => {
           </div>
         );
       })}
+      <Button
+        label="asadfs"
+        onClick={() => {
+          throwRejection(async () => {
+            const res = await mainIpc.renameClothingFile();
+          });
+        }}
+      />
     </div>
   );
 };

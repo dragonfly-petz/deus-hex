@@ -1,7 +1,5 @@
 import { app, ipcMain } from 'electron';
 import { pipe } from 'fp-ts/function';
-import * as fs from 'fs';
-import * as PE from 'pe-library';
 import {
   IpcCallMessage,
   IpcReplyMessage,
@@ -20,7 +18,8 @@ import { parseLines, serializeLines } from '../../common/petz/parser/lines';
 import { isDev } from './util';
 import { getClothingFileInfo } from '../../common/petz/files/clothing';
 import { isNully } from '../../common/null';
-import { getDebugTestResourcesPath } from './asset-path';
+import { getPetzResourcesPath } from './asset-path';
+import { renameClothingFile } from './pe-files/pe-files-util';
 
 export class MainIpc {
   async getAppVersion() {
@@ -51,11 +50,10 @@ export class MainIpc {
     return getClothingFileInfo(file);
   }
 
-  async debugParseClo() {
-    const path = getDebugTestResourcesPath('Nosepest.clo');
-    const data = fs.readFileSync(path);
-    const exe = PE.NtExecutable.from(data);
-    return JSON.stringify(exe);
+  async renameClothingFile(_filePath: string) {
+    const filePath = getPetzResourcesPath('Clothes', 'Antennae.clo');
+    await renameClothingFile(filePath, 'HatAntennae', 'DragonFlyer');
+    return null;
   }
 }
 
