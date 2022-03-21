@@ -1,5 +1,4 @@
 import { Either } from 'fp-ts/Either';
-import * as pathBrowser from 'path-browserify';
 import style from './DropFile.module.scss';
 import { useMemoRef } from '../../hooks/use-memo-ref';
 import { voidFn } from '../../../common/function';
@@ -45,7 +44,7 @@ export const DropFile = ({
         paths.push(file.path);
       }
       const filter = paths.filter((it) => {
-        return validExtensions.has(pathBrowser.extname(it));
+        return validExtensions.has(it.split('.').pop() ?? '');
       });
       const pickedPath = safeHead(filter);
       if (isNully(pickedPath)) {

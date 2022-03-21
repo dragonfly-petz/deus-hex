@@ -1,5 +1,26 @@
 .main {
   padding: 10px 40px;
-  
 }
 
+.form {
+}
+
+.formRow {
+  width: 300px;
+}
+
+.row {
+}
+
+.validation {
+  padding: 20px;
+  background-color: black;
+
+  &.invalid {
+    color: red;
+  }
+
+  &.valid {
+    color: green;
+  }
+}

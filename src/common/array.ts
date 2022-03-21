@@ -6,6 +6,11 @@ export function safeHead<A>(array: ReadonlyArray<A>): A | null {
   return array[0] ?? null;
 }
 
+export function safeLast<A>(array: ReadonlyArray<A>): A | null {
+  if (array.length < 1) return null;
+  return array[array.length - 1];
+}
+
 export function tuple<A, B>(a: A, b: B): [A, B] {
   return [a, b];
 }
@@ -30,4 +35,12 @@ export function mkSortByComparer<A, B>(
   comparer: Comparer<B>
 ): Comparer<A> {
   return (a1, a2) => comparer(by(a1), by(a2));
+}
+
+export function sum(value: Array<number>) {
+  return sumBy(value, (it) => it);
+}
+
+export function sumBy<A>(value: ReadonlyArray<A>, by: (a: A) => number) {
+  return value.reduce((accum, val) => accum + by(val), 0);
 }

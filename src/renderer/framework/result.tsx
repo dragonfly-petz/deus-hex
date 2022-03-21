@@ -2,7 +2,10 @@ import { Result } from '../../common/result';
 import { renderEither, RenderFunction, renderNullable } from './render';
 import style from './result.module.scss';
 import { ReactiveNode } from '../reactive-state/reactive-node';
-import { WithReactiveNode } from '../reactive-state/reactive-components';
+import {
+  RenderRenderFunc,
+  WithReactiveNode,
+} from '../reactive-state/reactive-components';
 
 export function renderResult<A>(
   result: Result<A> | null,
@@ -15,7 +18,7 @@ export function renderResult<A>(
         return <div className={style.error}>{err}</div>;
       },
       (output) => {
-        return render(output);
+        return <RenderRenderFunc renderFunc={render} arg={output} />;
       }
     );
   });

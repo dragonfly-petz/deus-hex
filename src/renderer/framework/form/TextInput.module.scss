@@ -1,0 +1,11 @@
+@use '../../mixins/mixins';
+
+.input {
+  width: 100%;
+  background-color: white;
+  font-size: 20px;
+  padding: 4px 6px;
+  @include mixins.defaultStates {
+    border: solid black 1px;
+  }
+}

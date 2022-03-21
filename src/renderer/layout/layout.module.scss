@@ -1,5 +1,5 @@
 .main {
-  background-color: orange;
+  background-color: #e1e1e1;
   height: 100vh;
   display: flex;
   flex-direction: column;
@@ -10,7 +10,7 @@
   padding: 5px 10px;
   display: flex;
   align-items: center;
-  box-shadow: 0 3px 3px transparentize(black, .5);
+  box-shadow: 0 3px 3px transparentize(black, 0.5);
 }
 
 .logoArea {
@@ -27,12 +27,10 @@
 
 .tabsWrapper {
   margin-left: 20px;
-
 }
 
 .mainContent {
   overflow: auto;
-
 }
 
 .tabs {
@@ -55,4 +53,3 @@
     background-color: purple;
   }
 }
-

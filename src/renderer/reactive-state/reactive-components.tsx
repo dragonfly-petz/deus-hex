@@ -12,3 +12,13 @@ export function WithReactiveNode<A>({
   const result = useReactiveNode(node);
   return render({ value: result });
 }
+
+export function RenderRenderFunc<A>({
+  renderFunc,
+  arg,
+}: {
+  renderFunc: RenderFunction<A>;
+  arg: A;
+}) {
+  return renderFunc(arg);
+}

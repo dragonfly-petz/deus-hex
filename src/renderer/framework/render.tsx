@@ -17,6 +17,15 @@ export const renderNullable = <A,>(
   return render(value);
 };
 
+export const renderNullableElse = <A,>(
+  value: A | null | undefined,
+  render: RenderFunction<A>,
+  renderElse: RenderFunction
+) => {
+  if (isNully(value)) return renderElse();
+  return render(value);
+};
+
 export const renderEither = <A, B>(
   value: Either<A, B>,
   renderA: RenderFunction<A>,
@@ -26,6 +35,13 @@ export const renderEither = <A, B>(
     return renderA(value.left);
   }
   return renderB(value.right);
+};
+
+export const renderIf = (condition: boolean, func: RenderFunction) => {
+  if (condition) {
+    return func();
+  }
+  return null;
 };
 
 export const RenderAsync = <A,>({

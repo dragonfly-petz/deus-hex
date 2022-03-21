@@ -4,20 +4,39 @@ import { clothingExtension } from '../../common/petz/file-types';
 import {
   useListenReactiveNode,
   useMkReactiveNodeMemo,
+  useReactiveNode,
 } from '../reactive-state/reactive-hooks';
 import { isNully, nullable } from '../../common/null';
-import { Result } from '../../common/result';
-import { ClothingInfo } from '../../common/petz/files/clothing';
 import { useMainIpc } from '../context/context';
 import { throwRejection } from '../../common/promise';
 import { renderReactiveResult } from '../framework/result';
+import type {
+  FileInfo,
+  RenameClothingFileResult,
+} from '../../main/app/pe-files/pe-files-util';
+import { unsafeObjectEntries } from '../../common/object';
+import { TextInput } from '../framework/form/TextInput';
+import { renderIf, renderNullableElse } from '../framework/render';
+import { classNames } from '../../common/react';
 import { Button } from '../framework/Button';
+import { isDev } from '../../main/app/util';
 
+const debugNewFileName = isDev() ? 'Zragonly' : '';
+const debugNewItemName = isDev() ? 'Zrangonlier' : '';
 export const ClothingRename = () => {
   const pickedPathNode = useMkReactiveNodeMemo(nullable<string>());
-  const fileInfoNode = useMkReactiveNodeMemo(nullable<Result<ClothingInfo>>());
+  const newFileNameNode = useMkReactiveNodeMemo(debugNewFileName);
+  const newItemNameNode = useMkReactiveNodeMemo(debugNewItemName);
+  const fileInfoNode = useMkReactiveNodeMemo(nullable<FileInfo>());
+  const renameResultNode = useMkReactiveNodeMemo(
+    nullable<RenameClothingFileResult>()
+  );
+  setTimeout(() => {
+    pickedPathNode.setValue(
+      'C:\\Users\\franc\\Documents\\Petz\\Petz 4\\Resource\\Clothes\\Antennae.clo'
+    );
+  }, 500);
   const mainIpc = useMainIpc();
-  mainIpc.renameClothingFile();
   useListenReactiveNode(pickedPathNode, (it) => {
     if (isNully(it)) {
       fileInfoNode.setValue(null);
@@ -34,20 +53,115 @@ export const ClothingRename = () => {
         onChange={(it) => pickedPathNode.setValue(it)}
       />
       {renderReactiveResult(fileInfoNode, (output) => {
+        // eslint-disable-next-line react-hooks/rules-of-hooks
+        const newFileName = useReactiveNode(newFileNameNode);
+        // eslint-disable-next-line react-hooks/rules-of-hooks
+        const newItemName = useReactiveNode(newItemNameNode);
+        const oldFileName = output.pathParsed.name;
+        const oldItemName = output.itemName;
+        const fileNameInvalid =
+          newFileName.length === oldFileName.length
+            ? null
+            : `File name must be same length (${oldFileName.length}) as old file name (${oldFileName}). Currently it is ${newFileName.length}`;
+        const newItemNameInvalid =
+          newItemName.length === oldItemName.length
+            ? null
+            : `Item name must be same length (${oldItemName.length}) as old file name (${oldItemName}). Currently it is ${newItemName.length}`;
         return (
-          <div className={style.result}>
-            Current names: {output.currentNamesUsed.join(', ')}
+          <div className={style.form}>
+            <h2>File info</h2>
+            {unsafeObjectEntries(output).map(([key, val]) => {
+              if (key === 'pathParsed') return null;
+              return (
+                <div className={style.row} key={key}>
+                  {key}: {val}
+                </div>
+              );
+            })}
+
+            <h2>New names</h2>
+            <div className={style.formRow}>
+              New File Name
+              <div className={style.formEl}>
+                <TextInput valueNode={newFileNameNode} />
+              </div>
+              {renderNullableElse(
+                fileNameInvalid,
+                (invalid) => (
+                  <div className={classNames(style.validation, style.invalid)}>
+                    {invalid}
+                  </div>
+                ),
+                () => (
+                  <div className={classNames(style.validation, style.valid)}>
+                    Valid!
+                  </div>
+                )
+              )}
+            </div>
+            <div className={style.formRow}>
+              New Item Name
+              <div className={style.formEl}>
+                <TextInput valueNode={newItemNameNode} />
+              </div>
+              {renderNullableElse(
+                newItemNameInvalid,
+                (invalid) => (
+                  <div className={classNames(style.validation, style.invalid)}>
+                    {invalid}
+                  </div>
+                ),
+                () => (
+                  <div className={classNames(style.validation, style.valid)}>
+                    Valid!
+                  </div>
+                )
+              )}
+            </div>
+            {renderIf(
+              isNully(fileNameInvalid) && isNully(newItemNameInvalid),
+              () => {
+                return (
+                  <Button
+                    label="Transform"
+                    onClick={() => {
+                      throwRejection(async () => {
+                        const res = await mainIpc.renameClothingFile(
+                          output.filePath,
+                          newFileName,
+                          oldItemName,
+                          newItemName
+                        );
+                        renameResultNode.setValue(res);
+                      });
+                    }}
+                  />
+                );
+              }
+            )}
           </div>
         );
       })}
-      <Button
-        label="asadfs"
-        onClick={() => {
-          throwRejection(async () => {
-            const res = await mainIpc.renameClothingFile();
-          });
-        }}
-      />
+      {renderReactiveResult(renameResultNode, (output) => {
+        return (
+          <div className={style.result}>
+            <div className={style.row}>
+              File written to {output.newFilePath}
+            </div>
+            <div className={style.row}>New id used: {output.newId}</div>
+            {Array.from(output.changes.entries()).map(([id, it]) => {
+              return (
+                <div className={style.row} key={id}>
+                  Changed <b>{it.from}</b> to <b>{it.to}</b> in{' '}
+                  <b>{it.offsets.length}</b> places.
+                  <br />
+                  (Offsets: {it.offsets.join(', ')})
+                </div>
+              );
+            })}
+          </div>
+        );
+      })}
     </div>
   );
 };

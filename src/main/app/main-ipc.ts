@@ -16,10 +16,8 @@ import {
 } from '../../common/petz/transform/transforms';
 import { parseLines, serializeLines } from '../../common/petz/parser/lines';
 import { isDev } from './util';
-import { getClothingFileInfo } from '../../common/petz/files/clothing';
 import { isNully } from '../../common/null';
-import { getPetzResourcesPath } from './asset-path';
-import { renameClothingFile } from './pe-files/pe-files-util';
+import { getFileInfo, renameClothingFile } from './pe-files/pe-files-util';
 
 export class MainIpc {
   async getAppVersion() {
@@ -47,13 +45,16 @@ export class MainIpc {
   }
 
   async getClothingFileInfo(file: string) {
-    return getClothingFileInfo(file);
+    return getFileInfo(file);
   }
 
-  async renameClothingFile(_filePath: string) {
-    const filePath = getPetzResourcesPath('Clothes', 'Antennae.clo');
-    await renameClothingFile(filePath, 'HatAntennae', 'DragonFlyer');
-    return null;
+  async renameClothingFile(
+    filePath: string,
+    toFileName: string,
+    fromInternal: string,
+    toInternal: string
+  ) {
+    return renameClothingFile(filePath, toFileName, fromInternal, toInternal);
   }
 }
 
