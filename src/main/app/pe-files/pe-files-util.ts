@@ -175,6 +175,7 @@ export async function getBreedInfoOffsets(pe: PE.NtExecutable) {
   return pipe(
     await getResourceSectionData(pe),
     E.chain(({ sectionData, section }) => {
+      // this doesn't work in all cases
       const spriteOffset = sectionData.indexOf(stringToAsciiUint8('Sprite_'));
       if (spriteOffset < 0) {
         return E.left("Couldn't find offset for Sprite_");
@@ -199,11 +200,21 @@ async function getExistingBreedInfos(targetFile: string) {
   const dir = path.dirname(targetFile);
   const files = await fsPromises.readdir(dir);
   globalLogger.info(`Processing ${files.length} files`);
-
+  const targetExt = path.extname(targetFile);
   const promises = files.map(async (it) => {
     const innerPath = path.join(dir, it);
     const stat = await fsPromises.stat(innerPath);
-    if (stat.isDirectory()) return null;
+    if (stat.isDirectory()) {
+      globalLogger.info(
+        `Skipping ${it} - recursion into sub directories is not supported`
+      );
+      return null;
+    }
+    const ext = path.extname(it);
+    if (ext !== targetExt) {
+      globalLogger.info(`Skipping ${it}, did not match extension ${targetExt}`);
+      return null;
+    }
     return getFileInfo(innerPath);
   });
   let promisesFinished = 0;
@@ -224,6 +235,9 @@ export async function getFileInfo(filePath: string) {
   removeSymbolsNumber(buf);
   return pipe(
     await getResourceFileInfo(buf),
+    E.mapLeft((it) => {
+      return `Error when getting info for ${filePath}: ${it}`;
+    }),
     E.map((it) => {
       return { ...it, filePath, pathParsed: path.parse(filePath) };
     })
@@ -328,16 +342,13 @@ export async function renameClothingFile(
     }
 
     await fsPromises.writeFile(tempPath, buf);
-    const existingInfos = E.sequenceArray(
-      await getExistingBreedInfos(filePath)
-    );
-    if (E.isLeft(existingInfos)) {
-      return existingInfos;
-    }
-    const existingBreedIds = existingInfos.right.map((it) => it.breedId);
+    const existingInfos = await getExistingBreedInfos(filePath);
+    const warnIdFailed = existingInfos.filter(E.isLeft).map((it) => it.left);
+    const existingBreedIds = existingInfos
+      .filter(E.isRight)
+      .map((it) => it.right.breedId);
     sortByNumeric(existingBreedIds, identity);
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const highest = safeLast(existingBreedIds)!;
+    const highest = safeLast(existingBreedIds) ?? 20000;
     const newId = highest + 1;
     globalLogger.info(`Highest id found was ${highest}, using ${newId}`);
     const pe = await parsePE(buf);
@@ -349,6 +360,7 @@ export async function renameClothingFile(
     globalLogger.info(`Writing transformed file to ${newFilePath}`);
     await fsPromises.writeFile(newFilePath, Buffer.from(generated));
     return E.right({
+      warnIdFailed,
       newId,
       newFilePath,
       changes: offsetsChanged.map(toStringResult),

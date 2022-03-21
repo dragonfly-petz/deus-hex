@@ -54,6 +54,17 @@ export const ClothingRename = () => {
         validExtensions={new Set([clothingExtension])}
         onChange={(it) => pickedPathNode.setValue(it)}
       />
+      <Button
+        label="Reset"
+        onClick={() => {
+          pickedPathNode.setValue(null);
+          newFileNameNode.setValue('');
+          newItemNameNode.setValue('');
+          fileInfoNode.setValue(null);
+          renameResultNode.setValue(null);
+        }}
+      />
+
       {renderReactiveResult(fileInfoNode, (output) => {
         // eslint-disable-next-line react-hooks/rules-of-hooks
         const newFileName = useReactiveNode(newFileNameNode);
@@ -147,6 +158,14 @@ export const ClothingRename = () => {
       {renderReactiveResult(renameResultNode, (output) => {
         return (
           <div className={style.result}>
+            {renderIf(output.warnIdFailed.length > 0, () => {
+              return (
+                <div className={style.warn}>
+                  WARNING: can't guarantee unique id as encountered errors
+                  (files listed below)
+                </div>
+              );
+            })}
             <div className={style.row}>
               File written to {output.newFilePath}
             </div>
@@ -158,6 +177,18 @@ export const ClothingRename = () => {
                   <b>{it.offsets.length}</b> places.
                   <br />
                   (Offsets: {it.offsets.join(', ')})
+                </div>
+              );
+            })}
+            {renderIf(output.warnIdFailed.length > 0, () => {
+              return (
+                <div className={style.warn}>
+                  Failed files:
+                  {Array.from(output.warnIdFailed.entries()).map(
+                    ([id, err]) => {
+                      return <div key={id}>{err}</div>;
+                    }
+                  )}
                 </div>
               );
             })}

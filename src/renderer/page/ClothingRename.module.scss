@@ -6,7 +6,7 @@
 }
 
 .formRow {
-  width: 300px;
+  width: 400px;
 }
 
 .row {
@@ -17,10 +17,14 @@
   background-color: black;
 
   &.invalid {
-    color: red;
+    color: lightcoral;
   }
 
   &.valid {
-    color: green;
+    color: lightgreen;
   }
+}
+
+.warn {
+  background-color: lightyellow;
 }

@@ -9,6 +9,7 @@ installErrorHandler((err) => {
   if (isDev()) {
     globalLogger.error(err.toStringMessage());
   } else {
+    globalLogger.error(err.toStringMessage());
     dialog.showErrorBox('Error in main', err.toStringMessage());
   }
 });

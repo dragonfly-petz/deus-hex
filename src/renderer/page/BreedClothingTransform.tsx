@@ -57,6 +57,13 @@ const TransformText = ({
             });
           }}
         />
+        <Button
+          label="Reset"
+          onClick={() => {
+            textNode.setValue('');
+            resultNode.setValue(null);
+          }}
+        />
       </div>
       {renderResult(result, (output) => {
         return (

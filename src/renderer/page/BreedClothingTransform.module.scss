@@ -11,6 +11,12 @@
   }
 }
 
+.buttons {
+  > * {
+    margin-right: 10px;
+  }
+}
+
 .result {
   margin-top: 20px;
   min-width: 10px;
