@@ -1,0 +1,10 @@
+.main {
+  background-color: black;
+  color: white;
+  cursor: pointer;
+  padding: 3px 6px;
+
+  &:hover {
+    background-color: darkgrey;
+  }
+}

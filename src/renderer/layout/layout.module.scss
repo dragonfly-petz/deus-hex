@@ -1,0 +1,58 @@
+.main {
+  background-color: orange;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  background-color: darkorange;
+  padding: 5px 10px;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 3px 3px transparentize(black, .5);
+}
+
+.logoArea {
+  .logo {
+    font-size: 24px;
+    font-weight: bold;
+  }
+
+  .version {
+    font-size: 18px;
+    font-weight: bold;
+  }
+}
+
+.tabsWrapper {
+  margin-left: 20px;
+
+}
+
+.mainContent {
+  overflow: auto;
+
+}
+
+.tabs {
+  display: flex;
+}
+
+.tab {
+  padding: 5px 10px;
+  font-weight: bold;
+  background-color: blue;
+  margin-right: 5px;
+  color: white;
+  cursor: pointer;
+
+  &:hover {
+    background-color: darkblue;
+  }
+
+  &.tabActive {
+    background-color: purple;
+  }
+}
+
