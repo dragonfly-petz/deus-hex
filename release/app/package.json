@@ -1,6 +1,6 @@
 {
   "name": "deus-hex",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Petz Toolz!",
   "main": "./dist/main/main.js",
   "author": {

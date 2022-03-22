@@ -18,7 +18,7 @@ export type Codec<A> = Encoder<A> &
     typeLabels: Array<string>;
   };
 
-export type CodecType<A extends Codec<A>> = A extends Codec<infer B>
+export type CodecType<A extends Codec<any>> = A extends Codec<infer B>
   ? B
   : never;
 

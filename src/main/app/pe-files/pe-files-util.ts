@@ -14,7 +14,16 @@ import { E } from '../../../common/fp-ts/fp';
 import { PromiseInner } from '../../../common/promise';
 import { isNotNully, isNully } from '../../../common/null';
 import { decode } from '../../../common/codec/codec';
-import { resDirTableWithEntries } from '../../../common/petz/codecs/pe-rsrc';
+import {
+  ResDataEntry,
+  ResDirTable,
+  resDirTableWithEntries,
+} from '../../../common/petz/codecs/pe-rsrc';
+import {
+  bytesToString,
+  toArrayBuffer,
+  toUint8Array,
+} from '../../../common/buffer';
 
 export async function withTempFile<A>(block: (filePath: string) => Promise<A>) {
   const tmpPath = await run(async () => {
@@ -32,17 +41,6 @@ export async function withTempFile<A>(block: (filePath: string) => Promise<A>) {
   const res = await block(tmpPath);
   await fsPromises.rm(tmpPath);
   return res;
-}
-
-function _debugBuffer(buf: Buffer, offset: number, length: number) {
-  const strings = new Array<string>();
-  const bytes = new Array<number>();
-  for (let i = offset; i < offset + length; i++) {
-    bytes.push(buf[i]);
-    strings.push(buf[i].toString(16));
-  }
-  globalLogger.info(strings.join(' '));
-  globalLogger.info(bytesToString(bytes));
 }
 
 function toHexString(arr: Uint8Array) {
@@ -101,14 +99,6 @@ function stringToAsciiUint8(str: string) {
   );
 }
 
-function bytesToString(bytes: ArrayLike<number>) {
-  return Array.from(bytes)
-    .map((it) => {
-      return String.fromCharCode(it);
-    })
-    .join('');
-}
-
 function stringToLengthUnicodeUint8(str: string) {
   const toAscii = stringToAsciiUint8(str);
   const out = new Uint8Array(toAscii.length * 2);
@@ -148,15 +138,6 @@ function toStringResult(newRe: RenameResultBytes) {
 }
 
 const RESOURCE_ENTRY = 2;
-
-function toArrayBuffer(buf: Buffer) {
-  const ab = new ArrayBuffer(buf.length);
-  const view = new Uint8Array(ab);
-  for (let i = 0; i < buf.length; i++) {
-    view[i] = buf[i];
-  }
-  return ab;
-}
 
 export async function getResourceSectionData(pe: PE.NtExecutable) {
   const section = pe.getSectionByEntry(RESOURCE_ENTRY);
@@ -263,13 +244,60 @@ export async function setBreedId(pe: PE.NtExecutable, breedId: number) {
   );
 }
 
+interface DataEntryWithId {
+  entry: ResDataEntry;
+  ids: Array<number>;
+}
+
+function getFlatDataEntries(
+  resDirTable: ResDirTable,
+  ids: Array<number>
+): Array<DataEntryWithId> {
+  const out = new Array<DataEntryWithId>();
+  for (const entry of [...resDirTable.entriesId, ...resDirTable.entriesName]) {
+    if (entry.val.tag === 'resData') {
+      out.push({
+        ids: [...ids, entry.name.value],
+        entry: entry.val.value,
+      });
+    } else {
+      out.push(
+        ...getFlatDataEntries(entry.val.value, [...ids, entry.name.value])
+      );
+    }
+  }
+  return out;
+}
+
+export function getFlatDataEntriesWithData(
+  buffer: Buffer,
+  header: PE.Format.ImageSectionHeader,
+  resDirTable: ResDirTable
+) {
+  const flatEntries = getFlatDataEntries(resDirTable, []);
+  return flatEntries.map((it) => {
+    const fileOffset =
+      it.entry.dataRva - header.virtualAddress + header.pointerToRawData;
+    return {
+      ...it,
+      data: toUint8Array(buffer, fileOffset, it.entry.size),
+    };
+  });
+}
+
 export async function getResourceFileInfo(buffer: Buffer) {
+  const pe = await parsePE(buffer);
   return pipe(
-    await getBreedInfoOffsets(await parsePE(buffer)),
+    await getBreedInfoOffsets(pe),
     E.map((res) => {
       const codecRes = decode(res.sectionData, resDirTableWithEntries);
-      console.dir(codecRes, { depth: 5 });
-
+      if (E.isRight(codecRes)) {
+        getFlatDataEntriesWithData(
+          buffer,
+          res.section.info,
+          codecRes.right.result
+        );
+      }
       const breedId = res.sectionData.readUInt32LE(res.breedIdOffset);
       const displayName = readNullTerminatedString(
         res.sectionData,
@@ -286,6 +314,7 @@ export async function getResourceFileInfo(buffer: Buffer) {
         breedId,
         spriteName,
         itemName,
+        codecRes,
       };
     })
   );

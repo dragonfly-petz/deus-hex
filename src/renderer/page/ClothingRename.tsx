@@ -20,6 +20,7 @@ import { renderIf, renderNullableElse } from '../framework/render';
 import { classNames } from '../../common/react';
 import { Button } from '../framework/Button';
 import { isDev } from '../../main/app/util';
+import { E } from '../../common/fp-ts/fp';
 
 const debugNewFileName = isDev() ? 'Zragonl ffffff' : '';
 const debugNewItemName = isDev() ? 'Zrangonlierfs' : '';
@@ -44,7 +45,17 @@ export const ClothingRename = () => {
       fileInfoNode.setValue(null);
     } else {
       throwRejection(async () => {
-        fileInfoNode.setValue(await mainIpc.getClothingFileInfo(it));
+        const res = await mainIpc.getClothingFileInfo(it);
+        if (E.isRight(res)) {
+          if (E.isRight(res.right.codecRes)) {
+            console.log(res.right.codecRes.right.result);
+            console.log(
+              res.right.codecRes.right.result.entriesId[0].val.value
+                .entriesId[0].val.value.entriesId[0].val.value
+            );
+          }
+        }
+        fileInfoNode.setValue(res);
       });
     }
   });
@@ -84,7 +95,7 @@ export const ClothingRename = () => {
           <div className={style.form}>
             <h2>File info</h2>
             {unsafeObjectEntries(output).map(([key, val]) => {
-              if (key === 'pathParsed') return null;
+              if (key === 'pathParsed' || key === 'codecRes') return null;
               return (
                 <div className={style.row} key={key}>
                   {key}: {val}
