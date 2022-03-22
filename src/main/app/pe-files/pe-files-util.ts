@@ -13,6 +13,8 @@ import { safeLast, sortByNumeric, sumBy } from '../../../common/array';
 import { E } from '../../../common/fp-ts/fp';
 import { PromiseInner } from '../../../common/promise';
 import { isNotNully, isNully } from '../../../common/null';
+import { decode } from '../../../common/codec/codec';
+import { resDirTableWithEntries } from '../../../common/petz/codecs/pe-rsrc';
 
 export async function withTempFile<A>(block: (filePath: string) => Promise<A>) {
   const tmpPath = await run(async () => {
@@ -265,6 +267,9 @@ export async function getResourceFileInfo(buffer: Buffer) {
   return pipe(
     await getBreedInfoOffsets(await parsePE(buffer)),
     E.map((res) => {
+      const codecRes = decode(res.sectionData, resDirTableWithEntries);
+      console.dir(codecRes, { depth: 5 });
+
       const breedId = res.sectionData.readUInt32LE(res.breedIdOffset);
       const displayName = readNullTerminatedString(
         res.sectionData,
