@@ -39,6 +39,7 @@ export const ClothingRename = () => {
       );
     }, 500);
   }
+
   const mainIpc = useMainIpc();
   useListenReactiveNode(pickedPathNode, (it) => {
     if (isNully(it)) {

@@ -106,10 +106,10 @@ function toStringResult(newRe: RenameResultBytes) {
   };
 }
 
-const RESOURCE_ENTRY = 2;
+export const PE_RESOURCE_ENTRY = 2;
 
 export async function getResourceSectionData(pe: PE.NtExecutable) {
-  const section = pe.getSectionByEntry(RESOURCE_ENTRY);
+  const section = pe.getSectionByEntry(PE_RESOURCE_ENTRY);
   if (isNully(section)) {
     return E.left('Could not find resource section');
   }
@@ -207,7 +207,7 @@ export async function setBreedId(pe: PE.NtExecutable, breedId: number) {
         ...res.section,
         data: toArrayBuffer(res.sectionData),
       };
-      pe.setSectionByEntry(RESOURCE_ENTRY, newSection);
+      pe.setSectionByEntry(PE_RESOURCE_ENTRY, newSection);
       return true;
     })
   );

@@ -16,8 +16,9 @@ type PeRsrcContext = ReturnType<typeof defaultPeRsrcContext>;
 export function defaultPeRsrcContext(sectionRvaOffset: number) {
   return {
     sectionRvaOffset,
+    nextResTableOffset: 0,
+    nextDataDataOffset: 0,
     resDirectoryStringStartOffset: nullable<number>(),
-    resDataStartOffset: nullable<number>(),
     resDirectoryStringCallbacks: new Array<EncodeCallback>(),
     resDataCallbacks: new Array<EncodeCallback>(),
   };
@@ -49,7 +50,21 @@ export type ResDataEntry = ResDataEntryBase & { data: Uint8Array };
 const resDataEntryCodec: Codec<ResDataEntry, PeRsrcContext> = {
   typeLabels: ['resDataEntry'],
   encode: (a, buffer, offset, context) => {
-    // max of the end of these is where resource data starts
+    const dataDataOffset = context.nextDataDataOffset;
+    // add some padding between them just to be friendly
+    const gapBetweenEntries = 0x100;
+    context.nextDataDataOffset = byteAlign(
+      context.nextDataDataOffset + a.data.length + gapBetweenEntries
+    );
+    a.size = a.data.length;
+    a.dataRva = dataDataOffset + context.sectionRvaOffset;
+    p.mkUint8Array(a.data.length).encode(
+      a.data,
+      buffer,
+      dataDataOffset,
+      context
+    );
+    return resDataEntryBaseCodec.encode(a, buffer, offset, context);
   },
   decode: (buffer, offset, context) => {
     const baseRes = resDataEntryBaseCodec.decode(buffer, offset, context);
@@ -109,26 +124,15 @@ function mkResDirEntryCodec(
           'Expected an id name for an id entry type'
         );
       }
-      const offsetForNext = offset + 8;
-      const offsetToStore =
-        a.val.tag === 'resDir' ? offsetForNext | highBit : offsetForNext;
-
-      const entryData: CodecType<typeof resDirEntryBaseCodec> = {
-        nameOrId: a.name.tag === 'id' ? a.name.value : 0,
-        offset: offsetToStore,
-      };
+      console.log(`encoding resdir at ${offset}`);
+      const nameOrIdOffset = offset;
       if (a.name.tag === 'stringId') {
         const nameToSave = a.name.value;
         context.resDirectoryStringCallbacks.push((buf, off) => {
-          resDirEntryBaseCodec.encode(
-            {
-              ...entryData,
-              offset: off | highBit,
-            },
-            buffer,
-            offset,
-            context
+          console.log(
+            `writing ${(off + highBit).toString(16)} as string offset`
           );
+          p.uInt32LE.encode(off + highBit, buffer, nameOrIdOffset, context);
           return p.unicode2ByteStringWithLengthPrefix.encode(
             nameToSave,
             buf,
@@ -136,30 +140,40 @@ function mkResDirEntryCodec(
             context
           );
         });
-      }
-      const bytesWritten = resDirEntryBaseCodec.encode(
-        entryData,
-        buffer,
-        offset,
-        context
-      );
-      if (a.val.tag === 'resData') {
-        resDataEntryCodec.encode(a.val.value, buffer, offset, context);
       } else {
-        resDirTableWithEntries.encode(
-          a.val.value,
+        p.uInt32LE.encode(a.name.value, buffer, nameOrIdOffset, context);
+      }
+
+      const offsetOffset = offset + 4;
+
+      if (a.val.tag === 'resDir') {
+        const nextTableOffset = nextResDirTableOffset(a.val.value, context);
+        p.uInt32LE.encode(
+          nextTableOffset + highBit,
           buffer,
-          offset + bytesWritten,
+          offsetOffset,
           context
         );
-      }
-      // max of the end of these is where resource directory string starts
+        console.log(`encoding sub resdirtable at ${nextTableOffset}`);
 
-      context.resDirectoryStringStartOffset = Math.max(
-        bytesWritten,
-        context.resDirectoryStringStartOffset ?? 0
-      );
-      return bytesWritten;
+        const tableBytesWritten = resDirTableCodec.encode(
+          a.val.value,
+          buffer,
+          nextTableOffset,
+          context
+        );
+        context.resDirectoryStringStartOffset = Math.max(
+          nextTableOffset + tableBytesWritten,
+          context.resDirectoryStringStartOffset ?? 0
+        );
+      } else {
+        const valToSave = a.val.value;
+        context.resDataCallbacks.push((buf, off) => {
+          p.uInt32LE.encode(off, buf, offsetOffset, context);
+          return resDataEntryCodec.encode(valToSave, buf, off, context);
+        });
+      }
+      return 8;
     },
     decode: (buffer, offset, context) => {
       const baseRes = resDirEntryBaseCodec.decode(buffer, offset, context);
@@ -186,7 +200,7 @@ function mkResDirEntryCodec(
       const eVal: Either<string, EntryVal> = run(() => {
         if (baseRes.right.result.offset & highBit) {
           return pipe(
-            resDirTableWithEntries.decode(buffer, realOffset, context),
+            resDirTableCodec.decode(buffer, realOffset, context),
             E.map((res) => taggedValue('resDir', res.result))
           );
         }
@@ -219,44 +233,55 @@ const resDirTableWithNameEntries = c.withFollowingEntries(
   'entriesName',
   mkResDirEntryCodec('name')
 );
-export const resDirTableWithEntries = c.withFollowingEntries(
+export const resDirTableCodec = c.withFollowingEntries(
   resDirTableWithNameEntries,
   'numIdEntries',
   'entriesId',
   mkResDirEntryCodec('id')
 );
-export type ResDirTable = CodecType<typeof resDirTableWithEntries>;
+
+function nextResDirTableOffset(a: ResDirTable, context: PeRsrcContext) {
+  const resDirTableSize = 4 + 4 + 2 + 2 + 2 + 2;
+  const resDirEntrySize = 4 + 4;
+  const size =
+    resDirTableSize +
+    resDirEntrySize * (a.entriesId.length + a.entriesName.length);
+  const offsetToUse = context.nextResTableOffset;
+  context.nextResTableOffset = offsetToUse + size;
+  return offsetToUse;
+}
+
+export type ResDirTable = CodecType<typeof resDirTableCodec>;
 
 export function decodeFromSection(info: ImageSectionHeader, buffer: Buffer) {
   const context = defaultPeRsrcContext(info.virtualAddress);
-  return decode(buffer, resDirTableWithEntries, 0, context);
+  return decode(buffer, resDirTableCodec, 0, context);
 }
 
 export function encodeToSection(info: ImageSectionHeader, table: ResDirTable) {
   const context = defaultPeRsrcContext(info.virtualAddress);
   const buffer = Buffer.from(new Uint8Array(1e6));
-  resDirTableWithEntries.encode(table, buffer, 0, context);
+  nextResDirTableOffset(table, context);
+  resDirTableCodec.encode(table, buffer, 0, context);
   if (isNully(context.resDirectoryStringStartOffset)) {
     throw new Error(
       'Expected to find resDirectoryStringStartOffset in context'
     );
   }
-  if (isNully(context.resDataStartOffset)) {
-    throw new Error('Expected to find resDataStartOffset in context');
-  }
-  let dirBytesWritten = 0;
+  let offset = context.resDirectoryStringStartOffset;
   for (const callback of context.resDirectoryStringCallbacks) {
-    dirBytesWritten += callback(
-      buffer,
-      context.resDirectoryStringStartOffset + dirBytesWritten
-    );
+    offset += callback(buffer, offset);
   }
-  let dataBytesWritten = 0;
+  const dataEntrySize = 4 + 4 + 4 + 4;
+  context.nextDataDataOffset = byteAlign(
+    offset + dataEntrySize * context.resDataCallbacks.length
+  );
   for (const callback of context.resDataCallbacks) {
-    dataBytesWritten += callback(
-      buffer,
-      context.resDataStartOffset + dataBytesWritten
-    );
+    offset += callback(buffer, offset);
   }
-  return buffer;
+  return buffer.slice(0, context.nextDataDataOffset + 1);
+}
+
+function byteAlign(num: number) {
+  return num + (4 - (num % 4));
 }

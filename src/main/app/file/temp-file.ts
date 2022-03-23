@@ -21,7 +21,9 @@ export async function withTempFile<A>(block: (filePath: string) => Promise<A>) {
 
   globalLogger.info(`Using temp file at ${tmpPath}`);
   const res = await block(tmpPath);
-  await fsPromises.rm(tmpPath);
+  if (!isDevOrTest()) {
+    await fsPromises.rm(tmpPath);
+  }
   return res;
 }
 
