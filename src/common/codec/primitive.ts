@@ -2,7 +2,7 @@ import { E } from '../fp-ts/fp';
 import { Codec } from './codec';
 import { objectEntries, unsafeObjectFromEntries } from '../object';
 import { assertEqual } from '../assert';
-import { toUint8Array } from '../buffer';
+import { bytesToString, toUint16Array, toUint8Array } from '../buffer';
 
 const numberTypes = {
   UInt32LE: 4,
@@ -44,7 +44,6 @@ function mkUint8Array(length: number): Codec<Uint8Array> {
   return {
     typeLabels: ['uInt8Array'],
     decode: (buffer, offset) => {
-      console.log(`copying buffer from ${offset} with length ${length}`);
       return E.right({
         result: toUint8Array(buffer, offset, length),
         bytesRead: length,
@@ -58,7 +57,22 @@ function mkUint8Array(length: number): Codec<Uint8Array> {
   };
 }
 
+const unicode2ByteStringWithLengthPrefix: Codec<string> = {
+  typeLabels: ['2ByteStringWithLengthPrefix'],
+  encode: (a, buffer, offset, context) => {},
+  decode: (buffer, offset) => {
+    const length = buffer.readUInt16LE(offset);
+    const arr = toUint16Array(buffer, offset + 2, length);
+    const result = bytesToString(arr);
+    return E.right({
+      bytesRead: 2 + length * 2,
+      result,
+    });
+  },
+};
+
 export const primitives = {
   ...numberCodecs,
+  unicode2ByteStringWithLengthPrefix,
   mkUint8Array,
 };

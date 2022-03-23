@@ -17,7 +17,11 @@ export function bytesToString(bytes: ArrayLike<number>) {
     .join('');
 }
 
-export function debugBuffer(buf: Buffer, offset: number, length: number) {
+export function debugBuffer(
+  buf: ArrayLike<number>,
+  offset: number,
+  length: number
+) {
   const strings = new Array<string>();
   const bytes = new Array<number>();
   for (let i = offset; i < offset + length; i++) {
@@ -31,15 +35,23 @@ export function debugBuffer(buf: Buffer, offset: number, length: number) {
     bytes.push(buf[i]);
     strings.push(buf[i].toString(16));
   }
-  console.log(`Length: ${length}, bytesRead: ${bytes.length}`);
+  console.log(`DebugBuffer: Length: ${length}, bytesRead: ${bytes.length}`);
   globalLogger.info(strings.join(' '));
   globalLogger.info(bytesToString(bytes));
 }
 
 export function toUint8Array(buf: Buffer, offset: number, length: number) {
   const arr = new Uint8Array(length);
-  for (let i = offset; i < offset + length; i++) {
-    arr[i] = buf[i];
+  for (let i = 0; i < length; i++) {
+    arr[i] = buf[offset + i];
+  }
+  return arr;
+}
+
+export function toUint16Array(buf: Buffer, offset: number, length: number) {
+  const arr = new Uint16Array(length);
+  for (let i = 0; i < length; i++) {
+    arr[i] = buf.readUInt16LE(offset + i * 2);
   }
   return arr;
 }

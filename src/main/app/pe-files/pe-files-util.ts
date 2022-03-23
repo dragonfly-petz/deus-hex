@@ -13,11 +13,10 @@ import { safeLast, sortByNumeric, sumBy } from '../../../common/array';
 import { E } from '../../../common/fp-ts/fp';
 import { PromiseInner } from '../../../common/promise';
 import { isNotNully, isNully } from '../../../common/null';
-import { decode } from '../../../common/codec/codec';
 import {
+  decodeFromSection,
   ResDataEntry,
   ResDirTable,
-  resDirTableWithEntries,
 } from '../../../common/petz/codecs/pe-rsrc';
 import {
   bytesToString,
@@ -290,7 +289,7 @@ export async function getResourceFileInfo(buffer: Buffer) {
   return pipe(
     await getBreedInfoOffsets(pe),
     E.map((res) => {
-      const codecRes = decode(res.sectionData, resDirTableWithEntries);
+      const codecRes = decodeFromSection(res.section.info, res.sectionData);
       if (E.isRight(codecRes)) {
         getFlatDataEntriesWithData(
           buffer,
