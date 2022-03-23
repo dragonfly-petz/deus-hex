@@ -13,6 +13,7 @@ import {
 const numberTypes = {
   UInt32LE: 4,
   UInt16LE: 2,
+  UInt8: 1,
 } as const;
 
 type NumberType = keyof typeof numberTypes;

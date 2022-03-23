@@ -5,6 +5,7 @@ import {
 } from '../object';
 import { E } from '../fp-ts/fp';
 import { Codec } from './codec';
+import { assertEqual } from '../assert';
 
 interface TypedProperty<PropertyName, Type, Context> {
   propertyName: PropertyName;
@@ -31,13 +32,13 @@ function sequenceProperties<A extends TypedPropertyArray, Context>(
     decode: (buffer, offset, context) => {
       const entries = new Array<EntryTuples<SequenceProperties<A>>>();
       let bytesRead = 0;
-      for (const prop of props) {
-        const res = prop.codec.decode(buffer, offset + bytesRead, context);
+      for (const propDef of props) {
+        const res = propDef.codec.decode(buffer, offset + bytesRead, context);
         if (E.isLeft(res)) {
           return res;
         }
         bytesRead += res.right.bytesRead;
-        entries.push([prop.propertyName, res.right.result] as any);
+        entries.push([propDef.propertyName, res.right.result] as any);
       }
       return E.right({
         result: unsafeObjectFromEntries(entries) as SequenceProperties<A>,
@@ -46,9 +47,9 @@ function sequenceProperties<A extends TypedPropertyArray, Context>(
     },
     encode: (a, buffer, offset, context) => {
       let bytesWritten = 0;
-      for (const prop of props) {
-        bytesWritten += prop.codec.encode(
-          a[prop.propertyName as keyof typeof a],
+      for (const propDef of props) {
+        bytesWritten += propDef.codec.encode(
+          a[propDef.propertyName as keyof typeof a],
           buffer,
           offset + bytesWritten,
           context
@@ -75,7 +76,19 @@ function listWithLength<A, Context>(
 ): Codec<Array<A>, Context> {
   return {
     typeLabels: [...codec.typeLabels, 'listWithLength'],
-    encode: (a, buffer, offset) => {},
+    encode: (a, buffer, offset, context) => {
+      assertEqual(a.length, num, `Expected list length to equal codec num`);
+      let bytesWritten = 0;
+      for (let i = 0; i < num; i++) {
+        bytesWritten += codec.encode(
+          a[i],
+          buffer,
+          offset + bytesWritten,
+          context
+        );
+      }
+      return bytesWritten;
+    },
     decode: (buffer, offset, context) => {
       const result = new Array<A>();
       let bytesRead = 0;
@@ -105,7 +118,21 @@ function withFollowingEntries<
 ): Codec<A & { [K in EntriesKey]: Array<B> }, Context> {
   return {
     typeLabels: [...startCodec.typeLabels, 'withFollowingEntries'],
-    encode: (a, buffer, offset) => {},
+    encode: (a, buffer, offset, context) => {
+      let bytesWritten = startCodec.encode(a, buffer, offset, context);
+      const entriesLength = a[entriesLengthKey];
+      const subCodec = listWithLength(
+        entriesLength as unknown as number,
+        entryCodec
+      );
+      bytesWritten += subCodec.encode(
+        a[entriesKey],
+        buffer,
+        offset + bytesWritten,
+        context
+      );
+      return bytesWritten;
+    },
     decode: (buffer, offset, context) => {
       const val = startCodec.decode(buffer, offset, context);
       if (E.isLeft(val)) return val;
@@ -130,6 +157,7 @@ function withFollowingEntries<
 }
 
 export const combinators = {
+  listWithLength,
   withFollowingEntries,
   sequenceProperties,
   prop,
