@@ -2,12 +2,15 @@ import { pipe } from 'fp-ts/function';
 import path from 'path';
 import {
   getFileInfo,
+  getResourceSectionData,
+  parsePE,
   renameClothingFile,
 } from '../main/app/pe-files/pe-files-util';
 import { E } from '../common/fp-ts/fp';
 import { getTestResourcesPath } from '../common/asset-path';
 import { withTempDir } from '../main/app/file/temp-file';
 import { fsPromises } from '../main/app/util/fs-promises';
+import { encodeToSection } from '../common/petz/codecs/pe-rsrc';
 
 describe('pe-rsrc', () => {
   test('read .clo file', async () => {
@@ -52,5 +55,27 @@ describe('pe-rsrc', () => {
       expect(fileInfo.displayName).toEqual('Dragonly');
       expect(fileInfo.spriteName).toEqual('Sprite_Clot_Dragonflyer');
     });
+  });
+
+  test('rsrc section codec identity', async () => {
+    const srcFilePath = getTestResourcesPath('Nosepest.clo');
+    const codecRes = pipe(
+      await getFileInfo(srcFilePath),
+      E.chain((it) => it.codecRes),
+      E.getOrElseW(() => {
+        throw new Error('Expected right');
+      })
+    );
+    const buf = await fsPromises.readFile(srcFilePath);
+    const pe = await parsePE(buf);
+    const sectionData = pipe(
+      await getResourceSectionData(pe),
+      E.getOrElseW(() => {
+        throw new Error('Expected right');
+      })
+    );
+
+    const encodedBuffer = encodeToSection(sectionData.section.info, codecRes);
+    expect(sectionData.sectionData.equals(encodedBuffer)).toEqual(true);
   });
 });

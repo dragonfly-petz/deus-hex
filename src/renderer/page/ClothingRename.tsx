@@ -48,7 +48,7 @@ export const ClothingRename = () => {
         const res = await mainIpc.getClothingFileInfo(it);
         if (E.isRight(res)) {
           if (E.isRight(res.right.codecRes)) {
-            console.log(res.right.codecRes.right.result);
+            console.log(res.right.codecRes.right);
           }
         }
         fileInfoNode.setValue(res);

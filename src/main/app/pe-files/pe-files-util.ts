@@ -56,7 +56,7 @@ function removeSymbolsNumber(buf: Buffer) {
   buf.writeUInt32LE(0, symbolNumberOffset);
 }
 
-async function parsePE(buffer: Buffer) {
+export async function parsePE(buffer: Buffer) {
   return PE.NtExecutable.from(buffer);
 }
 

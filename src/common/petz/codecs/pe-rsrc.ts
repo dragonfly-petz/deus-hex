@@ -2,25 +2,24 @@
 import { pipe } from 'fp-ts/function';
 import { Either } from 'fp-ts/Either';
 import { ImageSectionHeader } from 'pe-library/dist/format/ImageSectionHeaderArray';
-import * as Buffer from 'buffer';
 import { combinators as c } from '../../codec/combinator';
 import { primitives as p } from '../../codec/primitive';
 import { taggedValue, TaggedValue } from '../../tagged-value';
 import { Codec, CodecType, decode, EncodeCallback } from '../../codec/codec';
 import { E } from '../../fp-ts/fp';
 import { run } from '../../function';
+import { isNully, nullable } from '../../null';
+import { assertEqual } from '../../assert';
 
-interface PeRsrcContext {
-  sectionRvaOffset: number;
-  resDirectoryStringCallbacks: Array<EncodeCallback>;
-  resDataCallbacks: Array<EncodeCallback>;
-}
+type PeRsrcContext = ReturnType<typeof defaultPeRsrcContext>;
 
-export function defaultPeRsrcContext(sectionRvaOffset: number): PeRsrcContext {
+export function defaultPeRsrcContext(sectionRvaOffset: number) {
   return {
     sectionRvaOffset,
-    resDirectoryStringCallbacks: [],
-    resDataCallbacks: [],
+    resDirectoryStringStartOffset: nullable<number>(),
+    resDataStartOffset: nullable<number>(),
+    resDirectoryStringCallbacks: new Array<EncodeCallback>(),
+    resDataCallbacks: new Array<EncodeCallback>(),
   };
 }
 
@@ -49,7 +48,9 @@ type ResDataEntryBase = CodecType<typeof resDataEntryBaseCodec>;
 export type ResDataEntry = ResDataEntryBase & { data: Uint8Array };
 const resDataEntryCodec: Codec<ResDataEntry, PeRsrcContext> = {
   typeLabels: ['resDataEntry'],
-  encode: (a, buffer, offset, context) => {},
+  encode: (a, buffer, offset, context) => {
+    // max of the end of these is where resource data starts
+  },
   decode: (buffer, offset, context) => {
     const baseRes = resDataEntryBaseCodec.decode(buffer, offset, context);
 
@@ -87,17 +88,82 @@ const resDirEntryBaseCodec = c.sequenceProperties('resDirEntryBase', [
   c.prop('nameOrId', p.uInt32LE),
   c.prop('offset', p.uInt32LE),
 ]);
+const highBit = 0x80000000;
 
 function mkResDirEntryCodec(
   entryType: 'name' | 'id'
 ): Codec<ResDirEntry, PeRsrcContext> {
   return {
     typeLabels: ['resDirEntry', entryType],
-    encode: (a, buffer, offset) => {},
+    encode: (a, buffer, offset, context) => {
+      if (entryType === 'name') {
+        assertEqual(
+          a.name.tag,
+          'stringId',
+          'Expected a string name for a name entry type'
+        );
+      } else {
+        assertEqual(
+          a.name.tag,
+          'id',
+          'Expected an id name for an id entry type'
+        );
+      }
+      const offsetForNext = offset + 8;
+      const offsetToStore =
+        a.val.tag === 'resDir' ? offsetForNext | highBit : offsetForNext;
+
+      const entryData: CodecType<typeof resDirEntryBaseCodec> = {
+        nameOrId: a.name.tag === 'id' ? a.name.value : 0,
+        offset: offsetToStore,
+      };
+      if (a.name.tag === 'stringId') {
+        const nameToSave = a.name.value;
+        context.resDirectoryStringCallbacks.push((buf, off) => {
+          resDirEntryBaseCodec.encode(
+            {
+              ...entryData,
+              offset: off | highBit,
+            },
+            buffer,
+            offset,
+            context
+          );
+          return p.unicode2ByteStringWithLengthPrefix.encode(
+            nameToSave,
+            buf,
+            off,
+            context
+          );
+        });
+      }
+      const bytesWritten = resDirEntryBaseCodec.encode(
+        entryData,
+        buffer,
+        offset,
+        context
+      );
+      if (a.val.tag === 'resData') {
+        resDataEntryCodec.encode(a.val.value, buffer, offset, context);
+      } else {
+        resDirTableWithEntries.encode(
+          a.val.value,
+          buffer,
+          offset + bytesWritten,
+          context
+        );
+      }
+      // max of the end of these is where resource directory string starts
+
+      context.resDirectoryStringStartOffset = Math.max(
+        bytesWritten,
+        context.resDirectoryStringStartOffset ?? 0
+      );
+      return bytesWritten;
+    },
     decode: (buffer, offset, context) => {
       const baseRes = resDirEntryBaseCodec.decode(buffer, offset, context);
       if (E.isLeft(baseRes)) return baseRes;
-      const highBit = 0x80000000;
 
       const nameRes = run(() => {
         if (entryType === 'name') {
@@ -163,6 +229,34 @@ export type ResDirTable = CodecType<typeof resDirTableWithEntries>;
 
 export function decodeFromSection(info: ImageSectionHeader, buffer: Buffer) {
   const context = defaultPeRsrcContext(info.virtualAddress);
-  const codecRes = decode(buffer, resDirTableWithEntries, 0, context);
-  return codecRes;
+  return decode(buffer, resDirTableWithEntries, 0, context);
+}
+
+export function encodeToSection(info: ImageSectionHeader, table: ResDirTable) {
+  const context = defaultPeRsrcContext(info.virtualAddress);
+  const buffer = Buffer.from(new Uint8Array(1e6));
+  resDirTableWithEntries.encode(table, buffer, 0, context);
+  if (isNully(context.resDirectoryStringStartOffset)) {
+    throw new Error(
+      'Expected to find resDirectoryStringStartOffset in context'
+    );
+  }
+  if (isNully(context.resDataStartOffset)) {
+    throw new Error('Expected to find resDataStartOffset in context');
+  }
+  let dirBytesWritten = 0;
+  for (const callback of context.resDirectoryStringCallbacks) {
+    dirBytesWritten += callback(
+      buffer,
+      context.resDirectoryStringStartOffset + dirBytesWritten
+    );
+  }
+  let dataBytesWritten = 0;
+  for (const callback of context.resDataCallbacks) {
+    dataBytesWritten += callback(
+      buffer,
+      context.resDataStartOffset + dataBytesWritten
+    );
+  }
+  return buffer;
 }
