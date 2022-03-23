@@ -20,8 +20,8 @@ import {
 } from '../../../common/petz/codecs/pe-rsrc';
 import {
   bytesToString,
+  readUint8Array,
   toArrayBuffer,
-  toUint8Array,
 } from '../../../common/buffer';
 
 export async function withTempFile<A>(block: (filePath: string) => Promise<A>) {
@@ -279,7 +279,7 @@ export function getFlatDataEntriesWithData(
       it.entry.dataRva - header.virtualAddress + header.pointerToRawData;
     return {
       ...it,
-      data: toUint8Array(buffer, fileOffset, it.entry.size),
+      data: readUint8Array(buffer, fileOffset, it.entry.size),
     };
   });
 }

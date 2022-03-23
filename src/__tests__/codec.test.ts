@@ -2,13 +2,16 @@ import { Chance } from 'chance';
 import { primitives as p } from '../common/codec/primitive';
 import { E } from '../common/fp-ts/fp';
 import { Codec } from '../common/codec/codec';
+import { bytesToString, stringToBytes } from '../common/buffer';
 
 type CodecGenerator<A> = () => { val: A; byteLength: number; codec: Codec<A> };
 
 function withChance(block: (chance: Chance.Chance) => () => void) {
   const chance = new Chance(new Chance().string({ length: 8 }));
+  // eslint-disable-next-line no-console
+  console.log(`USING CHANCE SEED: "${chance.seed}"`);
   // eslint-disable-next-line jest/valid-describe-callback
-  describe(`ChanceSeed: ${chance.seed}`, block(chance));
+  describe(`WithChance`, block(chance));
 }
 
 function testCodec<A>(codecName: string, codecGen: CodecGenerator<A>) {
@@ -35,9 +38,12 @@ function repeatTest<A extends readonly unknown[]>(
   name: string,
   ...args: A
 ) {
-  for (let i = 0; i < times; i++) {
-    testBlock(`${name}:${i}`, ...args);
-  }
+  // eslint-disable-next-line jest/valid-title
+  describe(name, () => {
+    for (let i = 0; i < times; i++) {
+      testBlock(`${name}: ${i}`, ...args);
+    }
+  });
 }
 
 function mkCodecTest<A>(name: string, codec: CodecGenerator<A>) {
@@ -74,9 +80,25 @@ const mkCodecTests = (chance: Chance.Chance) => {
         byteLength: length,
       };
     }),
+    mkCodecTest('unicode2ByteStringWithLengthPrefix', () => {
+      const string = chance.string({
+        length: chance.integer({ min: 0, max: 200 }),
+      });
+      const byteLength = 2 + string.length * 2;
+      return {
+        codec: p.unicode2ByteStringWithLengthPrefix,
+        val: string,
+        byteLength,
+      };
+    }),
   ];
 };
-
+describe('utility', () => {
+  test('bytesToString', () => {
+    const string = 'asdfsadf';
+    expect(bytesToString(stringToBytes(string))).toEqual(string);
+  });
+});
 describe('codec', () => {
   withChance((chance) => {
     return () => {

@@ -2,7 +2,13 @@ import { E } from '../fp-ts/fp';
 import { Codec } from './codec';
 import { objectEntries, unsafeObjectFromEntries } from '../object';
 import { assertEqual } from '../assert';
-import { bytesToString, toUint16Array, toUint8Array } from '../buffer';
+import {
+  bytesToString,
+  readUint16Array,
+  readUint8Array,
+  stringToBytes,
+  writeUint16Array,
+} from '../buffer';
 
 const numberTypes = {
   UInt32LE: 4,
@@ -45,7 +51,7 @@ function mkUint8Array(length: number): Codec<Uint8Array> {
     typeLabels: ['uInt8Array'],
     decode: (buffer, offset) => {
       return E.right({
-        result: toUint8Array(buffer, offset, length),
+        result: readUint8Array(buffer, offset, length),
         bytesRead: length,
       });
     },
@@ -59,10 +65,17 @@ function mkUint8Array(length: number): Codec<Uint8Array> {
 
 const unicode2ByteStringWithLengthPrefix: Codec<string> = {
   typeLabels: ['2ByteStringWithLengthPrefix'],
-  encode: (a, buffer, offset, context) => {},
+  encode: (a, buffer, offset) => {
+    const asBytes = stringToBytes(a);
+    const uint16 = new Uint16Array(asBytes);
+    const { length } = uint16;
+    buffer.writeUInt16LE(length, offset);
+    writeUint16Array(buffer, uint16, offset + 2);
+    return 2 + length * 2;
+  },
   decode: (buffer, offset) => {
     const length = buffer.readUInt16LE(offset);
-    const arr = toUint16Array(buffer, offset + 2, length);
+    const arr = readUint16Array(buffer, offset + 2, length);
     const result = bytesToString(arr);
     return E.right({
       bytesRead: 2 + length * 2,

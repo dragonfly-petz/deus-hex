@@ -17,6 +17,10 @@ export function bytesToString(bytes: ArrayLike<number>) {
     .join('');
 }
 
+export function stringToBytes(string: string) {
+  return string.split('').map((it) => it.charCodeAt(0));
+}
+
 export function debugBuffer(
   buf: ArrayLike<number>,
   offset: number,
@@ -40,7 +44,7 @@ export function debugBuffer(
   globalLogger.info(bytesToString(bytes));
 }
 
-export function toUint8Array(buf: Buffer, offset: number, length: number) {
+export function readUint8Array(buf: Buffer, offset: number, length: number) {
   const arr = new Uint8Array(length);
   for (let i = 0; i < length; i++) {
     arr[i] = buf[offset + i];
@@ -48,10 +52,21 @@ export function toUint8Array(buf: Buffer, offset: number, length: number) {
   return arr;
 }
 
-export function toUint16Array(buf: Buffer, offset: number, length: number) {
+export function readUint16Array(buf: Buffer, offset: number, length: number) {
   const arr = new Uint16Array(length);
   for (let i = 0; i < length; i++) {
     arr[i] = buf.readUInt16LE(offset + i * 2);
+  }
+  return arr;
+}
+
+export function writeUint16Array(
+  buf: Buffer,
+  arr: Uint16Array,
+  offset: number
+) {
+  for (let i = 0; i < arr.length; i++) {
+    buf.writeUInt16LE(arr[i], offset + i * 2);
   }
   return arr;
 }
