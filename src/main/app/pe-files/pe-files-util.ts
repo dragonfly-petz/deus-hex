@@ -1,46 +1,16 @@
-import { app } from 'electron';
 import path from 'path';
 import * as PE from 'pe-library';
 import { identity, pipe } from 'fp-ts/function';
-import { uuidV4 } from '../../../common/uuid';
 import { globalLogger } from '../../../common/logger';
 import { fsPromises } from '../util/fs-promises';
-import { run } from '../../../common/function';
-import { isDev } from '../util';
-import { getRepoRootPath } from '../asset-path';
 import { assertEqual } from '../../../common/assert';
 import { safeLast, sortByNumeric, sumBy } from '../../../common/array';
 import { E } from '../../../common/fp-ts/fp';
 import { PromiseInner } from '../../../common/promise';
 import { isNotNully, isNully } from '../../../common/null';
-import {
-  decodeFromSection,
-  ResDataEntry,
-  ResDirTable,
-} from '../../../common/petz/codecs/pe-rsrc';
-import {
-  bytesToString,
-  readUint8Array,
-  toArrayBuffer,
-} from '../../../common/buffer';
-
-export async function withTempFile<A>(block: (filePath: string) => Promise<A>) {
-  const tmpPath = await run(async () => {
-    if (isDev()) {
-      await fsPromises.mkdir(getRepoRootPath('tmp'), { recursive: true });
-      // starting with a "." stops electronmon from relaunching
-      return getRepoRootPath('tmp', '.devTempFile');
-    }
-    const tempDir = app.getPath('temp');
-    const tempFileName = uuidV4();
-    return path.join(tempDir, tempFileName);
-  });
-
-  globalLogger.info(`Using temp file at ${tmpPath}`);
-  const res = await block(tmpPath);
-  await fsPromises.rm(tmpPath);
-  return res;
-}
+import { decodeFromSection } from '../../../common/petz/codecs/pe-rsrc';
+import { bytesToString, toArrayBuffer } from '../../../common/buffer';
+import { withTempFile } from '../file/temp-file';
 
 function toHexString(arr: Uint8Array) {
   return Array.from(arr)
@@ -243,60 +213,15 @@ export async function setBreedId(pe: PE.NtExecutable, breedId: number) {
   );
 }
 
-interface DataEntryWithId {
-  entry: ResDataEntry;
-  ids: Array<number>;
-}
-
-function getFlatDataEntries(
-  resDirTable: ResDirTable,
-  ids: Array<number>
-): Array<DataEntryWithId> {
-  const out = new Array<DataEntryWithId>();
-  for (const entry of [...resDirTable.entriesId, ...resDirTable.entriesName]) {
-    if (entry.val.tag === 'resData') {
-      out.push({
-        ids: [...ids, entry.name.value],
-        entry: entry.val.value,
-      });
-    } else {
-      out.push(
-        ...getFlatDataEntries(entry.val.value, [...ids, entry.name.value])
-      );
-    }
-  }
-  return out;
-}
-
-export function getFlatDataEntriesWithData(
-  buffer: Buffer,
-  header: PE.Format.ImageSectionHeader,
-  resDirTable: ResDirTable
-) {
-  const flatEntries = getFlatDataEntries(resDirTable, []);
-  return flatEntries.map((it) => {
-    const fileOffset =
-      it.entry.dataRva - header.virtualAddress + header.pointerToRawData;
-    return {
-      ...it,
-      data: readUint8Array(buffer, fileOffset, it.entry.size),
-    };
-  });
-}
-
 export async function getResourceFileInfo(buffer: Buffer) {
   const pe = await parsePE(buffer);
   return pipe(
     await getBreedInfoOffsets(pe),
     E.map((res) => {
-      const codecRes = decodeFromSection(res.section.info, res.sectionData);
-      if (E.isRight(codecRes)) {
-        getFlatDataEntriesWithData(
-          buffer,
-          res.section.info,
-          codecRes.right.result
-        );
-      }
+      const codecRes = pipe(
+        decodeFromSection(res.section.info, res.sectionData),
+        E.map((it) => it.result)
+      );
       const breedId = res.sectionData.readUInt32LE(res.breedIdOffset);
       const displayName = readNullTerminatedString(
         res.sectionData,

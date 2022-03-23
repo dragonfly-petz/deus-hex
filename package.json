@@ -100,7 +100,7 @@
   ],
   "jest": {
     "testURL": "http://localhost/",
-    "testEnvironment": "jsdom",
+    "testEnvironment": "node",
     "transform": {
       "\\.(ts|tsx|js|jsx)$": "ts-jest"
     },

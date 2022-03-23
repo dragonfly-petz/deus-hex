@@ -49,10 +49,6 @@ export const ClothingRename = () => {
         if (E.isRight(res)) {
           if (E.isRight(res.right.codecRes)) {
             console.log(res.right.codecRes.right.result);
-            console.log(
-              res.right.codecRes.right.result.entriesId[0].val.value
-                .entriesId[0].val.value.entriesId[0].val.value
-            );
           }
         }
         fileInfoNode.setValue(res);
