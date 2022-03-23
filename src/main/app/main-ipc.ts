@@ -17,7 +17,12 @@ import {
 import { parseLines, serializeLines } from '../../common/petz/parser/lines';
 import { isDev } from './util';
 import { isNully } from '../../common/null';
-import { getFileInfo, renameClothingFile } from './pe-files/pe-files-util';
+import {
+  getFileInfo,
+  renameClothingFile,
+  updateResourceSection,
+} from './pe-files/pe-files-util';
+import { ResourceEntryId } from '../../common/petz/codecs/rsrc-utility';
 
 export class MainIpc {
   async getAppVersion() {
@@ -55,6 +60,14 @@ export class MainIpc {
     toInternal: string
   ) {
     return renameClothingFile(filePath, toFileName, fromInternal, toInternal);
+  }
+
+  async updateResourceSection(
+    filepath: string,
+    id: ResourceEntryId,
+    data: Uint8Array
+  ) {
+    return updateResourceSection(filepath, id, data);
   }
 }
 

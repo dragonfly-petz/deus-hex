@@ -8,9 +8,16 @@ import { safeLast, sortByNumeric, sumBy } from '../../../common/array';
 import { E } from '../../../common/fp-ts/fp';
 import { PromiseInner } from '../../../common/promise';
 import { isNotNully, isNully } from '../../../common/null';
-import { decodeFromSection } from '../../../common/petz/codecs/pe-rsrc';
+import {
+  decodeFromSection,
+  encodeToSection,
+} from '../../../common/petz/codecs/pe-rsrc';
 import { bytesToString, toArrayBuffer } from '../../../common/buffer';
 import { withTempFile } from '../file/temp-file';
+import {
+  getDataEntryById,
+  ResourceEntryId,
+} from '../../../common/petz/codecs/rsrc-utility';
 
 function toHexString(arr: Uint8Array) {
   return Array.from(arr)
@@ -220,7 +227,10 @@ export async function getResourceFileInfo(buffer: Buffer) {
     E.map((res) => {
       const codecRes = pipe(
         decodeFromSection(res.section.info, res.sectionData),
-        E.map((it) => it.result)
+        E.map((it) => it.result),
+        E.getOrElseW((it) => {
+          throw new Error(`left: ${it}`);
+        })
       );
       const breedId = res.sectionData.readUInt32LE(res.breedIdOffset);
       const displayName = readNullTerminatedString(
@@ -324,6 +334,42 @@ export async function renameClothingFile(
       changes: offsetsChanged.map(toStringResult),
     });
   });
+}
+
+export async function updateResourceSection(
+  filepath: string,
+  id: ResourceEntryId,
+  data: Uint8Array
+) {
+  const buf = await fsPromises.readFile(filepath);
+  const codecRes = pipe(
+    await getFileInfo(filepath),
+    E.map((it) => it.codecRes),
+    E.getOrElseW(() => {
+      throw new Error('Expected right');
+    })
+  );
+  const dataEntry = getDataEntryById(codecRes, id);
+  if (isNully(dataEntry)) {
+    throw new Error(`No data entry found for id ${JSON.stringify(id)}`);
+  }
+  dataEntry.data = data;
+  const pe = await parsePE(buf);
+  const sectionData = pipe(
+    await getResourceSectionData(pe),
+    E.getOrElseW(() => {
+      throw new Error('Expected right');
+    })
+  );
+  const encodedBuffer = encodeToSection(sectionData.section.info, codecRes);
+
+  const newSection = {
+    ...sectionData.section,
+    data: encodedBuffer,
+  };
+  pe.setSectionByEntry(PE_RESOURCE_ENTRY, newSection);
+  const generated = pe.generate();
+  await fsPromises.writeFile(filepath, Buffer.from(generated));
 }
 
 export type RenameClothingFileResult = PromiseInner<

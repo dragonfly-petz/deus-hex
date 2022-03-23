@@ -21,6 +21,9 @@ import { classNames } from '../../common/react';
 import { Button } from '../framework/Button';
 import { isDev } from '../../main/app/util';
 import { E } from '../../common/fp-ts/fp';
+import { TextArea } from '../framework/form/TextArea';
+import { getDataEntryById } from '../../common/petz/codecs/rsrc-utility';
+import { bytesToString, stringToBytes } from '../../common/buffer';
 
 const debugNewFileName = isDev() ? 'Zragonl ffffff' : '';
 const debugNewItemName = isDev() ? 'Zrangonlierfs' : '';
@@ -35,7 +38,7 @@ export const ClothingRename = () => {
   if (isDev()) {
     setTimeout(() => {
       pickedPathNode.setValue(
-        'C:\\Users\\franc\\Documents\\Petz\\Petz 4\\Resource\\Clothes\\Argyle Sweater.clo'
+        'C:\\Users\\franc\\Documents\\Petz\\Petz 4\\Resource\\Clothes\\Nosepest.clo'
       );
     }, 500);
   }
@@ -48,9 +51,7 @@ export const ClothingRename = () => {
       throwRejection(async () => {
         const res = await mainIpc.getClothingFileInfo(it);
         if (E.isRight(res)) {
-          if (E.isRight(res.right.codecRes)) {
-            console.log(res.right.codecRes.right);
-          }
+          console.log(res.codecRes);
         }
         fileInfoNode.setValue(res);
       });
@@ -88,8 +89,31 @@ export const ClothingRename = () => {
           newItemName.length === oldItemName.length
             ? null
             : `Item name must be same length (${oldItemName.length}) as old file name (${oldItemName}). Currently it is ${newItemName.length}`;
+        const dataId = {
+          type: 'CLZ',
+          level: 'CLOT_SILNOSEPEST',
+          language: 1033,
+        };
+        const data = getDataEntryById(output.codecRes, dataId)?.data ?? [
+          40, 40,
+        ];
+        const lnzDataNode = useMkReactiveNodeMemo(bytesToString(data));
         return (
           <div className={style.form}>
+            <h2>Linz editor</h2>
+            <TextArea valueNode={lnzDataNode} />
+            <Button
+              label="SAVE IT!!!"
+              onClick={() => {
+                throwRejection(async () => {
+                  await mainIpc.updateResourceSection(
+                    output.filePath,
+                    dataId,
+                    new Uint8Array(stringToBytes(lnzDataNode.getValue()))
+                  );
+                });
+              }}
+            />
             <h2>File info</h2>
             {unsafeObjectEntries(output).map(([key, val]) => {
               if (key === 'pathParsed' || key === 'codecRes') return null;

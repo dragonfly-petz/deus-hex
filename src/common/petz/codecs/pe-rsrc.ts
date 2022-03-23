@@ -260,6 +260,8 @@ export function decodeFromSection(info: ImageSectionHeader, buffer: Buffer) {
 
 export function encodeToSection(info: ImageSectionHeader, table: ResDirTable) {
   const context = defaultPeRsrcContext(info.virtualAddress);
+  // hopefully this is big enough - just easier than using
+  // a growing buffer
   const buffer = Buffer.from(new Uint8Array(1e6));
   nextResDirTableOffset(table, context);
   resDirTableCodec.encode(table, buffer, 0, context);
