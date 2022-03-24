@@ -24,6 +24,7 @@ import { E } from '../../common/fp-ts/fp';
 import { TextArea } from '../framework/form/TextArea';
 import { getDataEntryById } from '../../common/petz/codecs/rsrc-utility';
 import { bytesToString, stringToBytes } from '../../common/buffer';
+import { globalLogger } from '../../common/logger';
 
 const debugNewFileName = isDev() ? 'Zragonl ffffff' : '';
 const debugNewItemName = isDev() ? 'Zrangonlierfs' : '';
@@ -51,7 +52,7 @@ export const ClothingRename = () => {
       throwRejection(async () => {
         const res = await mainIpc.getClothingFileInfo(it);
         if (E.isRight(res)) {
-          console.log(res.codecRes);
+          globalLogger.log(res.right.codecRes);
         }
         fileInfoNode.setValue(res);
       });
@@ -97,6 +98,7 @@ export const ClothingRename = () => {
         const data = getDataEntryById(output.codecRes, dataId)?.data ?? [
           40, 40,
         ];
+        // eslint-disable-next-line react-hooks/rules-of-hooks
         const lnzDataNode = useMkReactiveNodeMemo(bytesToString(data));
         return (
           <div className={style.form}>
@@ -193,7 +195,7 @@ export const ClothingRename = () => {
             {renderIf(output.warnIdFailed.length > 0, () => {
               return (
                 <div className={style.warn}>
-                  WARNING: can't guarantee unique id as encountered errors
+                  WARNING: can&#39;t guarantee unique id as encountered errors
                   (files listed below)
                 </div>
               );

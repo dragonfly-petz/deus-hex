@@ -124,14 +124,10 @@ function mkResDirEntryCodec(
           'Expected an id name for an id entry type'
         );
       }
-      console.log(`encoding resdir at ${offset}`);
       const nameOrIdOffset = offset;
       if (a.name.tag === 'stringId') {
         const nameToSave = a.name.value;
         context.resDirectoryStringCallbacks.push((buf, off) => {
-          console.log(
-            `writing ${(off + highBit).toString(16)} as string offset`
-          );
           p.uInt32LE.encode(off + highBit, buffer, nameOrIdOffset, context);
           return p.unicode2ByteStringWithLengthPrefix.encode(
             nameToSave,
@@ -154,7 +150,6 @@ function mkResDirEntryCodec(
           offsetOffset,
           context
         );
-        console.log(`encoding sub resdirtable at ${nextTableOffset}`);
 
         const tableBytesWritten = resDirTableCodec.encode(
           a.val.value,

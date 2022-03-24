@@ -39,7 +39,9 @@ export function debugBuffer(
     bytes.push(buf[i]);
     strings.push(buf[i].toString(16));
   }
-  console.log(`DebugBuffer: Length: ${length}, bytesRead: ${bytes.length}`);
+  globalLogger.info(
+    `DebugBuffer: Length: ${length}, bytesRead: ${bytes.length}`
+  );
   globalLogger.info(strings.join(' '));
   globalLogger.info(bytesToString(bytes));
 }

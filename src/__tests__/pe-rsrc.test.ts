@@ -66,7 +66,7 @@ describe('pe-rsrc', () => {
       const srcFilePath = getTestResourcesPath('Nosepest.clo');
       const codecRes = pipe(
         await getFileInfo(srcFilePath),
-        E.chain((it) => it.codecRes),
+        E.map((it) => it.codecRes),
         E.getOrElseW(() => {
           throw new Error('Expected right');
         })
@@ -100,7 +100,7 @@ describe('pe-rsrc', () => {
       await fsPromises.writeFile(tmpFile, Buffer.from(generated));
       const codecRes2 = pipe(
         await getFileInfo(tmpFile),
-        E.chain((it) => it.codecRes),
+        E.map((it) => it.codecRes),
         E.getOrElseW(() => {
           throw new Error('Expected right');
         })
