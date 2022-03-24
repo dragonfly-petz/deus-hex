@@ -1,12 +1,15 @@
+import { pipe } from 'fp-ts/function';
 import { E } from '../fp-ts/fp';
 import { Codec } from './codec';
 import { objectEntries, unsafeObjectFromEntries } from '../object';
 import { assertEqual } from '../assert';
 import {
   bytesToString,
+  bytesToStringNullTerminated,
   readUint16Array,
   readUint8Array,
   stringToBytes,
+  stringToBytesPadNull,
   writeUint16Array,
 } from '../buffer';
 
@@ -64,29 +67,71 @@ function mkUint8Array(length: number): Codec<Uint8Array> {
   };
 }
 
+function mkNullTerminatedAsciiStringFixedLength(length: number): Codec<string> {
+  return {
+    typeLabels: ['asciiString'],
+    decode: (buffer, offset) => {
+      const arr = readUint8Array(buffer, offset, length);
+      const result = bytesToStringNullTerminated(arr);
+      return E.right({
+        result,
+        bytesRead: length,
+      });
+    },
+    encode: (a, buffer, offset) => {
+      const asBytes = stringToBytesPadNull(a, length);
+      buffer.set(new Uint8Array(asBytes), offset);
+      return length;
+    },
+  };
+}
+
+function mkUnicode2ByteString(length: number): Codec<string> {
+  return {
+    typeLabels: ['unicode2ByteString'],
+    decode: (buffer, offset) => {
+      const arr = readUint16Array(buffer, offset, length);
+      const result = bytesToString(arr);
+      return E.right({
+        result,
+        bytesRead: length * 2,
+      });
+    },
+    encode: (a, buffer, offset) => {
+      const asBytes = stringToBytes(a);
+      const uint16 = new Uint16Array(asBytes);
+      return writeUint16Array(buffer, uint16, offset);
+    },
+  };
+}
+
 const unicode2ByteStringWithLengthPrefix: Codec<string> = {
   typeLabels: ['2ByteStringWithLengthPrefix'],
-  encode: (a, buffer, offset) => {
-    const asBytes = stringToBytes(a);
-    const uint16 = new Uint16Array(asBytes);
-    const { length } = uint16;
-    buffer.writeUInt16LE(length, offset);
-    writeUint16Array(buffer, uint16, offset + 2);
-    return 2 + length * 2;
-  },
-  decode: (buffer, offset) => {
+  decode: (buffer, offset, context) => {
     const length = buffer.readUInt16LE(offset);
-    const arr = readUint16Array(buffer, offset + 2, length);
-    const result = bytesToString(arr);
-    return E.right({
-      bytesRead: 2 + length * 2,
-      result,
-    });
+    const strCodec = mkUnicode2ByteString(length);
+    return pipe(
+      strCodec.decode(buffer, offset + 2, context),
+      E.map((it) => {
+        return {
+          result: it.result,
+          bytesRead: it.bytesRead + 2,
+        };
+      })
+    );
+  },
+  encode: (a, buffer, offset, context) => {
+    const strCodec = mkUnicode2ByteString(a.length);
+    buffer.writeUInt16LE(a.length, offset);
+    const bytesWritten = strCodec.encode(a, buffer, offset + 2, context);
+    return bytesWritten + 2;
   },
 };
 
 export const primitives = {
   ...numberCodecs,
   unicode2ByteStringWithLengthPrefix,
+  mkNullTerminatedAsciiStringFixedLength,
   mkUint8Array,
+  mkUnicode2ByteString,
 };

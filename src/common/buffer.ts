@@ -17,8 +17,28 @@ export function bytesToString(bytes: ArrayLike<number>) {
     .join('');
 }
 
+export function bytesToStringNullTerminated(bytes: ArrayLike<number>) {
+  let str = '';
+  for (let i = 0; i < bytes.length; i++) {
+    const byte = bytes[i];
+    if (byte === 0) {
+      break;
+    }
+    str += String.fromCharCode(byte);
+  }
+  return str;
+}
+
 export function stringToBytes(string: string) {
   return string.split('').map((it) => it.charCodeAt(0));
+}
+
+export function stringToBytesPadNull(string: string, length: number) {
+  const arr = new Array(length).fill(0);
+  string.split('').forEach((it, idx) => {
+    arr[idx] = it.charCodeAt(0);
+  });
+  return arr;
 }
 
 export function debugBuffer(
@@ -70,5 +90,5 @@ export function writeUint16Array(
   for (let i = 0; i < arr.length; i++) {
     buf.writeUInt16LE(arr[i], offset + i * 2);
   }
-  return arr;
+  return arr.length * 2;
 }

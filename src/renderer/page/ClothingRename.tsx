@@ -25,6 +25,7 @@ import { TextArea } from '../framework/form/TextArea';
 import { getDataEntryById } from '../../common/petz/codecs/rsrc-utility';
 import { bytesToString, stringToBytes } from '../../common/buffer';
 import { globalLogger } from '../../common/logger';
+import { run } from '../../common/function';
 
 const debugNewFileName = isDev() ? 'Zragonl ffffff' : '';
 const debugNewItemName = isDev() ? 'Zrangonlierfs' : '';
@@ -52,7 +53,7 @@ export const ClothingRename = () => {
       throwRejection(async () => {
         const res = await mainIpc.getClothingFileInfo(it);
         if (E.isRight(res)) {
-          globalLogger.log(res.right.codecRes);
+          globalLogger.log(res.right.resDirTable);
         }
         fileInfoNode.setValue(res);
       });
@@ -95,7 +96,7 @@ export const ClothingRename = () => {
           level: 'CLOT_SILNOSEPEST',
           language: 1033,
         };
-        const data = getDataEntryById(output.codecRes, dataId)?.data ?? [
+        const data = getDataEntryById(output.resDirTable, dataId)?.data ?? [
           40, 40,
         ];
         // eslint-disable-next-line react-hooks/rules-of-hooks
@@ -117,12 +118,25 @@ export const ClothingRename = () => {
               }}
             />
             <h2>File info</h2>
-            {unsafeObjectEntries(output).map(([key, val]) => {
-              if (key === 'pathParsed' || key === 'codecRes') return null;
+            {run(() => {
+              const { rcData } = output.rcData;
+              const dataForOutput = {
+                filePath: output.filePath,
+                itemName: output.itemName,
+                breedId: rcData.breedId,
+                displayName: rcData.displayName,
+                spriteName: rcData.spriteName,
+              };
               return (
-                <div className={style.row} key={key}>
-                  {key}: {val}
-                </div>
+                <>
+                  {unsafeObjectEntries(dataForOutput).map(([key, val]) => {
+                    return (
+                      <div className={style.row} key={key}>
+                        {key}: {val}
+                      </div>
+                    );
+                  })}
+                </>
               );
             })}
 

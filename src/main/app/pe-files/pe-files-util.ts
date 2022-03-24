@@ -11,13 +11,15 @@ import { isNotNully, isNully } from '../../../common/null';
 import {
   decodeFromSection,
   encodeToSection,
+  ResDirTable,
 } from '../../../common/petz/codecs/pe-rsrc';
-import { bytesToString, toArrayBuffer } from '../../../common/buffer';
+import { bytesToString } from '../../../common/buffer';
 import { withTempFile } from '../file/temp-file';
 import {
   getDataEntryById,
   ResourceEntryId,
 } from '../../../common/petz/codecs/rsrc-utility';
+import { rcDataCodec, rcDataId } from '../../../common/petz/codecs/rcdata';
 
 function toHexString(arr: Uint8Array) {
   return Array.from(arr)
@@ -115,7 +117,7 @@ function toStringResult(newRe: RenameResultBytes) {
 
 export const PE_RESOURCE_ENTRY = 2;
 
-export async function getResourceSectionData(pe: PE.NtExecutable) {
+export function getResourceSectionData(pe: PE.NtExecutable) {
   const section = pe.getSectionByEntry(PE_RESOURCE_ENTRY);
   if (isNully(section)) {
     return E.left('Could not find resource section');
@@ -128,31 +130,6 @@ export async function getResourceSectionData(pe: PE.NtExecutable) {
     sectionData: Buffer.from(sectionData),
     section,
   });
-}
-
-export async function getBreedInfoOffsets(pe: PE.NtExecutable) {
-  return pipe(
-    await getResourceSectionData(pe),
-    E.chain(({ sectionData, section }) => {
-      // this doesn't work in all cases
-      const spriteOffset = sectionData.indexOf(stringToAsciiUint8('Sprite_'));
-      if (spriteOffset < 0) {
-        return E.left("Couldn't find offset for Sprite_");
-      }
-      const mainSpriteNameOffset = spriteOffset;
-      const spriteNameLength = 0x20;
-      const displayNameOffset = spriteOffset + spriteNameLength;
-      const displayNameLength = 0x20;
-      const breedIdOffset = spriteOffset + spriteNameLength + displayNameLength;
-      return E.right({
-        section,
-        sectionData,
-        mainSpriteNameOffset,
-        displayNameOffset,
-        breedIdOffset,
-      });
-    })
-  );
 }
 
 async function getExistingBreedInfos(targetFile: string) {
@@ -205,17 +182,72 @@ export async function getFileInfo(filePath: string) {
 
 export type FileInfo = PromiseInner<ReturnType<typeof getFileInfo>>;
 
+function getRcData(table: ResDirTable) {
+  return pipe(
+    getDataEntryById(table, rcDataId),
+    E.fromNullable('No rcData found'),
+    E.chain((res) => {
+      return pipe(
+        rcDataCodec.decode(Buffer.from(res.data), 0, null),
+        E.map((it) => {
+          return {
+            rcData: it.result,
+            rcDataEntry: res,
+          };
+        })
+      );
+    })
+  );
+}
+
+export function getResourceData(pe: PE.NtExecutable) {
+  return pipe(
+    getResourceSectionData(pe),
+    E.chain((res) => {
+      return decodeFromSection(res.section.info, res.sectionData);
+    }),
+    E.chain((resDirTable) => {
+      return pipe(
+        getRcData(resDirTable.result),
+        E.map((res) => ({
+          rcData: res,
+          resDirTable: resDirTable.result,
+        }))
+      );
+    })
+  );
+}
+
 export async function setBreedId(pe: PE.NtExecutable, breedId: number) {
   return pipe(
-    await getBreedInfoOffsets(pe),
-    E.map((res) => {
-      res.sectionData.writeUInt32LE(breedId, res.breedIdOffset);
-      const newSection = {
-        ...res.section,
-        data: toArrayBuffer(res.sectionData),
-      };
-      pe.setSectionByEntry(PE_RESOURCE_ENTRY, newSection);
-      return true;
+    getResourceSectionData(pe),
+    E.map((sectionData) => {
+      return pipe(
+        getResourceData(pe),
+        E.map((resData) => {
+          const rcDataReEncodedBuffer = Buffer.from(
+            new Uint8Array(resData.rcData.rcDataEntry.data.length)
+          );
+          const newRcData = {
+            ...resData.rcData.rcData,
+            breedId,
+          };
+          rcDataCodec.encode(newRcData, rcDataReEncodedBuffer, 0, null);
+          resData.rcData.rcDataEntry.data = new Uint8Array(
+            rcDataReEncodedBuffer
+          );
+          const encodedBuffer = encodeToSection(
+            sectionData.section.info,
+            resData.resDirTable
+          );
+          const newSection = {
+            ...sectionData.section,
+            data: encodedBuffer,
+          };
+          pe.setSectionByEntry(PE_RESOURCE_ENTRY, newSection);
+          return true;
+        })
+      );
     })
   );
 }
@@ -223,32 +255,13 @@ export async function setBreedId(pe: PE.NtExecutable, breedId: number) {
 export async function getResourceFileInfo(buffer: Buffer) {
   const pe = await parsePE(buffer);
   return pipe(
-    await getBreedInfoOffsets(pe),
+    getResourceData(pe),
     E.map((res) => {
-      const codecRes = pipe(
-        decodeFromSection(res.section.info, res.sectionData),
-        E.map((it) => it.result),
-        E.getOrElseW((it) => {
-          throw new Error(`left: ${it}`);
-        })
-      );
-      const breedId = res.sectionData.readUInt32LE(res.breedIdOffset);
-      const displayName = readNullTerminatedString(
-        res.sectionData,
-        res.displayNameOffset
-      );
-      const spriteName = readNullTerminatedString(
-        res.sectionData,
-        res.mainSpriteNameOffset
-      );
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      const itemName = spriteName.split('_').pop()!;
+      const itemName = res.rcData.rcData.spriteName.split('_').pop()!;
       return {
-        displayName,
-        breedId,
-        spriteName,
+        ...res,
         itemName,
-        codecRes,
       };
     })
   );
@@ -314,7 +327,7 @@ export async function renameClothingFile(
     const warnIdFailed = existingInfos.filter(E.isLeft).map((it) => it.left);
     const existingBreedIds = existingInfos
       .filter(E.isRight)
-      .map((it) => it.right.breedId);
+      .map((it) => it.right.rcData.rcData.breedId);
     sortByNumeric(existingBreedIds, identity);
     const highest = safeLast(existingBreedIds) ?? 20000;
     const newId = highest + 1;
@@ -344,7 +357,7 @@ export async function updateResourceSection(
   const buf = await fsPromises.readFile(filepath);
   const codecRes = pipe(
     await getFileInfo(filepath),
-    E.map((it) => it.codecRes),
+    E.map((it) => it.resDirTable),
     E.getOrElseW(() => {
       throw new Error('Expected right');
     })

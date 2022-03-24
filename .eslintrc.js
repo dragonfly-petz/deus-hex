@@ -12,6 +12,7 @@ module.exports = {
     '@typescript-eslint/no-explicit-any': 'off',
     'class-methods-use-this': 'off',
     'react/require-default-props': 'off',
+    '@typescript-eslint/no-non-null-assertion': 'off',
     '@typescript-eslint/no-use-before-define': [
       'off',
       {

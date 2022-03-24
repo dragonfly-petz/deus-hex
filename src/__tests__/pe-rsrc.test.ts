@@ -7,29 +7,29 @@ import {
   PE_RESOURCE_ENTRY,
   renameClothingFile,
 } from '../main/app/pe-files/pe-files-util';
-import { E } from '../common/fp-ts/fp';
+import { E, Either } from '../common/fp-ts/fp';
 import { getTestResourcesPath } from '../common/asset-path';
 import { withTempDir, withTempFile } from '../main/app/file/temp-file';
 import { fsPromises } from '../main/app/util/fs-promises';
 import {
   decodeFromSection,
   encodeToSection,
+  ResDirTable,
 } from '../common/petz/codecs/pe-rsrc';
+import {
+  getAllDataEntriesWithId,
+  resourceEntryIdEqual,
+} from '../common/petz/codecs/rsrc-utility';
+import { RcData, rcDataCodec, rcDataId } from '../common/petz/codecs/rcdata';
 
 describe('pe-rsrc', () => {
   test('read .clo file', async () => {
     const filePath = getTestResourcesPath('Nosepest.clo');
-    const fileInfoRes = await getFileInfo(filePath);
-    expect(E.isRight(fileInfoRes)).toEqual(true);
-    const fileInfo = pipe(
-      fileInfoRes,
-      E.getOrElseW(() => {
-        throw new Error('Expected right');
-      })
-    );
-    expect(fileInfo.breedId).toEqual(20836);
-    expect(fileInfo.displayName).toEqual('Nosepest');
-    expect(fileInfo.spriteName).toEqual('Sprite_Clot_SilNosepest');
+    const fileInfo = fromEither(await getFileInfo(filePath));
+    const { rcData } = fileInfo.rcData;
+    expect(rcData.breedId).toEqual(20836);
+    expect(rcData.displayName).toEqual('Nosepest');
+    expect(rcData.spriteName).toEqual('Sprite_Clot_SilNosepest');
   });
 
   test('clothing rename', async () => {
@@ -47,50 +47,43 @@ describe('pe-rsrc', () => {
         'Dragonflyer'
       );
       const tempDestPath = path.join(tempDir, toName);
-      const res = await getFileInfo(tempDestPath);
-      expect(E.isRight(res)).toEqual(true);
-      const fileInfo = pipe(
-        res,
-        E.getOrElseW(() => {
-          throw new Error('Expected right');
-        })
-      );
-      expect(fileInfo.breedId).toEqual(20837);
-      expect(fileInfo.displayName).toEqual('Dragonly');
-      expect(fileInfo.spriteName).toEqual('Sprite_Clot_Dragonflyer');
+
+      const fileInfo = fromEither(await getFileInfo(tempDestPath));
+      const { rcData } = fileInfo.rcData;
+      expect(rcData.breedId).toEqual(20837);
+      expect(rcData.displayName).toEqual('Dragonly');
+      expect(rcData.spriteName).toEqual('Sprite_Clot_Dragonflyer');
     });
   });
 
   test('rsrc section codec identity', async () => {
     return withTempFile(async (tmpFile) => {
       const srcFilePath = getTestResourcesPath('Nosepest.clo');
-      const codecRes = pipe(
-        await getFileInfo(srcFilePath),
-        E.map((it) => it.codecRes),
-        E.getOrElseW(() => {
-          throw new Error('Expected right');
-        })
-      );
+      const { resDirTable } = fromEither(await getFileInfo(srcFilePath));
       const buf = await fsPromises.readFile(srcFilePath);
       const pe = await parsePE(buf);
-      const sectionData = pipe(
-        await getResourceSectionData(pe),
-        E.getOrElseW(() => {
-          throw new Error('Expected right');
-        })
+      const sectionData = fromEither(await getResourceSectionData(pe));
+
+      const data = checkRcData(resDirTable, nosepestExpectedRcData);
+      const rcDataReEncodedBuffer = Buffer.from(
+        new Uint8Array(data.rcDataEntry.entry.data.length)
+      );
+      rcDataCodec.encode(data.rcData, rcDataReEncodedBuffer, 0, null);
+      expect(new Uint8Array(rcDataReEncodedBuffer)).toEqual(
+        data.rcDataEntry.entry.data
+      );
+      data.rcDataEntry.entry.data = new Uint8Array(rcDataReEncodedBuffer);
+
+      const encodedBuffer = encodeToSection(
+        sectionData.section.info,
+        resDirTable
       );
 
-      const encodedBuffer = encodeToSection(sectionData.section.info, codecRes);
+      const decodedAgain = fromEither(
+        decodeFromSection(sectionData.section.info, encodedBuffer)
+      ).result;
 
-      const decodedAgain = pipe(
-        decodeFromSection(sectionData.section.info, encodedBuffer),
-        E.map((it) => it.result),
-        E.getOrElseW((e) => {
-          throw new Error(`Expected right, got: ${e}`);
-        })
-      );
-
-      expect(decodedAgain).toEqual(codecRes);
+      expect(decodedAgain).toEqual(resDirTable);
       const newSection = {
         ...sectionData.section,
         data: encodedBuffer,
@@ -98,14 +91,41 @@ describe('pe-rsrc', () => {
       pe.setSectionByEntry(PE_RESOURCE_ENTRY, newSection);
       const generated = pe.generate();
       await fsPromises.writeFile(tmpFile, Buffer.from(generated));
-      const codecRes2 = pipe(
-        await getFileInfo(tmpFile),
-        E.map((it) => it.codecRes),
-        E.getOrElseW(() => {
-          throw new Error('Expected right');
-        })
-      );
-      expect(codecRes2).toEqual(codecRes);
+
+      const resDirTable2 = fromEither(await getFileInfo(tmpFile)).resDirTable;
+      checkRcData(resDirTable2, nosepestExpectedRcData);
+      expect(resDirTable2).toEqual(resDirTable);
     });
   });
 });
+
+function fromEither<A>(either: Either<string, A>) {
+  return pipe(
+    either,
+    E.getOrElseW((err) => {
+      throw new Error(`Expected right but got left with message: ${err}`);
+    })
+  );
+}
+
+const nosepestExpectedRcData: RcData = {
+  unknownFlag: 1,
+  spriteName: 'Sprite_Clot_SilNosepest',
+  displayName: 'Nosepest',
+  breedId: 20836,
+  tag: 3,
+};
+
+function checkRcData(table: ResDirTable, expected: RcData) {
+  const allDataEntries = getAllDataEntriesWithId(table);
+  const rcDataEntry = allDataEntries.find((it) =>
+    resourceEntryIdEqual(it.id, rcDataId)
+  );
+  expect(rcDataEntry).not.toBeUndefined();
+  const rcData = fromEither(
+    rcDataCodec.decode(Buffer.from(rcDataEntry!.entry.data), 0, null)
+  ).result;
+
+  expect(rcData).toEqual(expected);
+  return { rcData, rcDataEntry: rcDataEntry! };
+}
