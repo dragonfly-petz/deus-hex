@@ -1,5 +1,6 @@
 export function isDev() {
   return (
+    // this works in dom because of variable replacement I think
     process.env.NODE_ENV === 'development' || process.env.DEBUG_PROD === 'true'
   );
 }

@@ -17,6 +17,10 @@ export class ReactiveNode<A> {
     }
   }
 
+  setValueFn(val: (old: A) => A) {
+    return this.setValue(val(this.value));
+  }
+
   listen(listener: ReactiveNodeListener<A>) {
     this.listeners.add(listener);
     return () => {

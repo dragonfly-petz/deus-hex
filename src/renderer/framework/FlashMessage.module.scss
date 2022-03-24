@@ -1,0 +1,30 @@
+$fmColor: var(--fmColor);
+
+.flashMessages {
+
+  position: absolute;
+  bottom: 5px;
+  right: 5px;
+  display: flex;
+  flex-direction: column-reverse;
+}
+
+
+.message {
+  max-width: 600px;
+  padding: 10px;
+  background-color: $fmColor;
+  box-shadow: 0 3px 7px rgba(0, 0, 0, 0.3);
+
+  .title {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 6px;
+  }
+
+  .body {
+
+
+  }
+
+}

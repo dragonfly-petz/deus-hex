@@ -1,10 +1,11 @@
 import React, { useContext } from 'react';
 import { isNully } from '../../common/null';
-import type { MainIpc } from '../../main/app/main-ipc';
+import type { MainIpcBase } from '../../main/app/main-ipc';
 import { getContextBridgeIpcRenderer } from '../context-bridge';
-import { IpcHandler } from '../../common/ipc';
-import { useMkAppReactiveNodes } from './app-reactive-nodes';
+import { IpcHandler, mainIpcChannel } from '../../common/ipc';
+import { AppReactiveNodes } from './app-reactive-nodes';
 import { PromiseInner } from '../../common/promise';
+import { DomIpcBase } from '../dom-ipc';
 
 function contextName<Name extends string>(name: Name): `${Name}Context` {
   return `${name}Context`;
@@ -36,15 +37,19 @@ export function mkNullableContext<A>() {
   };
 }
 
-export type AppContext = PromiseInner<ReturnType<typeof useMkAppContext>>;
+export type AppContext = PromiseInner<ReturnType<typeof mkAppContext>>;
 
-export async function useMkAppContext() {
-  const appReactiveNodes = useMkAppReactiveNodes();
-  const ipc = getContextBridgeIpcRenderer();
-  const mainIpc = new IpcHandler<MainIpc>(ipc).target;
+export async function mkAppContext(
+  domIpc: DomIpcBase,
+  appReactiveNodes: AppReactiveNodes
+) {
+  const mainIpc = new IpcHandler<MainIpcBase>(
+    mainIpcChannel,
+    getContextBridgeIpcRenderer()
+  ).target;
   const isDev = await mainIpc.isDev();
   const appVersion = await mainIpc.getAppVersion();
-  return { mainIpc, isDev, appVersion, appReactiveNodes };
+  return { mainIpc, isDev, appVersion, appReactiveNodes, domIpc };
 }
 
 export const { useAppContext, AppContextContext } =

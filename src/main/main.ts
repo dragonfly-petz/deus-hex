@@ -1,18 +1,40 @@
-import { dialog } from 'electron';
+import { app, dialog } from 'electron';
 import { isDev } from './app/util';
 import { init } from './app/init';
 import { initElectronLogger } from './app/main-logger';
-import { globalLogger } from '../common/logger';
-import { installErrorHandler } from '../common/error';
+import { globalLogger, initGlobalLogger } from '../common/logger';
+import { initGlobalErrorReporter } from '../common/error';
+import { DomIpc } from '../renderer/dom-ipc';
+import { isNully } from '../common/null';
+import { throwRejection } from '../common/promise';
 
-installErrorHandler((err) => {
-  if (isDev()) {
+let domIpc: DomIpc | null;
+
+initGlobalErrorReporter(
+  (err) => {
+    globalLogger.info('Uncaught main Error Handler: ');
     globalLogger.error(err.toStringMessage());
-  } else {
-    globalLogger.error(err.toStringMessage());
-    dialog.showErrorBox('Error in main', err.toStringMessage());
+    if (isNully(domIpc)) {
+      dialog.showErrorBox('Uncaught error in main', err.toStringMessage());
+    } else {
+      // noinspection JSIgnoredPromiseFromCall
+      domIpc.addUncaughtError('Uncaught error in main', err.toStringMessage());
+    }
+  },
+  (err) => {
+    globalLogger.info('Caught main Error Handler: ');
+    globalLogger.warn(err);
+    if (isNully(domIpc)) {
+      dialog.showErrorBox('Caught error in main', err);
+    } else {
+      // noinspection JSIgnoredPromiseFromCall
+      domIpc.addCaughtError('Caught error in main', err);
+    }
   }
-});
+);
+
+initGlobalLogger('main');
+
 initElectronLogger();
 
 if (process.env.NODE_ENV === 'production') {
@@ -25,4 +47,9 @@ if (isDev()) {
   // eslint-disable-next-line global-require
   require('electron-debug')();
 }
-init().catch(globalLogger.error);
+
+throwRejection(async () => {
+  await app.whenReady();
+  const res = await init();
+  domIpc = res.domIpc;
+});

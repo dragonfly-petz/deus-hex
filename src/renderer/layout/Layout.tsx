@@ -2,6 +2,7 @@ import style from './layout.module.scss';
 import { useAppContext, useAppReactiveNodes } from '../context/context';
 import { useReactiveNode } from '../reactive-state/reactive-hooks';
 import { Tabs, tabs } from './Tabs';
+import { FlashMessages } from '../framework/FlashMessage';
 
 export const Layout = () => {
   const { appVersion } = useAppContext();
@@ -22,6 +23,7 @@ export const Layout = () => {
       <div className={style.mainContent}>
         <TabContent />
       </div>
+      <FlashMessages />
     </div>
   );
 };

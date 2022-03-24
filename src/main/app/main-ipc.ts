@@ -1,11 +1,6 @@
 import { app, ipcMain } from 'electron';
 import { pipe } from 'fp-ts/function';
 import {
-  IpcCallMessage,
-  IpcReplyMessage,
-  mainIpcChannel,
-} from '../../common/ipc';
-import {
   parseAddBallsBreed,
   serializeClothingAddBalls,
 } from '../../common/petz/parser/addballs';
@@ -16,15 +11,19 @@ import {
 } from '../../common/petz/transform/transforms';
 import { parseLines, serializeLines } from '../../common/petz/parser/lines';
 import { isDev } from './util';
-import { isNully } from '../../common/null';
 import {
   getFileInfo,
   renameClothingFile,
   updateResourceSection,
 } from './pe-files/pe-files-util';
 import { ResourceEntryId } from '../../common/petz/codecs/rsrc-utility';
+import {
+  connectIpc,
+  mainIpcChannel,
+  WrapWithCaughtError,
+} from '../../common/ipc';
 
-export class MainIpc {
+export class MainIpcBase {
   async getAppVersion() {
     return app.getVersion();
   }
@@ -50,6 +49,7 @@ export class MainIpc {
   }
 
   async getClothingFileInfo(file: string) {
+    throw new Error('TRYUE ME BRO');
     return getFileInfo(file);
   }
 
@@ -71,20 +71,12 @@ export class MainIpc {
   }
 }
 
-export function connectIpc<A>(target: A) {
-  ipcMain.on(mainIpcChannel, async (event, arg: IpcCallMessage) => {
-    const targetAsAny = target as any;
-    if (isNully(targetAsAny[arg.funcName])) {
-      throw new Error(`Ipc target had no property named ${arg.funcName}`);
-    }
-    if (typeof targetAsAny[arg.funcName] !== 'function') {
-      throw new Error(`Ipc target ${arg.funcName} is not a function`);
-    }
-    const res = await targetAsAny[arg.funcName](...arg.args);
-    const message: IpcReplyMessage = {
-      id: arg.id,
-      result: res,
-    };
-    event.reply(mainIpcChannel, message);
+export type MainIpc = WrapWithCaughtError<MainIpcBase>;
+
+export function mkAndConnectMainIpc() {
+  const mainIpc = new MainIpcBase();
+  connectIpc(mainIpc, mainIpcChannel, {
+    tag: 'main',
+    on: ipcMain.on.bind(ipcMain),
   });
 }

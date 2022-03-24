@@ -1,14 +1,33 @@
 import { render } from 'react-dom';
 import App from './App';
-import { installErrorHandler } from '../common/error';
-import { globalLogger } from '../common/logger';
+import { initGlobalErrorReporter } from '../common/error';
+import { globalLogger, initGlobalLogger } from '../common/logger';
 import './reset.global.scss';
 import './app.global.scss';
+import { mkAndConnectDomIpc } from './dom-ipc';
+import { mkAppReactiveNodes } from './context/app-reactive-nodes';
 
-installErrorHandler((err) => {
-  globalLogger.error(err.toStringMessage());
-  // eslint-disable-next-line no-alert
-  window.alert(`Error in DOM: ${err.toStringMessage()}`);
+initGlobalLogger('dom');
+const appReactiveNodes = mkAppReactiveNodes();
+const domIpc = mkAndConnectDomIpc({
+  flashMessages: appReactiveNodes.flashMessages,
 });
+initGlobalErrorReporter(
+  (err) => {
+    globalLogger.info('Uncaught DOM Error Handler: ');
+    globalLogger.error(err.toStringMessage());
+    // noinspection JSIgnoredPromiseFromCall
+    domIpc.addUncaughtError('Uncaught DOM error', err.toStringMessage());
+  },
+  (err) => {
+    globalLogger.info('Caught DOM Error Handler: ');
+    globalLogger.warn(err);
+    // noinspection JSIgnoredPromiseFromCall
+    domIpc.addCaughtError('Caught DOM error', err);
+  }
+);
 
-render(<App />, document.getElementById('root'));
+render(
+  <App domIpc={domIpc} appReactiveNodes={appReactiveNodes} />,
+  document.getElementById('root')
+);

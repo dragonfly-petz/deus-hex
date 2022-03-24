@@ -1,5 +1,5 @@
 import { Either } from 'fp-ts/Either';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { isNully, nullable } from '../../common/null';
 import { E } from '../../common/fp-ts/fp';
 import { throwRejection } from '../../common/promise';
@@ -59,3 +59,17 @@ export const RenderAsync = <A,>({
   }, [value]);
   return renderNullable(val, render);
 };
+
+export function renderLineBreaks(str: string) {
+  const broken = str.split(/\r?\n|\r/g);
+  return (
+    <>
+      {broken.map((it, idx) => (
+        <React.Fragment key={idx}>
+          {it}
+          <br />
+        </React.Fragment>
+      ))}
+    </>
+  );
+}
