@@ -45,6 +45,7 @@ export const FlashMessages = () => {
     <div className={style.flashMessages}>
       {messages.map((message) => (
         <div
+          key={message.id}
           style={toStyle(kindStyles[message.kind])}
           className={classNames(style.message)}
         >
