@@ -7,10 +7,6 @@ export interface DomIpcDeps {
   flashMessages: ReactiveNode<Map<string, FlashMessage>>;
 }
 
-export function defaultFlashMessages() {
-  return new Map<string, FlashMessage>();
-}
-
 export class DomIpcBase {
   constructor(private deps: DomIpcDeps) {}
 

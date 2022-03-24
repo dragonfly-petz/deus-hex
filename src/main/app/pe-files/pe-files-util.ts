@@ -37,15 +37,6 @@ function readChars(buf: Buffer, offset: number, length: number) {
   return strings.join('');
 }
 
-function readNullTerminatedString(buf: Buffer, offset: number) {
-  const strings = new Array<string>();
-  for (let i = offset; i < buf.length; i++) {
-    if (buf[i] === 0) break;
-    strings.push(String.fromCharCode(buf[i]));
-  }
-  return strings.join('');
-}
-
 function toHex(val: number, pad = 8) {
   return `0x${val.toString(16).padStart(pad, '0')}`;
 }

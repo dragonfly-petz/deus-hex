@@ -5,7 +5,7 @@ import { getContextBridgeIpcRenderer } from '../context-bridge';
 import { IpcHandler, mainIpcChannel } from '../../common/ipc';
 import { AppReactiveNodes } from './app-reactive-nodes';
 import { PromiseInner } from '../../common/promise';
-import { DomIpcBase } from '../dom-ipc';
+import type { DomIpcBase } from '../dom-ipc';
 
 function contextName<Name extends string>(name: Name): `${Name}Context` {
   return `${name}Context`;

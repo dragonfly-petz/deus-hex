@@ -1,14 +1,12 @@
 $fmColor: var(--fmColor);
 
 .flashMessages {
-
   position: absolute;
   bottom: 5px;
   right: 5px;
   display: flex;
   flex-direction: column-reverse;
 }
-
 
 .message {
   max-width: 600px;
@@ -23,8 +21,5 @@ $fmColor: var(--fmColor);
   }
 
   .body {
-
-
   }
-
 }

@@ -12,7 +12,10 @@ export default function App({
   domIpc: DomIpcBase;
   appReactiveNodes: AppReactiveNodes;
 }) {
-  const appContextP = useMemo(() => mkAppContext(domIpc, appReactiveNodes), []);
+  const appContextP = useMemo(
+    () => mkAppContext(domIpc, appReactiveNodes),
+    [domIpc, appReactiveNodes]
+  );
   return (
     <RenderAsync
       value={appContextP}

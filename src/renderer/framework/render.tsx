@@ -65,6 +65,7 @@ export function renderLineBreaks(str: string) {
   return (
     <>
       {broken.map((it, idx) => (
+        // eslint-disable-next-line react/no-array-index-key
         <React.Fragment key={idx}>
           {it}
           <br />
