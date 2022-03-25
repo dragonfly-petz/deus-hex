@@ -1,14 +1,18 @@
 import { connectIpc, domIpcChannel, WrapWithCaughtError } from '../common/ipc';
 import { getContextBridgeIpcRenderer } from './context-bridge';
-import { ReactiveNode } from './reactive-state/reactive-node';
+import { ReactiveNode } from '../common/reactive/reactive-node';
 import { FlashMessage } from './framework/FlashMessage';
+import { UserSettings } from '../main/app/persisted/user-settings';
+import { Listenable } from '../common/reactive/listener';
 
 export interface DomIpcDeps {
-  flashMessages: ReactiveNode<Map<string, FlashMessage>>;
+  flashMessagesNode: ReactiveNode<Map<string, FlashMessage>>;
 }
 
 export class DomIpcBase {
   constructor(private deps: DomIpcDeps) {}
+
+  userSettingsListenable = new Listenable<[UserSettings]>();
 
   // where modal / alert is appropriate
   async addUncaughtError(title: string, err: string) {
@@ -21,10 +25,14 @@ export class DomIpcBase {
   }
 
   async addFlashMessage(fm: FlashMessage) {
-    this.deps.flashMessages.setValueFn((it) => {
+    this.deps.flashMessagesNode.setValueFn((it) => {
       it.set(fm.id, fm);
       return it;
     });
+  }
+
+  async updateUserSettings(us: UserSettings) {
+    this.userSettingsListenable.notify(us);
   }
 }
 

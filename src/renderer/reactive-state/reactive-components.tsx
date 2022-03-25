@@ -1,6 +1,6 @@
-import { ReactiveNode } from './reactive-node';
+import { ReactiveNode } from '../../common/reactive/reactive-node';
 import { RenderFunction } from '../framework/render';
-import { useReactiveNode } from './reactive-hooks';
+import { useReactiveVal } from './reactive-hooks';
 
 export function WithReactiveNode<A>({
   node,
@@ -9,7 +9,7 @@ export function WithReactiveNode<A>({
   node: ReactiveNode<A>;
   render: RenderFunction<{ value: A }>;
 }) {
-  const result = useReactiveNode(node);
+  const result = useReactiveVal(node);
   return render({ value: result });
 }
 

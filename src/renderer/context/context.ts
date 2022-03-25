@@ -3,9 +3,13 @@ import { isNully } from '../../common/null';
 import type { MainIpcBase } from '../../main/app/main-ipc';
 import { getContextBridgeIpcRenderer } from '../context-bridge';
 import { IpcHandler, mainIpcChannel } from '../../common/ipc';
-import { AppReactiveNodes } from './app-reactive-nodes';
+import {
+  AppReactiveNodesStatic,
+  mkAsyncReactiveNodes,
+} from './app-reactive-nodes';
 import { PromiseInner } from '../../common/promise';
 import type { DomIpcBase } from '../dom-ipc';
+import { throwFromEither } from '../../common/fp-ts/either';
 
 function contextName<Name extends string>(name: Name): `${Name}Context` {
   return `${name}Context`;
@@ -41,15 +45,26 @@ export type AppContext = PromiseInner<ReturnType<typeof mkAppContext>>;
 
 export async function mkAppContext(
   domIpc: DomIpcBase,
-  appReactiveNodes: AppReactiveNodes
+  appReactiveNodes: AppReactiveNodesStatic
 ) {
   const mainIpc = new IpcHandler<MainIpcBase>(
     mainIpcChannel,
     getContextBridgeIpcRenderer()
   ).target;
-  const isDev = await mainIpc.isDev();
-  const appVersion = await mainIpc.getAppVersion();
-  return { mainIpc, isDev, appVersion, appReactiveNodes, domIpc };
+
+  const isDev = throwFromEither(await mainIpc.isDev());
+  const appVersion = throwFromEither(await mainIpc.getAppVersion());
+  const asyncNodes = await mkAsyncReactiveNodes(mainIpc, domIpc);
+  return {
+    mainIpc,
+    isDev,
+    appVersion,
+    appReactiveNodes: {
+      ...appReactiveNodes,
+      ...asyncNodes,
+    },
+    domIpc,
+  };
 }
 
 export const { useAppContext, AppContextContext } =

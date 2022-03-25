@@ -2,9 +2,9 @@ import style from './ClothingRename.module.scss';
 import { DropFile } from '../framework/form/DropFile';
 import { clothingExtension } from '../../common/petz/file-types';
 import {
-  useListenReactiveNode,
+  useListenReactiveVal,
   useMkReactiveNodeMemo,
-  useReactiveNode,
+  useReactiveVal,
 } from '../reactive-state/reactive-hooks';
 import { isNully, nullable } from '../../common/null';
 import { useMainIpc } from '../context/context';
@@ -46,7 +46,7 @@ export const ClothingRename = () => {
   }
 
   const mainIpc = useMainIpc();
-  useListenReactiveNode(pickedPathNode, (it) => {
+  useListenReactiveVal(pickedPathNode, (it) => {
     if (isNully(it)) {
       fileInfoNode.setValue(null);
     } else {
@@ -78,9 +78,9 @@ export const ClothingRename = () => {
 
       {renderReactiveResult(fileInfoNode, (output) => {
         // eslint-disable-next-line react-hooks/rules-of-hooks
-        const newFileName = useReactiveNode(newFileNameNode);
+        const newFileName = useReactiveVal(newFileNameNode);
         // eslint-disable-next-line react-hooks/rules-of-hooks
-        const newItemName = useReactiveNode(newItemNameNode);
+        const newItemName = useReactiveVal(newItemNameNode);
         const oldFileName = output.pathParsed.name;
         const oldItemName = output.itemName;
         const fileNameInvalid =

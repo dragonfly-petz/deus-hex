@@ -1,13 +1,13 @@
-import { ReactiveNode } from '../../reactive-state/reactive-node';
+import { ReactiveNode } from '../../../common/reactive/reactive-node';
 import style from './TextArea.module.scss';
-import { useReactiveNode } from '../../reactive-state/reactive-hooks';
+import { useReactiveVal } from '../../reactive-state/reactive-hooks';
 
 export const TextArea = ({
   valueNode,
 }: {
   valueNode: ReactiveNode<string>;
 }) => {
-  const currentVal = useReactiveNode(valueNode);
+  const currentVal = useReactiveVal(valueNode);
 
   return (
     <textarea

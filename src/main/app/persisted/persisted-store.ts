@@ -8,6 +8,8 @@ import { fsPromises } from '../util/fs-promises';
 import { isObjectWithKey } from '../../../common/type-assertion';
 import { globalLogger } from '../../../common/logger';
 import { globalErrorReporter } from '../../../common/error';
+import { Listenable } from '../../../common/reactive/listener';
+import { AsyncSequence } from '../../../common/async-sequence';
 
 export class PersistedStore<A> {
   constructor(private name: string, private migration: MigrationWithTarget<A>) {
@@ -15,6 +17,10 @@ export class PersistedStore<A> {
       `Using persisted state "${name}" stored at ${this.getPath()}`
     );
   }
+
+  private readonly asyncSequence = new AsyncSequence();
+
+  readonly listenable = new Listenable<[A]>();
 
   private getPath() {
     return path.join(app.getPath('userData'), `deusHex_${this.name}.json`);
@@ -42,7 +48,10 @@ export class PersistedStore<A> {
 
   async save(val: A) {
     const toPersist = this.migration.toVersioned(val);
-    await fsPromises.writeFile(this.getPath(), JSON.stringify(toPersist));
-    return true;
+    return this.asyncSequence.sequence(async () => {
+      await fsPromises.writeFile(this.getPath(), JSON.stringify(toPersist));
+      this.listenable.notify(val);
+      return true;
+    });
   }
 }

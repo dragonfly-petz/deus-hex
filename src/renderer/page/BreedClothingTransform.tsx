@@ -7,7 +7,7 @@ import { useMainIpc } from '../context/context';
 import { isDev } from '../../main/app/util';
 import {
   useMkReactiveNodeMemo,
-  useReactiveNode,
+  useReactiveVal,
 } from '../reactive-state/reactive-hooks';
 import { E } from '../../common/fp-ts/fp';
 import { TextArea } from '../framework/form/TextArea';
@@ -44,7 +44,7 @@ const TransformText = ({
 }) => {
   const textNode = useMkReactiveNodeMemo(defaultVal ?? '');
   const resultNode = useMkReactiveNodeMemo(nullable<Either<string, string>>());
-  const result = useReactiveNode(resultNode);
+  const result = useReactiveVal(resultNode);
   return (
     <>
       <TextArea valueNode={textNode} />

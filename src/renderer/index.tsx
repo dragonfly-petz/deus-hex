@@ -5,13 +5,15 @@ import { globalLogger, initGlobalLogger } from '../common/logger';
 import './reset.global.scss';
 import './app.global.scss';
 import { mkAndConnectDomIpc } from './dom-ipc';
-import { mkAppReactiveNodes } from './context/app-reactive-nodes';
+import { mkStaticReactiveNodes } from './context/app-reactive-nodes';
 
 initGlobalLogger('dom');
-const appReactiveNodes = mkAppReactiveNodes();
+
+const appReactiveNodes = mkStaticReactiveNodes();
 const domIpc = mkAndConnectDomIpc({
-  flashMessages: appReactiveNodes.flashMessages,
+  flashMessagesNode: appReactiveNodes.flashMessagesNode,
 });
+
 initGlobalErrorReporter(
   (err) => {
     globalLogger.info('Uncaught DOM Error Handler: ');

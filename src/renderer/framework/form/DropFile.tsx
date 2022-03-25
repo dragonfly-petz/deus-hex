@@ -5,7 +5,7 @@ import { voidFn } from '../../../common/function';
 import { safeHead, tuple } from '../../../common/array';
 import {
   useMkReactiveNodeMemo,
-  useReactiveNode,
+  useReactiveVal,
 } from '../../reactive-state/reactive-hooks';
 import { classNames } from '../../../common/react';
 import { isNotNully, isNully, nullable } from '../../../common/null';
@@ -20,11 +20,11 @@ export const DropFile = ({
   onChange: (path: string | null) => void;
 }) => {
   const isOverNode = useMkReactiveNodeMemo(false);
-  const isOver = useReactiveNode(isOverNode);
+  const isOver = useReactiveVal(isOverNode);
   const droppedFileInfoNode = useMkReactiveNodeMemo(
     nullable<Either<string, string>>()
   );
-  const droppedFileInfo = useReactiveNode(droppedFileInfoNode);
+  const droppedFileInfo = useReactiveVal(droppedFileInfoNode);
 
   const { refSetter } = useMemoRef((div: HTMLDivElement) => {
     div.addEventListener('dragover', (ev) => {

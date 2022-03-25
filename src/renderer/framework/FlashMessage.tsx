@@ -2,7 +2,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTimes } from '@fortawesome/free-solid-svg-icons';
 import { useAppReactiveNodes } from '../context/context';
 import { uuidV4 } from '../../common/uuid';
-import { useReactiveNode } from '../reactive-state/reactive-hooks';
+import { useReactiveVal } from '../reactive-state/reactive-hooks';
 import { sortByNumeric } from '../../common/array';
 import style from './FlashMessage.module.scss';
 import { classNames } from '../../common/react';
@@ -37,8 +37,8 @@ const kindStyles: Record<
 };
 
 export const FlashMessages = () => {
-  const flashMessagesNode = useAppReactiveNodes().flashMessages;
-  const messages = Array.from(useReactiveNode(flashMessagesNode).values());
+  const { flashMessagesNode } = useAppReactiveNodes();
+  const messages = Array.from(useReactiveVal(flashMessagesNode).values());
   sortByNumeric(messages, (it) => it.created.getTime());
 
   return (

@@ -22,8 +22,12 @@ import {
   mainIpcChannel,
   WrapWithCaughtError,
 } from '../../common/ipc';
+import { UserSettings } from './persisted/user-settings';
+import { RemoteObject } from '../../common/reactive/remote-object';
 
 export class MainIpcBase {
+  constructor(private userSettingsRemote: RemoteObject<UserSettings>) {}
+
   async getAppVersion() {
     return app.getVersion();
   }
@@ -68,12 +72,22 @@ export class MainIpcBase {
   ) {
     return updateResourceSection(filepath, id, data);
   }
+
+  async setUserSettings(us: UserSettings) {
+    this.userSettingsRemote.setRemote(us);
+  }
+
+  async getUserSettings() {
+    return this.userSettingsRemote.getValue();
+  }
 }
 
 export type MainIpc = WrapWithCaughtError<MainIpcBase>;
 
-export function mkAndConnectMainIpc() {
-  const mainIpc = new MainIpcBase();
+export function mkAndConnectMainIpc(
+  userSettingsRemote: RemoteObject<UserSettings>
+) {
+  const mainIpc = new MainIpcBase(userSettingsRemote);
   connectIpc(mainIpc, mainIpcChannel, {
     tag: 'main',
     on: ipcMain.on.bind(ipcMain),

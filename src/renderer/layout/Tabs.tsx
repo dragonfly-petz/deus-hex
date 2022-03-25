@@ -2,7 +2,7 @@ import { FunctionalComponent } from '../framework/render';
 import { BreedClothingTransform } from '../page/BreedClothingTransform';
 import style from './layout.module.scss';
 import { useAppReactiveNodes } from '../context/context';
-import { useReactiveNode } from '../reactive-state/reactive-hooks';
+import { useReactiveVal } from '../reactive-state/reactive-hooks';
 import { classNames } from '../../common/react';
 import { ClothingRename } from '../page/ClothingRename';
 import { TabName, tabNames } from './tab-names';
@@ -25,7 +25,7 @@ export const tabs: Record<TabName, TabDef> = {
 
 export const Tabs = () => {
   const { currentTabNode } = useAppReactiveNodes();
-  const currentTab = useReactiveNode(currentTabNode);
+  const currentTab = useReactiveVal(currentTabNode);
 
   return (
     <div className={style.tabs}>

@@ -64,13 +64,16 @@ export class ErrorReporter {
   }
 
   caughtErrorToEitherJoin<A>(
-    val: CaughtErrorOrResult<Either<string, A>>
+    val: CaughtErrorOrResult<Either<string, A> | A>
   ): Either<string, A> {
     if (isCaughtError(val)) {
       this.caughtHandler(val.err);
       return E.left(`Caught error: ${val.err.substring(0, 30)}`);
     }
-    return val;
+    if (isObjectWithKey(val, '_tag')) {
+      return val;
+    }
+    return E.right(val);
   }
 }
 
