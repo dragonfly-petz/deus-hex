@@ -81,7 +81,9 @@ export class IpcHandler<A extends object>
   private handleReply(arg: IpcReplyMessage) {
     const resolve = this.resolveFunctions.get(arg.id);
     if (isNully(resolve)) {
-      throw new Error(`No resolution func found for id ${arg.id}`);
+      throw new Error(
+        `No resolution func found for id ${arg.id} on channel ${this.channel}`
+      );
     }
     this.resolveFunctions.delete(arg.id);
     resolve.resolve(globalErrorReporter.caughtErrorToEitherJoin(arg.result));

@@ -71,7 +71,7 @@ export async function createWindow() {
   checkForUpdates();
 
   return new Promise<AppWindow>((resolve) => {
-    window.webContents.on('did-finish-load', async () => {
+    window.webContents.once('did-finish-load', async () => {
       const domIpc = new IpcHandler<DomIpcBase>(domIpcChannel, {
         tag: 'mainToDom',
         on: ipcMain.on.bind(ipcMain),
