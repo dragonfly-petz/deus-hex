@@ -20,7 +20,9 @@ import {
 } from '../common/petz/codecs/rsrc-utility';
 import { RcData, rcDataCodec, rcDataId } from '../common/petz/codecs/rcdata';
 import { throwFromEither } from '../common/fp-ts/either';
+import { initGlobalLogger } from '../common/logger';
 
+initGlobalLogger('test');
 describe('pe-rsrc', () => {
   test('read .clo file', async () => {
     const filePath = getTestResourcesPath('Nosepest.clo');

@@ -19,7 +19,7 @@ export const Layout = () => {
       );
     setStyle();
     return userSettingsRemote.listenable.listen(setStyle);
-  }, []);
+  }, [userSettingsRemote]);
   return (
     <div className={style.main}>
       <div className={style.header}>
