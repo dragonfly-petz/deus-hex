@@ -46,6 +46,12 @@ export class ErrorReporter {
     this.uncaughtHandler(err);
   }
 
+  handleCaught(err: unknown) {
+    const asAppErr =
+      err instanceof AppErrorBase ? err : new AppErrorUnknown(err);
+    this.caughtHandler(asAppErr.toStringMessage());
+  }
+
   async caughtErrorToEither<A>(
     prom: Promise<CaughtErrorOrResult<A>>
   ): Promise<Either<string, A>> {

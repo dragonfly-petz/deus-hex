@@ -49,7 +49,6 @@ export class MainIpcBase {
   }
 
   async getClothingFileInfo(file: string) {
-    throw new Error('TRYUE ME BRO');
     return getFileInfo(file);
   }
 
