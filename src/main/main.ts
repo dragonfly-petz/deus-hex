@@ -49,6 +49,9 @@ if (isDev()) {
 }
 
 throwRejection(async () => {
+  globalLogger.info(
+    `\n\n*** Starting Deus Hex ***\n    version: ${app.getVersion()}\n\n`
+  );
   await app.whenReady();
   const res = await init();
   domIpc = res.domIpc;
