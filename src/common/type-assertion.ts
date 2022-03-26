@@ -16,3 +16,11 @@ export type AssertEqual<A, B> = A extends B
     ? true
     : false
   : false;
+
+export function isNever(_value: never): never {
+  throw new Error(
+    `isNever failed: ${JSON.stringify(
+      _value
+    )} (${typeof _value}) is not assignable to never`
+  );
+}

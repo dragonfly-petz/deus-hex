@@ -4,6 +4,7 @@ import { Button } from '../framework/Button';
 import { useAppContext, useAppReactiveNodes } from '../context/context';
 import { Heading } from './text';
 import { userSettingsDefault } from '../../main/app/persisted/user-settings';
+import logoImg from '../../../assets/logoImage.png';
 
 export const Header = () => {
   const { appVersion } = useAppContext();
@@ -11,6 +12,9 @@ export const Header = () => {
 
   return (
     <div className={style.header}>
+      <div className={style.logoImg}>
+        <img src={logoImg} />
+      </div>
       <div className={style.logoArea}>
         <div className={style.logo}>
           <Heading>Deus Hex</Heading>

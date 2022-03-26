@@ -1,0 +1,45 @@
+@use "../style/styleVar";
+@use "../style/mixins";
+
+.panel {
+  padding: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  .icon {
+    margin-right: 10px;
+
+
+  }
+
+  .message {
+
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
+.error {
+
+  background-color: styleVar.$errorBgColor;
+}
+
+.pending {
+  background-color: styleVar.$infoBgColor;
+
+  .icon {
+    animation-name: spin;
+    animation-duration: 1500ms;
+    animation-iteration-count: infinite;
+    animation-timing-function: linear;
+  }
+}

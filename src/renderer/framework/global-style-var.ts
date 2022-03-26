@@ -21,10 +21,10 @@ const globalStyleDef = {
 
   panelBorderColor: '#3d92dd',
 
-  infoBgColor: 'blue',
-  warnBgColor: 'orange',
-  errorBgColor: 'red',
-  successBgColor: 'green',
+  infoBgColor: '#abf3ff',
+  warnBgColor: '#fdf3d0',
+  errorBgColor: '#fdd0d0',
+  successBgColor: '#d0fde0',
 
   mainFont: 'Arial, sans-serif',
   mainFontColor: '#111',

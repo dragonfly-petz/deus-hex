@@ -4,7 +4,7 @@ import {
   parseAddBallsBreed,
   serializeClothingAddBalls,
 } from '../../common/petz/parser/addballs';
-import { E } from '../../common/fp-ts/fp';
+import { E, Either } from '../../common/fp-ts/fp';
 import {
   transformBreedAddBallsToClothing,
   transformBreedLinesToClothing,
@@ -24,6 +24,8 @@ import {
 } from '../../common/ipc';
 import { UserSettings } from './persisted/user-settings';
 import { RemoteObject } from '../../common/reactive/remote-object';
+
+export interface ResourcesInfo {}
 
 export class MainIpcBase {
   constructor(private userSettingsRemote: RemoteObject<UserSettings>) {}
@@ -79,6 +81,10 @@ export class MainIpcBase {
 
   async getUserSettings() {
     return this.userSettingsRemote.getValue();
+  }
+
+  async getResourcesInfo() {
+    return E.left('Not found') as Either<string, ResourcesInfo>;
   }
 }
 

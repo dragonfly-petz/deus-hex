@@ -12,6 +12,14 @@
   display: flex;
   align-items: center;
   margin-bottom: 15px;
+  position: relative;
+}
+
+.logoImg {
+  position: absolute;
+  top: 0;
+  left: -15px;
+  transform: scaleX(-1);
 }
 
 .logoArea {
@@ -45,6 +53,7 @@
 }
 
 .mainContent {
+  position: relative;
   display: flex;
   align-items: stretch;
   overflow: hidden;
