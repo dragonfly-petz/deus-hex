@@ -6,7 +6,11 @@ html {
 }
 
 body {
-  font-size: 2.2rem;
+  font-size: 2rem;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-family: styleVar.$mainFont;
+  color: styleVar.$mainFontColor
 }
 
 b {

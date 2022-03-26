@@ -2,13 +2,13 @@ import { app } from 'electron';
 import { createWindow } from './create-window';
 import { mkAndConnectMainIpc } from './main-ipc';
 import { PersistedStore } from './persisted/persisted-store';
-import { persistedStateMigration } from './persisted/user-settings';
+import { userSettingsMigration } from './persisted/user-settings';
 import { RemoteObject } from '../../common/reactive/remote-object';
 
 export async function init() {
   const userSettingsStore = new PersistedStore(
     'userSettings',
-    persistedStateMigration
+    userSettingsMigration
   );
   const userSettings = await userSettingsStore.load();
   const userSettingsRemote = new RemoteObject(

@@ -7,12 +7,27 @@ $globalVars: ();
 }
 
 $htmlFontSize: declareVar(htmlFontSize);
+$themePrimaryBgColor: declareVar(themePrimaryBgColor);
+$themeSecondaryBgColor: declareVar(themeSecondaryBgColor);
+$headerFontColor: declareVar(headerFontColor);
+$headerFontOutlineColor: declareVar(headerFontOutlineColor);
+$headerFontOutlineSize: declareVar(headerFontOutlineSize);
+$buttonBgColor: declareVar(buttonBgColor);
+$buttonBgHoverColor: declareVar(buttonBgHoverColor);
+$buttonBgActiveColor: declareVar(buttonBgActiveColor);
+$panelBorderColor: declareVar(panelBorderColor);
 $infoBgColor: declareVar(infoBgColor);
 $warnBgColor: declareVar(warnBgColor);
 $errorBgColor: declareVar(errorBgColor);
 $successBgColor: declareVar(successBgColor);
-
 $fmBgColor: declareVar(fmBgColor);
+$mainFont: declareVar(mainFont);
+$mainFontColor: declareVar(mainFontColor);
+$headingFont: declareVar(headingFont);
+$buttonFontColor: declareVar(buttonFontColor);
+$buttonFontHoverColor: declareVar(buttonFontHoverColor);
+$buttonFontActiveColor: declareVar(buttonFontActiveColor);
+
 @mixin initStyleVars {
   @each $str in $globalVars {
     --#{$str}: styleVarInit-#{$str};

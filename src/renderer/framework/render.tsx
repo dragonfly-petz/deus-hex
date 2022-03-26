@@ -43,7 +43,9 @@ export const renderIf = (condition: boolean, func: RenderFunction) => {
   }
   return null;
 };
-
+export const emptyComponent = () => {
+  return null;
+};
 export const RenderAsync = <A,>({
   render,
   value,

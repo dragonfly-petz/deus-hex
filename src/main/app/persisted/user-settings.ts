@@ -8,10 +8,12 @@ export interface UserSettings {
   fontSize: number;
 }
 
-assertTypesEqual<UserSettings, MigrationFinal<typeof persistedStateMigration>>(
+assertTypesEqual<UserSettings, MigrationFinal<typeof userSettingsMigration>>(
   true
 );
 
-export const persistedStateMigration = baseMigration(() => {
+export const userSettingsMigration = baseMigration(() => {
   return { fontSize: 10 };
 });
+
+export const userSettingsDefault = userSettingsMigration.default(null);

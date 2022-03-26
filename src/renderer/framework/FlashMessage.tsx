@@ -1,5 +1,3 @@
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTimes } from '@fortawesome/free-solid-svg-icons';
 import { useAppReactiveNodes } from '../context/context';
 import { uuidV4 } from '../../common/uuid';
 import { useReactiveVal } from '../reactive-state/reactive-hooks';
@@ -44,7 +42,6 @@ export const FlashMessages = () => {
           style={kindStyles[message.kind]}
           className={classNames(style.message)}
         >
-          <FontAwesomeIcon icon={faTimes} />
           <div className={style.title}>{message.title}</div>
           <div className={style.body}>{renderLineBreaks(message.message)}</div>
         </div>

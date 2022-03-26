@@ -6,13 +6,19 @@ import {
   unsafeObjectFromEntries,
 } from '../../common/object';
 import { isNully } from '../../common/null';
+import { Listenable } from '../../common/reactive/listener';
 
 type StyleType = string | null;
 
 export class StyleVarHelper<A extends Record<string, StyleType>> {
-  constructor(private styleDef: A, scssExport: Record<string, string>) {
-    const defs = unsafeObjectEntries(styleDef);
-    if (defs.length !== unsafeObjectEntries(styleDef).length) {
+  readonly listenable = new Listenable<[A]>();
+
+  private currentStyle: A;
+
+  constructor(private defaultStyle: A, scssExport: Record<string, string>) {
+    this.currentStyle = { ...defaultStyle };
+    const defs = unsafeObjectEntries(defaultStyle);
+    if (defs.length !== unsafeObjectEntries(defaultStyle).length) {
       throw new Error(
         `Expected style defs to match number of keys in scssExport`
       );
@@ -22,6 +28,22 @@ export class StyleVarHelper<A extends Record<string, StyleType>> {
         throw new Error(`Couldn't find scss export for style def key ${key}`);
       }
     }
+  }
+
+  updateCurrentStyle(toSet: Partial<A>) {
+    this.currentStyle = { ...this.currentStyle };
+    for (const [key, val] of unsafeObjectEntries(toSet)) {
+      this.currentStyle[key] = val as any;
+    }
+    this.listenable.notify(this.currentStyle);
+  }
+
+  getDefaultStyle() {
+    return this.defaultStyle;
+  }
+
+  getCurrentStyle() {
+    return this.currentStyle;
   }
 
   toStyle(style: Partial<A>): CSSProperties {
@@ -51,9 +73,13 @@ export class StyleVarHelper<A extends Record<string, StyleType>> {
     return mapObjectValues(b, (it: Partial<Record<keyof A, keyof A>>) => {
       const proxied: Partial<A> = mapObjectValues(
         it,
-        (val) => this.styleDef[val as any]
+        (val) => this.defaultStyle[val as any]
       ) as any;
       return this.toStyle(proxied);
     });
+  }
+
+  px(val: number) {
+    return `${val}px`;
   }
 }

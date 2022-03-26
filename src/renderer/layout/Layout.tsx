@@ -1,56 +1,50 @@
 import { useEffect } from 'react';
 import style from './layout.module.scss';
-import { useAppContext, useAppReactiveNodes } from '../context/context';
+import { useAppReactiveNodes } from '../context/context';
 import { useReactiveVal } from '../reactive-state/reactive-hooks';
-import { Tabs, tabs } from './Tabs';
+import { tabs } from './Tabs';
 import { FlashMessages } from '../framework/FlashMessage';
-import { Button } from '../framework/Button';
 import { globalSh } from '../framework/global-style-var';
+import { Header } from './Header';
+import { UserSettings } from '../../main/app/persisted/user-settings';
+import { emptyComponent } from '../framework/render';
 
 export const Layout = () => {
-  const { appVersion } = useAppContext();
   const { currentTabNode, userSettingsRemote } = useAppReactiveNodes();
   const currentTab = useReactiveVal(currentTabNode);
-  const { TabContent } = tabs[currentTab];
+  const {
+    TabContent,
+    TabLeftBar = emptyComponent,
+    TabRightBar = emptyComponent,
+  } = tabs[currentTab];
   useEffect(() => {
-    const setStyle = () =>
-      globalSh.setOnHtml(document.documentElement, {
-        htmlFontSize: `${userSettingsRemote.getValue().fontSize}px`,
-      });
+    const setStyle = () => {
+      globalSh.setOnHtml(document.documentElement, globalSh.getCurrentStyle());
+    };
     setStyle();
-    return userSettingsRemote.listenable.listen(setStyle);
+    return globalSh.listenable.listen(setStyle);
+  }, []);
+  useEffect(() => {
+    const updateStyle = (us: UserSettings) =>
+      globalSh.updateCurrentStyle({
+        htmlFontSize: globalSh.px(us.fontSize),
+      });
+    updateStyle(userSettingsRemote.getValue());
+    return userSettingsRemote.listenable.listen(updateStyle);
   }, [userSettingsRemote]);
   return (
     <div className={style.main}>
-      <div className={style.header}>
-        <div className={style.logoArea}>
-          <div className={style.logo}>Deus Hex</div>
-          <div className={style.version}>{appVersion}</div>
-        </div>
-        <div className={style.tabsWrapper}>
-          <Tabs />
-        </div>
-        <div className={style.zoom}>
-          <Button
-            label="Minus"
-            onClick={() => {
-              userSettingsRemote.setRemotePartialFn((it) => ({
-                fontSize: it.fontSize - 1,
-              }));
-            }}
-          />
-          <Button
-            label="Plus"
-            onClick={() => {
-              userSettingsRemote.setRemotePartialFn((it) => ({
-                fontSize: it.fontSize + 1,
-              }));
-            }}
-          />
-        </div>
-      </div>
+      <Header />
       <div className={style.mainContent}>
-        <TabContent />
+        <div className={style.leftBar}>
+          <TabLeftBar />
+        </div>
+        <div className={style.centerContent}>
+          <TabContent />
+        </div>
+        <div className={style.rightBar}>
+          <TabLeftBar />
+        </div>
       </div>
       <FlashMessages />
     </div>

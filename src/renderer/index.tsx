@@ -6,6 +6,7 @@ import './style/reset.global.scss';
 import './style/app.global.scss';
 import { mkAndConnectDomIpc } from './dom-ipc';
 import { mkStaticReactiveNodes } from './context/app-reactive-nodes';
+import 'tippy.js/dist/tippy.css';
 
 initGlobalLogger('dom');
 

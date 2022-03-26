@@ -3,13 +3,15 @@ import { BreedClothingTransform } from '../page/BreedClothingTransform';
 import style from './layout.module.scss';
 import { useAppReactiveNodes } from '../context/context';
 import { useReactiveVal } from '../reactive-state/reactive-hooks';
-import { classNames } from '../../common/react';
 import { ClothingRename } from '../page/ClothingRename';
 import { TabName, tabNames } from './tab-names';
+import { Button } from '../framework/Button';
 
 export interface TabDef {
   tabName: string;
   TabContent: FunctionalComponent;
+  TabLeftBar?: FunctionalComponent;
+  TabRightBar?: FunctionalComponent;
 }
 
 export const tabs: Record<TabName, TabDef> = {
@@ -32,18 +34,15 @@ export const Tabs = () => {
       {tabNames.map((tabName) => {
         const def = tabs[tabName];
         return (
-          <div
+          <Button
             key={tabName}
-            className={classNames(
-              style.tab,
-              tabName === currentTab ? style.tabActive : null
-            )}
+            label={def.tabName}
+            active={tabName === currentTab}
             onClick={() => {
               currentTabNode.setValue(tabName);
             }}
-          >
-            {def.tabName}
-          </div>
+            size="large"
+          />
         );
       })}
     </div>

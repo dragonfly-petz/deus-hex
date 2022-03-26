@@ -77,7 +77,10 @@ const configuration: webpack.Configuration = {
                   if (/\.variables\.scss$/i.test(fileName)) {
                     return 'icss';
                   }
-                  return 'pure';
+                  if (/\.module\.scss$/i.test(fileName)) {
+                    return 'pure';
+                  }
+                  return 'global';
                 },
                 localIdentName: '[name]_[local]',
               },

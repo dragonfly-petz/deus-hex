@@ -1,0 +1,10 @@
+@use "../style/styleVar";
+
+.heading {
+  font-size: 5rem;
+  color: white;
+  -webkit-text-stroke-width: styleVar.$headerFontOutlineSize;
+  -webkit-text-stroke-color: styleVar.$headerFontOutlineColor;
+  font-family: styleVar.$headingFont;
+  font-weight: bold;
+}

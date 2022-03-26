@@ -1,0 +1,10 @@
+@use "../style/styleVar";
+@use "../style/mixins";
+
+.icon {
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1em;
+}
