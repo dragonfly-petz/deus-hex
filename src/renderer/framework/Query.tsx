@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { E, Either } from '../../common/fp-ts/fp';
 import { ReactiveVal } from '../../common/reactive/reactive-node';
 import { Listenable } from '../../common/reactive/listener';
-import { FunctionalComponent } from './render';
+import { emptyComponent, FunctionalComponent } from './render';
 import style from './Query.module.scss';
 import { useReactiveVal } from '../reactive-state/reactive-hooks';
 import { isNever } from '../../common/type-assertion';
@@ -36,6 +36,7 @@ export class Query<A> implements ReactiveVal<QueryState<A>> {
   }
 
   private async runQuery() {
+    this.setState({ tag: 'pending' });
     const res = await this.query();
     if (E.isLeft(res)) {
       this.setState({ tag: 'error', value: res.left });
@@ -53,6 +54,10 @@ export class Query<A> implements ReactiveVal<QueryState<A>> {
   getValue(): QueryState<A> {
     return this.queryState;
   }
+
+  async reload() {
+    return this.runQuery();
+  }
 }
 
 export function useMkQueryMemo<A>(query: () => Promise<QueryResult<A>>) {
@@ -64,9 +69,11 @@ export function useMkQueryMemo<A>(query: () => Promise<QueryResult<A>>) {
 export const RenderQuery = <A,>({
   query,
   OnSuccess,
+  AdditionalOnError = emptyComponent,
 }: {
   query: Query<A>;
   OnSuccess: FunctionalComponent<{ value: A }>;
+  AdditionalOnError?: FunctionalComponent;
 }) => {
   const queryState = useReactiveVal(query);
   switch (queryState.tag) {
@@ -81,12 +88,15 @@ export const RenderQuery = <A,>({
       );
     case 'error':
       return (
-        <div className={classNames(style.panel, style.error)}>
-          <div className={style.icon}>
-            <Icon icon="faExclamationTriangle" />
+        <>
+          <div className={classNames(style.panel, style.error)}>
+            <div className={style.icon}>
+              <Icon icon="faExclamationTriangle" />
+            </div>
+            <div className={style.message}>Error: {queryState.value}</div>
           </div>
-          <div className={style.message}>Error: {queryState.value}</div>
-        </div>
+          <AdditionalOnError />
+        </>
       );
     case 'success':
       return <OnSuccess value={queryState.value} />;

@@ -9,3 +9,10 @@ export function throwFromEither<A>(either: Either<string, A>) {
     })
   );
 }
+
+export type EitherRight<A extends Either<any, any>> = A extends Either<
+  any,
+  infer B
+>
+  ? B
+  : never;

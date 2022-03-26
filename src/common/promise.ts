@@ -1,3 +1,5 @@
+import { unsafeObjectEntries, unsafeObjectFromEntries } from './object';
+
 class RunAsyncError extends Error {}
 
 export type PromiseInner<A extends Promise<any>> = A extends Promise<infer B>
@@ -25,6 +27,22 @@ export type TrackablePromiseState<A> =
       tag: 'rejected';
       value: unknown;
     };
+
+export async function fromPromiseProperties<
+  A extends Record<PropertyKey, Promise<any>>
+>(
+  object: A
+): Promise<{
+  [P in keyof A]: PromiseInner<A[P]>;
+}> {
+  const objectEntries = unsafeObjectEntries(object);
+  const results = await Promise.all(objectEntries.map((it) => it[1]));
+  return unsafeObjectFromEntries(
+    objectEntries.map(([k], idx) => {
+      return [k, results[idx]];
+    })
+  ) as any;
+}
 
 export class TrackablePromise<A = void> {
   private mState: TrackablePromiseState<A> = { tag: 'pending' };

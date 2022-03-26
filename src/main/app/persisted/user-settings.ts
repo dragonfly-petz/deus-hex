@@ -3,9 +3,11 @@ import {
   MigrationFinal,
 } from '../../../common/migration/migration';
 import { assertTypesEqual } from '../../../common/type-assertion';
+import { nullable } from '../../../common/null';
 
 export interface UserSettings {
   fontSize: number;
+  petzFolder: string | null;
 }
 
 assertTypesEqual<UserSettings, MigrationFinal<typeof userSettingsMigration>>(
@@ -14,6 +16,9 @@ assertTypesEqual<UserSettings, MigrationFinal<typeof userSettingsMigration>>(
 
 export const userSettingsMigration = baseMigration(() => {
   return { fontSize: 10 };
-});
+}).next((it) => ({
+  ...it,
+  petzFolder: nullable<string>(),
+}));
 
 export const userSettingsDefault = userSettingsMigration.default(null);

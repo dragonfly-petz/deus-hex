@@ -4,7 +4,7 @@ import {
   parseAddBallsBreed,
   serializeClothingAddBalls,
 } from '../../common/petz/parser/addballs';
-import { E, Either } from '../../common/fp-ts/fp';
+import { E } from '../../common/fp-ts/fp';
 import {
   transformBreedAddBallsToClothing,
   transformBreedLinesToClothing,
@@ -24,11 +24,14 @@ import {
 } from '../../common/ipc';
 import { UserSettings } from './persisted/user-settings';
 import { RemoteObject } from '../../common/reactive/remote-object';
-
-export interface ResourcesInfo {}
+import { ResourceManager } from './resource/resource-manager';
 
 export class MainIpcBase {
-  constructor(private userSettingsRemote: RemoteObject<UserSettings>) {}
+  private resourceManager: ResourceManager;
+
+  constructor(private userSettingsRemote: RemoteObject<UserSettings>) {
+    this.resourceManager = new ResourceManager();
+  }
 
   async getAppVersion() {
     return app.getVersion();
@@ -84,7 +87,9 @@ export class MainIpcBase {
   }
 
   async getResourcesInfo() {
-    return E.left('Not found') as Either<string, ResourcesInfo>;
+    return this.resourceManager.getResourcesInfo(
+      this.userSettingsRemote.getValue().petzFolder
+    );
   }
 }
 

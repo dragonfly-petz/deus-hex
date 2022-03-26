@@ -44,7 +44,8 @@ export const DropFile = ({
         paths.push(file.path);
       }
       const filter = paths.filter((it) => {
-        const ext = it.split('.').pop();
+        const extSplit = it.split('.');
+        const ext = extSplit.length > 1 ? extSplit.pop() : null;
         const extWithDot = isNotNully(ext) ? `.${ext}` : '';
         return validExtensions.has(extWithDot);
       });

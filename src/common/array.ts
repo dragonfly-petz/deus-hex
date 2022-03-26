@@ -15,6 +15,14 @@ export function tuple<A, B>(a: A, b: B): [A, B] {
   return [a, b];
 }
 
+export function fst<A, B>(val: [A, B]) {
+  return val[0];
+}
+
+export function snd<A, B>(val: [A, B]) {
+  return val[1];
+}
+
 export const numericComparer: Comparer<number> = (a1, a2) =>
   (a1 - a2) as ComparisonResult;
 
