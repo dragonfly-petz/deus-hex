@@ -1,0 +1,26 @@
+@use 'sass:list';
+
+$globalVars: ();
+@function declareVar($str) {
+  $globalVars: list.append($globalVars, $str) !global;
+  @return var(--#{$str});
+}
+
+$htmlFontSize: declareVar(htmlFontSize);
+$infoBgColor: declareVar(infoBgColor);
+$warnBgColor: declareVar(warnBgColor);
+$errorBgColor: declareVar(errorBgColor);
+$successBgColor: declareVar(successBgColor);
+
+$fmBgColor: declareVar(fmBgColor);
+@mixin initStyleVars {
+  @each $str in $globalVars {
+    --#{$str}: styleVarInit-#{$str};
+  }
+}
+
+:export {
+  @each $str in $globalVars {
+    #{$str}: $str;
+  }
+}

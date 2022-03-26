@@ -74,6 +74,9 @@ const configuration: webpack.Configuration = {
                   if (/\.global\.scss$/i.test(fileName)) {
                     return 'global';
                   }
+                  if (/\.variables\.scss$/i.test(fileName)) {
+                    return 'icss';
+                  }
                   return 'pure';
                 },
                 localIdentName: '[name]_[local]',
@@ -84,12 +87,6 @@ const configuration: webpack.Configuration = {
           },
           'sass-loader',
         ],
-        include: /\.module\.s?(c|a)ss$/,
-      },
-      {
-        test: /\.s?css$/,
-        use: ['style-loader', 'css-loader', 'sass-loader'],
-        exclude: /\.module\.s?(c|a)ss$/,
       },
       // Fonts
       {

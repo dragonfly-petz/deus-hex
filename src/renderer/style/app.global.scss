@@ -1,6 +1,8 @@
+@use 'styleVar';
+
 html {
-  --htmlFontSize: 10px;
-  font-size: var(--htmlFontSize);
+  @include styleVar.initStyleVars;
+  font-size: styleVar.$htmlFontSize;
 }
 
 body {

@@ -52,19 +52,23 @@ const configuration: webpack.Configuration = {
           {
             loader: 'css-loader',
             options: {
-              modules: true,
+              modules: {
+                mode: (fileName: string) => {
+                  if (/\.global\.scss$/i.test(fileName)) {
+                    return 'global';
+                  }
+                  if (/\.variables\.scss$/i.test(fileName)) {
+                    return 'icss';
+                  }
+                  return 'pure';
+                },
+              },
               sourceMap: true,
               importLoaders: 1,
             },
           },
           'sass-loader',
         ],
-        include: /\.module\.s?(c|a)ss$/,
-      },
-      {
-        test: /\.s?(a|c)ss$/,
-        use: [MiniCssExtractPlugin.loader, 'css-loader', 'sass-loader'],
-        exclude: /\.module\.s?(c|a)ss$/,
       },
       // Fonts
       {

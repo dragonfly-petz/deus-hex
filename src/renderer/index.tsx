@@ -2,8 +2,8 @@ import { render } from 'react-dom';
 import App from './App';
 import { initGlobalErrorReporter } from '../common/error';
 import { globalLogger, initGlobalLogger } from '../common/logger';
-import './reset.global.scss';
-import './app.global.scss';
+import './style/reset.global.scss';
+import './style/app.global.scss';
 import { mkAndConnectDomIpc } from './dom-ipc';
 import { mkStaticReactiveNodes } from './context/app-reactive-nodes';
 

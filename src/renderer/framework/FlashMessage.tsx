@@ -7,7 +7,7 @@ import { sortByNumeric } from '../../common/array';
 import style from './FlashMessage.module.scss';
 import { classNames } from '../../common/react';
 import { renderLineBreaks } from './render';
-import { StyleVars, toStyle } from './style-var';
+import { globalSh } from './global-style-var';
 
 const flashMessageKinds = ['info', 'warn', 'error', 'success'] as const;
 export type FlashMessageKind = typeof flashMessageKinds[number];
@@ -24,17 +24,12 @@ export class FlashMessage {
   ) {}
 }
 
-const styleKeys = ['fmColor'] as const;
-
-const kindStyles: Record<
-  FlashMessageKind,
-  StyleVars<typeof styleKeys[number]>
-> = {
-  info: { fmColor: 'blue' },
-  warn: { fmColor: 'orange' },
-  error: { fmColor: 'red' },
-  success: { fmColor: 'green' },
-};
+const kindStyles = globalSh.toRecordProxy({
+  info: { fmBgColor: 'infoBgColor' },
+  warn: { fmBgColor: 'warnBgColor' },
+  error: { fmBgColor: 'errorBgColor' },
+  success: { fmBgColor: 'successBgColor' },
+});
 
 export const FlashMessages = () => {
   const { flashMessagesNode } = useAppReactiveNodes();
@@ -46,7 +41,7 @@ export const FlashMessages = () => {
       {messages.map((message) => (
         <div
           key={message.id}
-          style={toStyle(kindStyles[message.kind])}
+          style={kindStyles[message.kind]}
           className={classNames(style.message)}
         >
           <FontAwesomeIcon icon={faTimes} />

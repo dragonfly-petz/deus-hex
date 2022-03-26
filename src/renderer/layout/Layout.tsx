@@ -5,6 +5,7 @@ import { useReactiveVal } from '../reactive-state/reactive-hooks';
 import { Tabs, tabs } from './Tabs';
 import { FlashMessages } from '../framework/FlashMessage';
 import { Button } from '../framework/Button';
+import { globalSh } from '../framework/global-style-var';
 
 export const Layout = () => {
   const { appVersion } = useAppContext();
@@ -13,10 +14,9 @@ export const Layout = () => {
   const { TabContent } = tabs[currentTab];
   useEffect(() => {
     const setStyle = () =>
-      document.documentElement.style.setProperty(
-        '--htmlFontSize',
-        `${userSettingsRemote.getValue().fontSize}px`
-      );
+      globalSh.setOnHtml(document.documentElement, {
+        htmlFontSize: `${userSettingsRemote.getValue().fontSize}px`,
+      });
     setStyle();
     return userSettingsRemote.listenable.listen(setStyle);
   }, [userSettingsRemote]);

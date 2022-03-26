@@ -1,4 +1,4 @@
-$fmColor: var(--fmColor);
+@use '../style/styleVar';
 
 .flashMessages {
   position: absolute;
@@ -11,7 +11,7 @@ $fmColor: var(--fmColor);
 .message {
   max-width: 600px;
   padding: 10px;
-  background-color: $fmColor;
+  background-color: styleVar.$fmBgColor;
   box-shadow: 0 3px 7px rgba(0, 0, 0, 0.3);
 
   .title {
