@@ -57,7 +57,9 @@ const ModalC = ({
     <div
       className={style.modalWrapper}
       onClick={() => {
-        closable ? modalStateNode.setValue(false) : null;
+        if (closable) {
+          modalStateNode.setValue(false);
+        }
       }}
     >
       <div className={style.modal}>

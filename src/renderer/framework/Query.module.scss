@@ -1,5 +1,5 @@
-@use "../style/styleVar";
-@use "../style/mixins";
+@use '../style/styleVar';
+@use '../style/mixins';
 
 .panel {
   padding: 20px;
@@ -9,12 +9,9 @@
 
   .icon {
     margin-right: 10px;
-
-
   }
 
   .message {
-
   }
 }
 
@@ -27,9 +24,7 @@
   }
 }
 
-
 .error {
-
   background-color: styleVar.$errorBgColor;
 }
 

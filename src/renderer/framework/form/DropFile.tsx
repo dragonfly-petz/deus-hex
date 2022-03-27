@@ -1,5 +1,5 @@
 import { Either } from 'fp-ts/Either';
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import style from './DropFile.module.scss';
 import { useMemoRef } from '../../hooks/use-memo-ref';
 import { identity, voidFn } from '../../../common/function';
@@ -29,16 +29,19 @@ export const DropFile = ({
   const droppedFileInfoNode = useMkReactiveNodeMemo(
     nullable<Either<string, string>>()
   );
-  const setFromValueNode = (val: string | null) => {
-    if (isNully(val)) {
-      droppedFileInfoNode.setValue(null);
-    } else {
-      droppedFileInfoNode.setValue(E.right(val));
-    }
-  };
+  const setFromValueNode = useCallback(
+    (val: string | null) => {
+      if (isNully(val)) {
+        droppedFileInfoNode.setValue(null);
+      } else {
+        droppedFileInfoNode.setValue(E.right(val));
+      }
+    },
+    [droppedFileInfoNode]
+  );
   useEffect(() => {
     setFromValueNode(valueNode.getValue());
-  }, [valueNode]);
+  }, [valueNode, setFromValueNode]);
 
   useListenReactiveVal(valueNode.fmap.strict(identity), setFromValueNode);
 

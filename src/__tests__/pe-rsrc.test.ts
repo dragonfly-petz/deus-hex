@@ -58,6 +58,7 @@ describe('pe-rsrc', () => {
     });
   });
 
+  // eslint-disable-next-line jest/expect-expect
   test('rsrc section codec identity', async () => {
     await testCodecIdentityWithFile('Nosepest.clo', nosepestExpectedRcData);
     await testCodecIdentityWithFile(

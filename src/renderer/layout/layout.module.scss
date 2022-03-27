@@ -1,4 +1,4 @@
-@use "../style/styleVar";
+@use '../style/styleVar';
 
 .main {
   background-color: styleVar.$themePrimaryBgColor;
@@ -65,7 +65,8 @@
   overflow: auto;
 }
 
-.leftBar, .rightBar {
+.leftBar,
+.rightBar {
   flex-shrink: 0;
   width: 300px;
   background-color: styleVar.$themeSecondaryBgColor;
@@ -73,7 +74,6 @@
   border: solid 2px styleVar.$panelBorderColor;
   border-radius: 10px;
 }
-
 
 .tabs {
   display: flex;
@@ -95,7 +95,4 @@
 }
 
 .actions {
-
-
 }
-

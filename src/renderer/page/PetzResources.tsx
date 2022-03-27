@@ -46,6 +46,7 @@ const navigationNames = ['overview', 'catz', 'dogz', 'clothes'] as const;
 interface NavigationDeps {
   resourcesInfo: ResourcesInfo;
   actionsNode: ActionsNode;
+  // eslint-disable-next-line react/no-unused-prop-types
   resourcesOverviewQuery: PetzResourcesDeps['resourcesOverviewQuery'];
 }
 

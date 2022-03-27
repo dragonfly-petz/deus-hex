@@ -1,5 +1,5 @@
-@use "../style/styleVar";
-@use "../style/mixins";
+@use '../style/styleVar';
+@use '../style/mixins';
 
 .main {
   background-color: styleVar.$buttonBgColor;
@@ -53,5 +53,4 @@
     border-radius: 10px;
     border-width: 3px;
   }
-
 }

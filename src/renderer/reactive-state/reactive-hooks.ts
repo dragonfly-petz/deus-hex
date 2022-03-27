@@ -28,6 +28,7 @@ export function useReactiveVal<A>(node: ReactiveVal<A>) {
     });
   }
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     return () => disposerRef.current.disposer?.();
   }, [node]);
 

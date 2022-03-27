@@ -120,7 +120,7 @@ async function getResourceInfo(
         ? E.left(
             taggedValue(
               'invalidPath',
-              `File did not match expected extension ${fileTypes[type]}`
+              `File did not match expected extension ${fileTypes[type].extension}`
             )
           )
         : E.right(true)

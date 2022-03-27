@@ -37,7 +37,7 @@ export const ClothingRename = () => {
   const renameResultNode = useMkReactiveNodeMemo(
     nullable<RenameClothingFileResult>()
   );
-  if (isDev() && false) {
+  if (isDev()) {
     setTimeout(() => {
       pickedPathNode.setValue(
         'C:\\Users\\franc\\Documents\\Petz\\Petz 4\\Resource\\Clothes\\Nosepest.clo'

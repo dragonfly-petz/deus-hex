@@ -1,4 +1,4 @@
-@use "../style/styleVar";
+@use '../style/styleVar';
 
 .panel {
   border: solid 2px styleVar.$panelBorderColor;
@@ -17,7 +17,6 @@
 
 .body {
   padding: 15px;
-
 }
 
 .buttons {

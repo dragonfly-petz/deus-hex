@@ -4,7 +4,7 @@ import { useReactiveVal } from '../reactive-state/reactive-hooks';
 import { Button } from '../framework/Button';
 import { ReactiveNode } from '../../common/reactive/reactive-node';
 
-export interface NavigationDef<Deps extends {}> {
+export interface NavigationDef<Deps extends object> {
   name: string;
   Content: FunctionalComponent<Deps>;
 }

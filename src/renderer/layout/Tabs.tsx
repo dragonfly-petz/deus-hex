@@ -8,7 +8,7 @@ import { TabName, tabNames } from './tab-names';
 import { Button } from '../framework/Button';
 import { mkPetzResourcesTab } from '../page/PetzResources';
 
-export interface TabDef<A extends {}> {
+export interface TabDef<A extends object> {
   tabName: string;
   useGetDeps: () => A;
   TabContent: FunctionalComponent<A>;
