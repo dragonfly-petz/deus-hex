@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
 import { E, Either } from '../../common/fp-ts/fp';
-import { ReactiveVal } from '../../common/reactive/reactive-node';
 import { Listenable } from '../../common/reactive/listener';
 import { emptyComponent, FunctionalComponent } from './render';
 import style from './Query.module.scss';
@@ -8,6 +7,8 @@ import { useReactiveVal } from '../reactive-state/reactive-hooks';
 import { isNever } from '../../common/type-assertion';
 import { Icon } from './Icon';
 import { classNames } from '../../common/react';
+import { ReactiveVal } from '../../common/reactive/reactive-interface';
+import { ReactiveFmapHelper } from '../../common/reactive/reactive-fmap';
 
 export type QueryResult<A> = Either<string, A>;
 
@@ -27,11 +28,16 @@ export type QueryState<A> =
 export class Query<A> implements ReactiveVal<QueryState<A>> {
   readonly listenable = new Listenable<[QueryState<A>, QueryState<A>]>();
 
+  readonly fmap: ReactiveFmapHelper<QueryState<A>> = new ReactiveFmapHelper(
+    this
+  );
+
   private queryState: QueryState<A> = {
     tag: 'pending',
   };
 
   constructor(private query: () => Promise<QueryResult<A>>) {
+    // noinspection JSIgnoredPromiseFromCall
     this.runQuery();
   }
 

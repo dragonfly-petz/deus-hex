@@ -29,9 +29,13 @@ export const PetzResources = () => {
   const resourcesOverviewQuery = useMkQueryMemo(() =>
     mainIpc.getResourcesInfo()
   );
-  useListenReactiveVal(userSettingsRemote, () => {
-    resourcesOverviewQuery.reload();
-  });
+  useListenReactiveVal(
+    userSettingsRemote.fmap.strict((it) => it.petzFolder),
+    () => {
+      console.log('reloading!!');
+      resourcesOverviewQuery.reload();
+    }
+  );
 
   return (
     <div className={style.main}>

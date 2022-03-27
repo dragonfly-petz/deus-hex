@@ -12,7 +12,7 @@ import {
 import { parseLines, serializeLines } from '../../common/petz/parser/lines';
 import { isDev } from './util';
 import {
-  getFileInfo,
+  getFileInfoAndData,
   renameClothingFile,
   updateResourceSection,
 } from './pe-files/pe-files-util';
@@ -58,7 +58,7 @@ export class MainIpcBase {
   }
 
   async getClothingFileInfo(file: string) {
-    return getFileInfo(file);
+    return getFileInfoAndData(file);
   }
 
   async renameClothingFile(

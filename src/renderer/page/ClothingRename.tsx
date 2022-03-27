@@ -1,6 +1,6 @@
 import style from './ClothingRename.module.scss';
 import { DropFile } from '../framework/form/DropFile';
-import { clothingExtension } from '../../common/petz/file-types';
+import { fileTypes } from '../../common/petz/file-types';
 import {
   useListenReactiveVal,
   useMkReactiveNodeMemo,
@@ -11,7 +11,7 @@ import { useMainIpc } from '../context/context';
 import { throwRejection } from '../../common/promise';
 import { renderReactiveResult } from '../framework/result';
 import type {
-  FileInfo,
+  FileInfoAndData,
   RenameClothingFileResult,
 } from '../../main/app/pe-files/pe-files-util';
 import { unsafeObjectEntries } from '../../common/object';
@@ -33,7 +33,7 @@ export const ClothingRename = () => {
   const pickedPathNode = useMkReactiveNodeMemo(nullable<string>());
   const newFileNameNode = useMkReactiveNodeMemo(debugNewFileName);
   const newItemNameNode = useMkReactiveNodeMemo(debugNewItemName);
-  const fileInfoNode = useMkReactiveNodeMemo(nullable<FileInfo>());
+  const fileInfoNode = useMkReactiveNodeMemo(nullable<FileInfoAndData>());
   const renameResultNode = useMkReactiveNodeMemo(
     nullable<RenameClothingFileResult>()
   );
@@ -62,7 +62,7 @@ export const ClothingRename = () => {
   return (
     <div className={style.main}>
       <DropFile
-        validExtensions={new Set([clothingExtension])}
+        validExtensions={new Set([fileTypes.clothes.extension])}
         onChange={(it) => pickedPathNode.setValue(it)}
       />
       <Button

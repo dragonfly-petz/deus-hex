@@ -1,7 +1,10 @@
 import { Listenable } from './listener';
-import { ReactiveVal } from './reactive-node';
+import { ReactiveVal } from './reactive-interface';
+import { ReactiveFmapHelper } from './reactive-fmap';
 
 export class RemoteObject<A extends object> implements ReactiveVal<A> {
+  readonly fmap: ReactiveFmapHelper<A> = new ReactiveFmapHelper(this);
+
   constructor(
     private value: A,
     private setAsync: (val: A) => Promise<unknown>,

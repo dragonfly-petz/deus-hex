@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ReactiveNode, ReactiveVal } from '../../common/reactive/reactive-node';
+import { ReactiveNode } from '../../common/reactive/reactive-node';
 import { ChangeListener } from '../../common/reactive/listener';
+import { ReactiveVal } from '../../common/reactive/reactive-interface';
 
 export function useMkReactiveNodeMemo<A>(initialVal: A) {
   // we specifically don't want this to be recreated

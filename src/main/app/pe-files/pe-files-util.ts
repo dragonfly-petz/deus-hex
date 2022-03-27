@@ -142,7 +142,7 @@ async function getExistingBreedInfos(targetFile: string) {
       globalLogger.info(`Skipping ${it}, did not match extension ${targetExt}`);
       return null;
     }
-    return getFileInfo(innerPath);
+    return getFileInfoAndData(innerPath);
   });
   let promisesFinished = 0;
   promises.map(async (it) => {
@@ -156,7 +156,7 @@ async function getExistingBreedInfos(targetFile: string) {
   return res.filter(isNotNully);
 }
 
-export async function getFileInfo(filePath: string) {
+export async function getFileInfoAndData(filePath: string) {
   const buf = await fsPromises.readFile(filePath);
 
   removeSymbolsNumber(buf);
@@ -167,6 +167,23 @@ export async function getFileInfo(filePath: string) {
     }),
     E.map((it) => {
       return { ...it, filePath, pathParsed: path.parse(filePath) };
+    })
+  );
+}
+
+export type FileInfoAndData = PromiseInner<
+  ReturnType<typeof getFileInfoAndData>
+>;
+
+export async function getFileInfo(filePath: string) {
+  return pipe(
+    await getFileInfoAndData(filePath),
+    E.map((it) => {
+      return {
+        filePath: it.filePath,
+        itemName: it.itemName,
+        rcInfo: it.rcData.rcData,
+      };
     })
   );
 }
@@ -347,7 +364,7 @@ export async function updateResourceSection(
 ) {
   const buf = await fsPromises.readFile(filepath);
   const codecRes = pipe(
-    await getFileInfo(filepath),
+    await getFileInfoAndData(filepath),
     E.map((it) => it.resDirTable),
     E.getOrElseW(() => {
       throw new Error('Expected right');

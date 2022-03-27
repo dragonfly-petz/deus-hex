@@ -1,15 +1,13 @@
 import { Listenable } from './listener';
-
-export interface ReactiveVal<A> {
-  readonly listenable: Listenable<[A, A]>;
-
-  getValue(): A;
-}
+import { ReactiveFmapHelper } from './reactive-fmap';
+import { ReactiveVal } from './reactive-interface';
 
 export class ReactiveNode<A> implements ReactiveVal<A> {
-  constructor(private value: A) {}
+  readonly fmap: ReactiveFmapHelper<A> = new ReactiveFmapHelper(this);
 
   readonly listenable = new Listenable<[A, A]>();
+
+  constructor(private value: A) {}
 
   getValue() {
     return this.value;

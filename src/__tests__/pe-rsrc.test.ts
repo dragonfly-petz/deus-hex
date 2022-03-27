@@ -1,6 +1,6 @@
 import path from 'path';
 import {
-  getFileInfo,
+  getFileInfoAndData,
   getResourceSectionData,
   parsePE,
   PE_RESOURCE_ENTRY,
@@ -26,7 +26,7 @@ initGlobalLogger('test');
 describe('pe-rsrc', () => {
   test('read .clo file', async () => {
     const filePath = getTestResourcesPath('Nosepest.clo');
-    const fileInfo = throwFromEither(await getFileInfo(filePath));
+    const fileInfo = throwFromEither(await getFileInfoAndData(filePath));
     const { rcData } = fileInfo.rcData;
     expect(rcData.breedId).toEqual(20836);
     expect(rcData.displayName).toEqual('Nosepest');
@@ -49,7 +49,7 @@ describe('pe-rsrc', () => {
       );
       const tempDestPath = path.join(tempDir, toName);
 
-      const fileInfo = throwFromEither(await getFileInfo(tempDestPath));
+      const fileInfo = throwFromEither(await getFileInfoAndData(tempDestPath));
       const { rcData } = fileInfo.rcData;
       expect(rcData.breedId).toEqual(20837);
       expect(rcData.displayName).toEqual('Dragonly');
@@ -60,7 +60,9 @@ describe('pe-rsrc', () => {
   test('rsrc section codec identity', async () => {
     return withTempFile(async (tmpFile) => {
       const srcFilePath = getTestResourcesPath('Nosepest.clo');
-      const { resDirTable } = throwFromEither(await getFileInfo(srcFilePath));
+      const { resDirTable } = throwFromEither(
+        await getFileInfoAndData(srcFilePath)
+      );
       const buf = await fsPromises.readFile(srcFilePath);
       const pe = await parsePE(buf);
       const sectionData = throwFromEither(await getResourceSectionData(pe));
@@ -94,7 +96,7 @@ describe('pe-rsrc', () => {
       await fsPromises.writeFile(tmpFile, Buffer.from(generated));
 
       const resDirTable2 = throwFromEither(
-        await getFileInfo(tmpFile)
+        await getFileInfoAndData(tmpFile)
       ).resDirTable;
       checkRcData(resDirTable2, nosepestExpectedRcData);
       expect(resDirTable2).toEqual(resDirTable);

@@ -16,6 +16,23 @@ export const mapObjectValues = <R extends object, B>(
     unsafeObjectEntries(record).map(([k, v]) => [k, mapper(v)])
   ) as Record<keyof R, B>;
 
+export function pick<T extends object, A extends readonly (keyof T)[]>(
+  a: OnlyStringKeys<T>,
+  keys: A
+): Pick<T, A[number]> {
+  return objectFromEntries(
+    objectEntries(a).filter(([key, _]) => keys.includes(key as any))
+  ) as any;
+}
+
+export const mapObjectValuesStringKey = <R extends object, B>(
+  record: OnlyStringKeys<R>,
+  mapper: (value: R[keyof R], key: keyof R) => B
+) =>
+  objectFromEntries(
+    objectEntries(record).map(([k, v]) => [k, mapper(v, k)])
+  ) as Record<keyof R, B>;
+
 export const objectFromEntries = <K extends PropertyKey, T>(
   entries: Iterable<readonly [K, T]>
 ) => Object.fromEntries(entries) as Partial<Record<K, T>>;
