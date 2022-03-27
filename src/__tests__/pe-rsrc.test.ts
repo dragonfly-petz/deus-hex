@@ -4,6 +4,7 @@ import {
   getResourceSectionData,
   parsePE,
   PE_RESOURCE_ENTRY,
+  removeSymbolsNumber,
   renameClothingFile,
 } from '../main/app/pe-files/pe-files-util';
 import { getTestResourcesPath } from '../common/asset-path';
@@ -58,57 +59,77 @@ describe('pe-rsrc', () => {
   });
 
   test('rsrc section codec identity', async () => {
-    return withTempFile(async (tmpFile) => {
-      const srcFilePath = getTestResourcesPath('Nosepest.clo');
-      const { resDirTable } = throwFromEither(
-        await getFileInfoAndData(srcFilePath)
-      );
-      const buf = await fsPromises.readFile(srcFilePath);
-      const pe = await parsePE(buf);
-      const sectionData = throwFromEither(await getResourceSectionData(pe));
-
-      const data = checkRcData(resDirTable, nosepestExpectedRcData);
-      const rcDataReEncodedBuffer = Buffer.from(
-        new Uint8Array(data.rcDataEntry.entry.data.length)
-      );
-      rcDataCodec.encode(data.rcData, rcDataReEncodedBuffer, 0, null);
-      expect(new Uint8Array(rcDataReEncodedBuffer)).toEqual(
-        data.rcDataEntry.entry.data
-      );
-      data.rcDataEntry.entry.data = new Uint8Array(rcDataReEncodedBuffer);
-
-      const encodedBuffer = encodeToSection(
-        sectionData.section.info,
-        resDirTable
-      );
-
-      const decodedAgain = throwFromEither(
-        decodeFromSection(sectionData.section.info, encodedBuffer)
-      ).result;
-
-      expect(decodedAgain).toEqual(resDirTable);
-      const newSection = {
-        ...sectionData.section,
-        data: encodedBuffer,
-      };
-      pe.setSectionByEntry(PE_RESOURCE_ENTRY, newSection);
-      const generated = pe.generate();
-      await fsPromises.writeFile(tmpFile, Buffer.from(generated));
-
-      const resDirTable2 = throwFromEither(
-        await getFileInfoAndData(tmpFile)
-      ).resDirTable;
-      checkRcData(resDirTable2, nosepestExpectedRcData);
-      expect(resDirTable2).toEqual(resDirTable);
-    });
+    await testCodecIdentityWithFile('Nosepest.clo', nosepestExpectedRcData);
+    await testCodecIdentityWithFile(
+      'Vampyre Collar_Black P4.clo',
+      vampyreExpectedRcData
+    );
   });
 });
+
+function testCodecIdentityWithFile(fileName: string, expected: RcData) {
+  return withTempFile(async (tmpFile) => {
+    const srcFilePath = getTestResourcesPath(fileName);
+    const { resDirTable } = throwFromEither(
+      await getFileInfoAndData(srcFilePath)
+    );
+    const buf = await fsPromises.readFile(srcFilePath);
+    removeSymbolsNumber(buf);
+    const pe = await parsePE(buf);
+    const sectionData = throwFromEither(await getResourceSectionData(pe));
+
+    const data = checkRcData(resDirTable, expected);
+    const rcDataReEncodedBuffer = Buffer.from(
+      new Uint8Array(data.rcDataEntry.entry.data.length)
+    );
+    rcDataCodec.encode(data.rcData, rcDataReEncodedBuffer, 0, null);
+    expect(new Uint8Array(rcDataReEncodedBuffer)).toEqual(
+      data.rcDataEntry.entry.data
+    );
+    data.rcDataEntry.entry.data = new Uint8Array(rcDataReEncodedBuffer);
+
+    const encodedBuffer = encodeToSection(
+      sectionData.section.info,
+      resDirTable
+    );
+    expect(encodedBuffer.length).toBeLessThanOrEqual(
+      sectionData.sectionData.length
+    );
+
+    const decodedAgain = throwFromEither(
+      decodeFromSection(sectionData.section.info, encodedBuffer)
+    ).result;
+    expect(decodedAgain).toEqual(resDirTable);
+
+    const newSection = {
+      ...sectionData.section,
+      data: encodedBuffer,
+    };
+    pe.setSectionByEntry(PE_RESOURCE_ENTRY, newSection);
+    const generated = pe.generate();
+    await fsPromises.writeFile(tmpFile, Buffer.from(generated));
+
+    const resDirTable2 = throwFromEither(
+      await getFileInfoAndData(tmpFile)
+    ).resDirTable;
+    checkRcData(resDirTable2, expected);
+    expect(resDirTable2).toEqual(resDirTable);
+  });
+}
 
 const nosepestExpectedRcData: RcData = {
   unknownFlag: 1,
   spriteName: 'Sprite_Clot_SilNosepest',
   displayName: 'Nosepest',
   breedId: 20836,
+  tag: 3,
+};
+
+const vampyreExpectedRcData: RcData = {
+  unknownFlag: 1,
+  spriteName: 'Sprite_Clot_BadgeSheriff',
+  displayName: 'Sheriff Badge',
+  breedId: 15123,
   tag: 3,
 };
 

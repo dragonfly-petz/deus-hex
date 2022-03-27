@@ -93,7 +93,7 @@ export const ClothingRename = () => {
             : `Item name must be same length (${oldItemName.length}) as old file name (${oldItemName}). Currently it is ${newItemName.length}`;
         const dataId = {
           type: 'CLZ',
-          level: 'CLOT_SILNOSEPEST',
+          level: 'CLOT_BADGESHERIFF',
           language: 1033,
         };
         const data = getDataEntryById(output.resDirTable, dataId)?.data ?? [

@@ -16,3 +16,10 @@ export type EitherRight<A extends Either<any, any>> = A extends Either<
 >
   ? B
   : never;
+
+export function eitherToNullable<A>(e: Either<unknown, A>) {
+  return pipe(
+    e,
+    E.getOrElseW(() => null)
+  );
+}

@@ -1,5 +1,6 @@
 // we only want to add handlers once
 import { Either } from 'fp-ts/Either';
+import { isString } from 'fp-ts/string';
 import { isNode } from './env';
 import { isObjectWithKey } from './type-assertion';
 import { E } from './fp-ts/fp';
@@ -57,10 +58,12 @@ export class ErrorReporter {
         title: 'Failure',
       });
     } else {
+      const message = isString(res.right) ? res.right : 'Succeeded';
+
       this.addFm({
         kind: 'success',
         title: 'Success',
-        message: 'Succeeded',
+        message,
       });
     }
     return res;

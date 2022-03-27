@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useMemo } from 'react';
 import { isNully } from '../../common/null';
 import type { MainIpcBase } from '../../main/app/main-ipc';
 import { getContextBridgeIpcRenderer } from '../context-bridge';
@@ -10,6 +10,9 @@ import {
 import { PromiseInner } from '../../common/promise';
 import type { DomIpcBase } from '../dom-ipc';
 import { throwFromEither } from '../../common/fp-ts/either';
+import { UserSettings } from '../../main/app/persisted/user-settings';
+import { ReactiveVal } from '../../common/reactive/reactive-interface';
+import { useReactiveVal } from '../reactive-state/reactive-hooks';
 
 function contextName<Name extends string>(name: Name): `${Name}Context` {
   return `${name}Context`;
@@ -72,3 +75,16 @@ export const { useAppContext, AppContextContext } =
 
 export const useMainIpc = () => useAppContext().mainIpc;
 export const useAppReactiveNodes = () => useAppContext().appReactiveNodes;
+
+export function useUserSettingNode<A extends keyof UserSettings & string>(
+  a: A
+): ReactiveVal<UserSettings[A]> {
+  const { userSettingsRemote } = useAppReactiveNodes();
+  return useMemo(() => {
+    return userSettingsRemote.fmap.strict((it) => it[a]);
+  }, [userSettingsRemote, a]);
+}
+
+export function useUserSetting<A extends keyof UserSettings>(a: A) {
+  return useReactiveVal(useUserSettingNode(a));
+}

@@ -14,6 +14,7 @@ export const Layout = () => {
   const { currentTabNode, userSettingsRemote } = useAppReactiveNodes();
   const currentTab = useReactiveVal(currentTabNode);
   const {
+    useGetDeps,
     TabContent,
     TabLeftBar = emptyComponent,
     TabRightBar = emptyComponent,
@@ -33,19 +34,27 @@ export const Layout = () => {
     updateStyle(userSettingsRemote.getValue());
     return userSettingsRemote.listenable.listen(updateStyle);
   }, [userSettingsRemote]);
+  const TabC = () => {
+    const deps = useGetDeps();
+    return (
+      <>
+        <div className={style.leftBar}>
+          <TabLeftBar {...deps} />
+        </div>
+        <div className={style.centerContent}>
+          <TabContent {...deps} />
+        </div>
+        <div className={style.rightBar}>
+          <TabRightBar {...deps} />
+        </div>
+      </>
+    );
+  };
   return (
     <div className={style.main}>
       <Header />
       <div className={style.mainContent}>
-        <div className={style.leftBar}>
-          <TabLeftBar />
-        </div>
-        <div className={style.centerContent}>
-          <TabContent />
-        </div>
-        <div className={style.rightBar}>
-          <TabRightBar />
-        </div>
+        <TabC />
       </div>
       <FlashMessages />
       <GlobalModals />

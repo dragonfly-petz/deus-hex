@@ -8,20 +8,27 @@ import { TabName, tabNames } from './tab-names';
 import { Button } from '../framework/Button';
 import { mkPetzResourcesTab } from '../page/PetzResources';
 
-export interface TabDef {
+export interface TabDef<A extends {}> {
   tabName: string;
-  TabContent: FunctionalComponent;
-  TabLeftBar?: FunctionalComponent;
-  TabRightBar?: FunctionalComponent;
+  useGetDeps: () => A;
+  TabContent: FunctionalComponent<A>;
+  TabLeftBar?: FunctionalComponent<A>;
+  TabRightBar?: FunctionalComponent<A>;
 }
 
-export const tabs: Record<TabName, TabDef> = {
+export const tabs: Record<TabName, TabDef<any>> = {
   petzResources: mkPetzResourcesTab(),
   breedClothingTransform: {
+    useGetDeps: () => {
+      return {};
+    },
     tabName: 'Breed -> Clothing',
     TabContent: BreedClothingTransform,
   },
   clothingRename: {
+    useGetDeps: () => {
+      return {};
+    },
     tabName: 'Clothing rename',
     TabContent: ClothingRename,
   },

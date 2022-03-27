@@ -28,18 +28,25 @@ const globalStyleDef = {
   errorBgColor: '#fdd0d0',
   successBgColor: '#d0fde0',
 
+  infoFgColor: '#004a59',
+  warnFgColor: '#a27a00',
+  errorFgColor: '#ad0000',
+  successFgColor: '#00852e',
+
   mainFont: 'Arial, sans-serif',
   primaryFontColor: '#111',
+  primaryFontFadeColor: '#999',
   secondaryFontColor: '#111',
   tertiaryFontColor: '#f3f3f3',
   headingFont: 'Comic Sans MS, Comic Sans, sans-serif',
 
   // local
-  fmBgColor: null,
+  localVar1: null,
 };
 produceStyleVar();
 
 export const globalSh = new StyleVarHelper(globalStyleDef, globalStyleVar);
+export type GlobalStyleVarName = keyof typeof globalStyleDef;
 
 function produceStyleVar() {
   const rows = new Array<string>();

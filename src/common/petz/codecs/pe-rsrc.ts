@@ -52,7 +52,7 @@ const resDataEntryCodec: Codec<ResDataEntry, PeRsrcContext> = {
   encode: (a, buffer, offset, context) => {
     const dataDataOffset = context.nextDataDataOffset;
     // add some padding between them just to be friendly
-    const gapBetweenEntries = 0x100;
+    const gapBetweenEntries = 0x0;
     context.nextDataDataOffset = byteAlign(
       context.nextDataDataOffset + a.data.length + gapBetweenEntries
     );

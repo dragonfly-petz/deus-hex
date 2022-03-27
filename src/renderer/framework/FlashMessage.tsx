@@ -37,10 +37,10 @@ export class FlashMessage {
 }
 
 const kindStyles = globalSh.toRecordProxy({
-  info: { fmBgColor: 'infoBgColor' },
-  warn: { fmBgColor: 'warnBgColor' },
-  error: { fmBgColor: 'errorBgColor' },
-  success: { fmBgColor: 'successBgColor' },
+  info: { localVar1: 'infoBgColor' },
+  warn: { localVar1: 'warnBgColor' },
+  error: { localVar1: 'errorBgColor' },
+  success: { localVar1: 'successBgColor' },
 });
 
 export const FlashMessages = () => {

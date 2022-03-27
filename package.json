@@ -17,6 +17,9 @@
     "typecheck": "tsc --noEmit",
     "publish": "electron-builder --publish always --win"
   },
+  "electronmon": {
+    "patterns": ["!**/*.scss"]
+  },
   "build": {
     "productName": "Deus Hex",
     "appId": "com.dragonfly.deushex",

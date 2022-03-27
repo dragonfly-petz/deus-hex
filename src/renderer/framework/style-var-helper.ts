@@ -67,15 +67,19 @@ export class StyleVarHelper<A extends Record<string, StyleType>> {
     return mapObjectValues(b, (it) => this.toStyle(it));
   }
 
+  toProxyStyle(proxyDef: Partial<Record<keyof A, keyof A>>): CSSProperties {
+    const proxied: Partial<A> = mapObjectValues(
+      proxyDef,
+      (val) => this.defaultStyle[val as any]
+    ) as any;
+    return this.toStyle(proxied);
+  }
+
   toRecordProxy<B extends Record<string, Partial<Record<keyof A, keyof A>>>>(
     b: B
   ): Record<keyof B, CSSProperties> {
     return mapObjectValues(b, (it: Partial<Record<keyof A, keyof A>>) => {
-      const proxied: Partial<A> = mapObjectValues(
-        it,
-        (val) => this.defaultStyle[val as any]
-      ) as any;
-      return this.toStyle(proxied);
+      return this.toProxyStyle(it);
     });
   }
 

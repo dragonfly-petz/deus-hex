@@ -1,15 +1,15 @@
 export const fileTypes = {
-  clothes: {
-    extension: '.clo',
-    pathSegments: ['Resource', 'Clothes'],
+  catz: {
+    extension: '.cat',
+    pathSegments: ['Resource', 'Catz'],
   },
   dogz: {
     extension: '.dog',
     pathSegments: ['Resource', 'Dogz'],
   },
-  catz: {
-    extension: '.cat',
-    pathSegments: ['Resource', 'Catz'],
+  clothes: {
+    extension: '.clo',
+    pathSegments: ['Resource', 'Clothes'],
   },
 } as const;
 

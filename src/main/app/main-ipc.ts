@@ -25,6 +25,8 @@ import {
 import { UserSettings } from './persisted/user-settings';
 import { RemoteObject } from '../../common/reactive/remote-object';
 import { ResourceManager } from './resource/resource-manager';
+import { FileType } from '../../common/petz/file-types';
+import { isNully } from '../../common/null';
 
 export class MainIpcBase {
   private resourceManager: ResourceManager;
@@ -90,6 +92,14 @@ export class MainIpcBase {
     return this.resourceManager.getResourcesInfo(
       this.userSettingsRemote.getValue().petzFolder
     );
+  }
+
+  async fixDuplicateIds(type: FileType) {
+    const { petzFolder } = this.userSettingsRemote.getValue();
+    if (isNully(petzFolder)) {
+      return E.left('No petz folder set');
+    }
+    return this.resourceManager.fixDuplicateIds(petzFolder, type);
   }
 }
 

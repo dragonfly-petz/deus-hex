@@ -3,9 +3,9 @@ import * as PE from 'pe-library';
 import { identity, pipe } from 'fp-ts/function';
 import { globalLogger } from '../../../common/logger';
 import { fsPromises } from '../util/fs-promises';
-import { assertEqual } from '../../../common/assert';
+import { assert, assertEqual } from '../../../common/assert';
 import { safeLast, sortByNumeric, sumBy } from '../../../common/array';
-import { E } from '../../../common/fp-ts/fp';
+import { E, Either } from '../../../common/fp-ts/fp';
 import { PromiseInner } from '../../../common/promise';
 import { isNotNully, isNully } from '../../../common/null';
 import {
@@ -19,7 +19,11 @@ import {
   getDataEntryById,
   ResourceEntryId,
 } from '../../../common/petz/codecs/rsrc-utility';
-import { rcDataCodec, rcDataId } from '../../../common/petz/codecs/rcdata';
+import {
+  RcData,
+  rcDataCodec,
+  rcDataId,
+} from '../../../common/petz/codecs/rcdata';
 
 function toHexString(arr: Uint8Array) {
   return Array.from(arr)
@@ -41,18 +45,18 @@ function toHex(val: number, pad = 8) {
   return `0x${val.toString(16).padStart(pad, '0')}`;
 }
 
-function removeSymbolsNumber(buf: Buffer) {
+export function removeSymbolsNumber(buf: Buffer) {
   const elfanewOffset = 0x3c;
   const peOffset = buf.readUInt32LE(elfanewOffset);
   const peCheck = readChars(buf, peOffset, 4);
   assertEqual(peCheck, 'PE\0\0');
   const symbolNumberOffset = peOffset + 4 + 12;
-  const symbolNumber = buf.readUInt32LE(symbolNumberOffset);
-  globalLogger.info(
-    `Replacing symbol number ${symbolNumber} (${toHex(
-      symbolNumber
-    )}) with 0 at offset ${toHex(symbolNumberOffset)}`
-  );
+  /*  const symbolNumber = buf.readUInt32LE(symbolNumberOffset);
+    globalLogger.info(
+      `Replacing symbol number ${symbolNumber} (${toHex(
+        symbolNumber
+      )}) with 0 at offset ${toHex(symbolNumberOffset)}`
+    ); */
   buf.writeUInt32LE(0, symbolNumberOffset);
 }
 
@@ -123,7 +127,7 @@ export function getResourceSectionData(pe: PE.NtExecutable) {
   });
 }
 
-async function getExistingBreedInfos(targetFile: string) {
+export async function getExistingBreedInfos(targetFile: string) {
   const dir = path.dirname(targetFile);
   const files = await fsPromises.readdir(dir);
   globalLogger.info(`Processing ${files.length} files`);
@@ -175,7 +179,9 @@ export type FileInfoAndData = PromiseInner<
   ReturnType<typeof getFileInfoAndData>
 >;
 
-export async function getFileInfo(filePath: string) {
+export async function getFileInfo(
+  filePath: string
+): Promise<Either<string, FileInfo>> {
   return pipe(
     await getFileInfoAndData(filePath),
     E.map((it) => {
@@ -188,7 +194,11 @@ export async function getFileInfo(filePath: string) {
   );
 }
 
-export type FileInfo = PromiseInner<ReturnType<typeof getFileInfo>>;
+export interface FileInfo {
+  filePath: string;
+  itemName: string;
+  rcInfo: RcData;
+}
 
 function getRcData(table: ResDirTable) {
   return pipe(
@@ -247,6 +257,11 @@ export async function setBreedId(pe: PE.NtExecutable, breedId: number) {
           const encodedBuffer = encodeToSection(
             sectionData.section.info,
             resData.resDirTable
+          );
+
+          assert(
+            encodedBuffer.length <= sectionData.sectionData.length,
+            `Expected encoded length ${encodedBuffer.length} to be <= original length ${sectionData.sectionData.length}`
           );
           const newSection = {
             ...sectionData.section,
@@ -363,6 +378,7 @@ export async function updateResourceSection(
   data: Uint8Array
 ) {
   const buf = await fsPromises.readFile(filepath);
+  removeSymbolsNumber(buf);
   const codecRes = pipe(
     await getFileInfoAndData(filepath),
     E.map((it) => it.resDirTable),
