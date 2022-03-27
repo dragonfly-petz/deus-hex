@@ -1,10 +1,18 @@
-import React, { useContext } from 'react';
+import React, { useContext, useMemo } from 'react';
 import { isNully } from '../../common/null';
-import type { MainIpc } from '../../main/app/main-ipc';
+import type { MainIpcBase } from '../../main/app/main-ipc';
 import { getContextBridgeIpcRenderer } from '../context-bridge';
-import { IpcHandler } from '../../common/ipc';
-import { useMkAppReactiveNodes } from './app-reactive-nodes';
+import { IpcHandler, mainIpcChannel } from '../../common/ipc';
+import {
+  AppReactiveNodesStatic,
+  mkAsyncReactiveNodes,
+} from './app-reactive-nodes';
 import { PromiseInner } from '../../common/promise';
+import type { DomIpcBase } from '../dom-ipc';
+import { throwFromEither } from '../../common/fp-ts/either';
+import { UserSettings } from '../../main/app/persisted/user-settings';
+import { ReactiveVal } from '../../common/reactive/reactive-interface';
+import { useReactiveVal } from '../reactive-state/reactive-hooks';
 
 function contextName<Name extends string>(name: Name): `${Name}Context` {
   return `${name}Context`;
@@ -36,15 +44,30 @@ export function mkNullableContext<A>() {
   };
 }
 
-export type AppContext = PromiseInner<ReturnType<typeof useMkAppContext>>;
+export type AppContext = PromiseInner<ReturnType<typeof mkAppContext>>;
 
-export async function useMkAppContext() {
-  const appReactiveNodes = useMkAppReactiveNodes();
-  const ipc = getContextBridgeIpcRenderer();
-  const mainIpc = new IpcHandler<MainIpc>(ipc).target;
-  const isDev = await mainIpc.isDev();
-  const appVersion = await mainIpc.getAppVersion();
-  return { mainIpc, isDev, appVersion, appReactiveNodes };
+export async function mkAppContext(
+  domIpc: DomIpcBase,
+  appReactiveNodes: AppReactiveNodesStatic
+) {
+  const mainIpc = new IpcHandler<MainIpcBase>(
+    mainIpcChannel,
+    getContextBridgeIpcRenderer()
+  ).target;
+
+  const isDev = throwFromEither(await mainIpc.isDev());
+  const appVersion = throwFromEither(await mainIpc.getAppVersion());
+  const asyncNodes = await mkAsyncReactiveNodes(mainIpc, domIpc);
+  return {
+    mainIpc,
+    isDev,
+    appVersion,
+    appReactiveNodes: {
+      ...appReactiveNodes,
+      ...asyncNodes,
+    },
+    domIpc,
+  };
 }
 
 export const { useAppContext, AppContextContext } =
@@ -52,3 +75,16 @@ export const { useAppContext, AppContextContext } =
 
 export const useMainIpc = () => useAppContext().mainIpc;
 export const useAppReactiveNodes = () => useAppContext().appReactiveNodes;
+
+export function useUserSettingNode<A extends keyof UserSettings & string>(
+  a: A
+): ReactiveVal<UserSettings[A]> {
+  const { userSettingsRemote } = useAppReactiveNodes();
+  return useMemo(() => {
+    return userSettingsRemote.fmap.strict((it) => it[a]);
+  }, [userSettingsRemote, a]);
+}
+
+export function useUserSetting<A extends keyof UserSettings>(a: A) {
+  return useReactiveVal(useUserSettingNode(a));
+}

@@ -1,8 +1,8 @@
 import { Either } from 'fp-ts/Either';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { isNully, nullable } from '../../common/null';
 import { E } from '../../common/fp-ts/fp';
-import { throwRejection } from '../../common/promise';
+import { throwRejectionK } from '../../common/promise';
 
 export type RenderFunction<A = void> = (input: A) => JSX.Element | null;
 export type FunctionalComponent<Props extends object = object> = (
@@ -43,7 +43,9 @@ export const renderIf = (condition: boolean, func: RenderFunction) => {
   }
   return null;
 };
-
+export const emptyComponent = () => {
+  return null;
+};
 export const RenderAsync = <A,>({
   render,
   value,
@@ -53,9 +55,24 @@ export const RenderAsync = <A,>({
 }) => {
   const [val, setVal] = useState(nullable<A>());
   useEffect(() => {
-    throwRejection(async () => {
+    throwRejectionK(async () => {
       setVal(await value);
     });
   }, [value]);
   return renderNullable(val, render);
 };
+
+export function renderLineBreaks(str: string) {
+  const broken = str.split(/\r?\n|\r/g);
+  return (
+    <>
+      {broken.map((it, idx) => (
+        // eslint-disable-next-line react/no-array-index-key
+        <React.Fragment key={idx}>
+          {it}
+          <br />
+        </React.Fragment>
+      ))}
+    </>
+  );
+}

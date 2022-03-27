@@ -1,7 +1,7 @@
 import { Result } from '../../common/result';
 import { renderEither, RenderFunction, renderNullable } from './render';
 import style from './result.module.scss';
-import { ReactiveNode } from '../reactive-state/reactive-node';
+import { ReactiveNode } from '../../common/reactive/reactive-node';
 import {
   RenderRenderFunc,
   WithReactiveNode,

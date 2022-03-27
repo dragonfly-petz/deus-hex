@@ -1,0 +1,26 @@
+@use '../style/styleVar';
+
+.panel {
+  border: solid 2px styleVar.$panelBorderColor;
+  border-radius: 10px;
+  background-color: styleVar.$themeSecondaryBgColor;
+  margin: 10px;
+  overflow: hidden;
+}
+
+.header {
+  padding: 15px;
+  background-color: styleVar.$themeTertiaryBgColor;
+  color: styleVar.$tertiaryFontColor;
+  font-size: 2.4rem;
+}
+
+.body {
+  padding: 15px;
+}
+
+.buttons {
+  padding: 15px;
+  display: flex;
+  justify-content: flex-end;
+}

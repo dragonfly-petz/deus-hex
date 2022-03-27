@@ -5,23 +5,34 @@ export interface DecodeResult<A> {
   bytesRead: number;
 }
 
-interface Encoder<A> {
-  encode: (a: A, buffer: Buffer, offset: number) => number;
+export type EncodeCallback = (buffer: Buffer, offset: number) => number;
+
+interface Encoder<A, Context> {
+  encode: (a: A, buffer: Buffer, offset: number, context: Context) => number;
 }
 
-interface Decoder<A> {
-  decode: (buffer: Buffer, offset: number) => Either<string, DecodeResult<A>>;
+interface Decoder<A, Context> {
+  decode: (
+    buffer: Buffer,
+    offset: number,
+    context: Context
+  ) => Either<string, DecodeResult<A>>;
 }
 
-export type Codec<A> = Encoder<A> &
-  Decoder<A> & {
+export type Codec<A, Context = unknown> = Encoder<A, Context> &
+  Decoder<A, Context> & {
     typeLabels: Array<string>;
   };
 
-export type CodecType<A extends Codec<A>> = A extends Codec<infer B>
+export type CodecType<A extends Codec<any, any>> = A extends Codec<infer B, any>
   ? B
   : never;
 
-export function decode<A>(buffer: Buffer, codec: Codec<A>, offset = 0) {
-  return codec.decode(buffer, offset);
+export function decode<A, Context>(
+  buffer: Buffer,
+  codec: Codec<A, Context>,
+  offset = 0,
+  context: Context
+) {
+  return codec.decode(buffer, offset, context);
 }

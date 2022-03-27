@@ -1,0 +1,33 @@
+@use '../style/styleVar';
+
+.flashMessages {
+  position: absolute;
+  bottom: 5px;
+  right: 5px;
+  display: flex;
+  flex-direction: column-reverse;
+}
+
+.message {
+  max-width: 600px;
+  padding: 10px;
+  background-color: styleVar.$localVar1;
+  box-shadow: 0 3px 7px rgba(0, 0, 0, 0.3);
+  position: relative;
+}
+
+.button {
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+
+.title {
+  font-size: 3rem;
+  font-weight: bold;
+  margin-bottom: 6px;
+  margin-right: 20px;
+}
+
+.body {
+}

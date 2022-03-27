@@ -2,12 +2,12 @@ import { Either } from 'fp-ts/Either';
 import style from './BreedClothingTransform.module.scss';
 import { Button } from '../framework/Button';
 import { nullable } from '../../common/null';
-import { throwRejection } from '../../common/promise';
+import { throwRejectionK } from '../../common/promise';
 import { useMainIpc } from '../context/context';
 import { isDev } from '../../main/app/util';
 import {
   useMkReactiveNodeMemo,
-  useReactiveNode,
+  useReactiveVal,
 } from '../reactive-state/reactive-hooks';
 import { E } from '../../common/fp-ts/fp';
 import { TextArea } from '../framework/form/TextArea';
@@ -44,7 +44,7 @@ const TransformText = ({
 }) => {
   const textNode = useMkReactiveNodeMemo(defaultVal ?? '');
   const resultNode = useMkReactiveNodeMemo(nullable<Either<string, string>>());
-  const result = useReactiveNode(resultNode);
+  const result = useReactiveVal(resultNode);
   return (
     <>
       <TextArea valueNode={textNode} />
@@ -52,7 +52,7 @@ const TransformText = ({
         <Button
           label="Transform"
           onClick={() => {
-            throwRejection(async () => {
+            throwRejectionK(async () => {
               resultNode.setValue(await doTransform(textNode.getValue()));
             });
           }}

@@ -1,17 +1,17 @@
 import style from './ClothingRename.module.scss';
 import { DropFile } from '../framework/form/DropFile';
-import { clothingExtension } from '../../common/petz/file-types';
+import { fileTypes } from '../../common/petz/file-types';
 import {
-  useListenReactiveNode,
+  useListenReactiveVal,
   useMkReactiveNodeMemo,
-  useReactiveNode,
+  useReactiveVal,
 } from '../reactive-state/reactive-hooks';
 import { isNully, nullable } from '../../common/null';
 import { useMainIpc } from '../context/context';
-import { throwRejection } from '../../common/promise';
+import { throwRejectionK } from '../../common/promise';
 import { renderReactiveResult } from '../framework/result';
 import type {
-  FileInfo,
+  FileInfoAndData,
   RenameClothingFileResult,
 } from '../../main/app/pe-files/pe-files-util';
 import { unsafeObjectEntries } from '../../common/object';
@@ -20,6 +20,12 @@ import { renderIf, renderNullableElse } from '../framework/render';
 import { classNames } from '../../common/react';
 import { Button } from '../framework/Button';
 import { isDev } from '../../main/app/util';
+import { E } from '../../common/fp-ts/fp';
+import { TextArea } from '../framework/form/TextArea';
+import { getDataEntryById } from '../../common/petz/codecs/rsrc-utility';
+import { bytesToString, stringToBytes } from '../../common/buffer';
+import { globalLogger } from '../../common/logger';
+import { run } from '../../common/function';
 
 const debugNewFileName = isDev() ? 'Zragonl ffffff' : '';
 const debugNewItemName = isDev() ? 'Zrangonlierfs' : '';
@@ -27,32 +33,37 @@ export const ClothingRename = () => {
   const pickedPathNode = useMkReactiveNodeMemo(nullable<string>());
   const newFileNameNode = useMkReactiveNodeMemo(debugNewFileName);
   const newItemNameNode = useMkReactiveNodeMemo(debugNewItemName);
-  const fileInfoNode = useMkReactiveNodeMemo(nullable<FileInfo>());
+  const fileInfoNode = useMkReactiveNodeMemo(nullable<FileInfoAndData>());
   const renameResultNode = useMkReactiveNodeMemo(
     nullable<RenameClothingFileResult>()
   );
   if (isDev()) {
     setTimeout(() => {
       pickedPathNode.setValue(
-        'C:\\Users\\franc\\Documents\\Petz\\Petz 4\\Resource\\Clothes\\Argyle Sweater.clo'
+        'C:\\Users\\franc\\Documents\\Petz\\Petz 4\\Resource\\Clothes\\Nosepest.clo'
       );
     }, 500);
   }
+
   const mainIpc = useMainIpc();
-  useListenReactiveNode(pickedPathNode, (it) => {
+  useListenReactiveVal(pickedPathNode, (it) => {
     if (isNully(it)) {
       fileInfoNode.setValue(null);
     } else {
-      throwRejection(async () => {
-        fileInfoNode.setValue(await mainIpc.getClothingFileInfo(it));
+      throwRejectionK(async () => {
+        const res = await mainIpc.getClothingFileInfo(it);
+        if (E.isRight(res)) {
+          globalLogger.log(res.right.resDirTable);
+        }
+        fileInfoNode.setValue(res);
       });
     }
   });
   return (
     <div className={style.main}>
       <DropFile
-        validExtensions={new Set([clothingExtension])}
-        onChange={(it) => pickedPathNode.setValue(it)}
+        validExtensions={new Set([fileTypes.clothes.extension])}
+        valueNode={pickedPathNode}
       />
       <Button
         label="Reset"
@@ -67,9 +78,9 @@ export const ClothingRename = () => {
 
       {renderReactiveResult(fileInfoNode, (output) => {
         // eslint-disable-next-line react-hooks/rules-of-hooks
-        const newFileName = useReactiveNode(newFileNameNode);
+        const newFileName = useReactiveVal(newFileNameNode);
         // eslint-disable-next-line react-hooks/rules-of-hooks
-        const newItemName = useReactiveNode(newItemNameNode);
+        const newItemName = useReactiveVal(newItemNameNode);
         const oldFileName = output.pathParsed.name;
         const oldItemName = output.itemName;
         const fileNameInvalid =
@@ -80,15 +91,52 @@ export const ClothingRename = () => {
           newItemName.length === oldItemName.length
             ? null
             : `Item name must be same length (${oldItemName.length}) as old file name (${oldItemName}). Currently it is ${newItemName.length}`;
+        const dataId = {
+          type: 'CLZ',
+          level: 'CLOT_BADGESHERIFF',
+          language: 1033,
+        };
+        const data = getDataEntryById(output.resDirTable, dataId)?.data ?? [
+          40, 40,
+        ];
+        // eslint-disable-next-line react-hooks/rules-of-hooks
+        const lnzDataNode = useMkReactiveNodeMemo(bytesToString(data));
         return (
           <div className={style.form}>
+            <h2>Linz editor</h2>
+            <TextArea valueNode={lnzDataNode} />
+            <Button
+              label="SAVE IT!!!"
+              onClick={() => {
+                throwRejectionK(async () => {
+                  await mainIpc.updateResourceSection(
+                    output.filePath,
+                    dataId,
+                    new Uint8Array(stringToBytes(lnzDataNode.getValue()))
+                  );
+                });
+              }}
+            />
             <h2>File info</h2>
-            {unsafeObjectEntries(output).map(([key, val]) => {
-              if (key === 'pathParsed') return null;
+            {run(() => {
+              const { rcData } = output.rcData;
+              const dataForOutput = {
+                filePath: output.filePath,
+                itemName: output.itemName,
+                breedId: rcData.breedId,
+                displayName: rcData.displayName,
+                spriteName: rcData.spriteName,
+              };
               return (
-                <div className={style.row} key={key}>
-                  {key}: {val}
-                </div>
+                <>
+                  {unsafeObjectEntries(dataForOutput).map(([key, val]) => {
+                    return (
+                      <div className={style.row} key={key}>
+                        {key}: {val}
+                      </div>
+                    );
+                  })}
+                </>
               );
             })}
 
@@ -138,7 +186,7 @@ export const ClothingRename = () => {
                   <Button
                     label="Transform"
                     onClick={() => {
-                      throwRejection(async () => {
+                      throwRejectionK(async () => {
                         const res = await mainIpc.renameClothingFile(
                           output.filePath,
                           newFileName,
@@ -161,7 +209,7 @@ export const ClothingRename = () => {
             {renderIf(output.warnIdFailed.length > 0, () => {
               return (
                 <div className={style.warn}>
-                  WARNING: can't guarantee unique id as encountered errors
+                  WARNING: can&#39;t guarantee unique id as encountered errors
                   (files listed below)
                 </div>
               );

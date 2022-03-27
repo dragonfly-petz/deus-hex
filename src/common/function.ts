@@ -12,3 +12,7 @@ export function run<A>(block: () => A) {
 }
 
 export function voidFn() {}
+
+export function identity<A>(a: A): A {
+  return a;
+}

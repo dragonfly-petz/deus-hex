@@ -2,22 +2,33 @@ import { FunctionalComponent } from '../framework/render';
 import { BreedClothingTransform } from '../page/BreedClothingTransform';
 import style from './layout.module.scss';
 import { useAppReactiveNodes } from '../context/context';
-import { useReactiveNode } from '../reactive-state/reactive-hooks';
-import { classNames } from '../../common/react';
+import { useReactiveVal } from '../reactive-state/reactive-hooks';
 import { ClothingRename } from '../page/ClothingRename';
 import { TabName, tabNames } from './tab-names';
+import { Button } from '../framework/Button';
+import { mkPetzResourcesTab } from '../page/PetzResources';
 
-export interface TabDef {
+export interface TabDef<A extends object> {
   tabName: string;
-  TabContent: FunctionalComponent;
+  useGetDeps: () => A;
+  TabContent: FunctionalComponent<A>;
+  TabLeftBar?: FunctionalComponent<A>;
+  TabRightBar?: FunctionalComponent<A>;
 }
 
-export const tabs: Record<TabName, TabDef> = {
+export const tabs: Record<TabName, TabDef<any>> = {
+  petzResources: mkPetzResourcesTab(),
   breedClothingTransform: {
+    useGetDeps: () => {
+      return {};
+    },
     tabName: 'Breed -> Clothing',
     TabContent: BreedClothingTransform,
   },
   clothingRename: {
+    useGetDeps: () => {
+      return {};
+    },
     tabName: 'Clothing rename',
     TabContent: ClothingRename,
   },
@@ -25,25 +36,22 @@ export const tabs: Record<TabName, TabDef> = {
 
 export const Tabs = () => {
   const { currentTabNode } = useAppReactiveNodes();
-  const currentTab = useReactiveNode(currentTabNode);
+  const currentTab = useReactiveVal(currentTabNode);
 
   return (
     <div className={style.tabs}>
       {tabNames.map((tabName) => {
         const def = tabs[tabName];
         return (
-          <div
+          <Button
             key={tabName}
-            className={classNames(
-              style.tab,
-              tabName === currentTab ? style.tabActive : null
-            )}
+            label={def.tabName}
+            active={tabName === currentTab}
             onClick={() => {
               currentTabNode.setValue(tabName);
             }}
-          >
-            {def.tabName}
-          </div>
+            size="large"
+          />
         );
       })}
     </div>

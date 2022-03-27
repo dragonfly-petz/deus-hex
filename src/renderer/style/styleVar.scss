@@ -1,0 +1,49 @@
+@use 'sass:list';
+
+$globalVars: ();
+@function declareVar($str) {
+  $globalVars: list.append($globalVars, $str) !global;
+  @return var(--#{$str});
+}
+
+$htmlFontSize: declareVar(htmlFontSize);
+$themePrimaryBgColor: declareVar(themePrimaryBgColor);
+$themeSecondaryBgColor: declareVar(themeSecondaryBgColor);
+$themeTertiaryBgColor: declareVar(themeTertiaryBgColor);
+$headerFontColor: declareVar(headerFontColor);
+$headerFontOutlineColor: declareVar(headerFontOutlineColor);
+$headerFontOutlineSize: declareVar(headerFontOutlineSize);
+$buttonBgColor: declareVar(buttonBgColor);
+$buttonBgHoverColor: declareVar(buttonBgHoverColor);
+$buttonBgActiveColor: declareVar(buttonBgActiveColor);
+$panelBorderColor: declareVar(panelBorderColor);
+$infoBgColor: declareVar(infoBgColor);
+$warnBgColor: declareVar(warnBgColor);
+$errorBgColor: declareVar(errorBgColor);
+$successBgColor: declareVar(successBgColor);
+$infoFgColor: declareVar(infoFgColor);
+$warnFgColor: declareVar(warnFgColor);
+$errorFgColor: declareVar(errorFgColor);
+$successFgColor: declareVar(successFgColor);
+$localVar1: declareVar(localVar1);
+$mainFont: declareVar(mainFont);
+$primaryFontColor: declareVar(primaryFontColor);
+$primaryFontFadeColor: declareVar(primaryFontFadeColor);
+$secondaryFontColor: declareVar(secondaryFontColor);
+$tertiaryFontColor: declareVar(tertiaryFontColor);
+$headingFont: declareVar(headingFont);
+$buttonFontColor: declareVar(buttonFontColor);
+$buttonFontHoverColor: declareVar(buttonFontHoverColor);
+$buttonFontActiveColor: declareVar(buttonFontActiveColor);
+
+@mixin initStyleVars {
+  @each $str in $globalVars {
+    --#{$str}: styleVarInit-#{$str};
+  }
+}
+
+:export {
+  @each $str in $globalVars {
+    #{$str}: $str;
+  }
+}

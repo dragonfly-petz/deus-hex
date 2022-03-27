@@ -7,8 +7,6 @@ export type LogLevel = typeof logLevels[number];
 export interface Log {
   level: LogLevel;
   /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-  message: any;
-  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
   args: Array<any>;
 
   source: string;
@@ -43,8 +41,8 @@ export class Logger {
   }
 
   /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-  private doLog = (level: LogLevel, message: any, ...args: Array<any>) => {
-    const log: Log = { level, message, args, source: this.source };
+  private doLog = (level: LogLevel, ...args: Array<any>) => {
+    const log: Log = { level, args, source: this.source };
     for (const logger of this.loggers) {
       logger(log);
     }
@@ -57,7 +55,7 @@ export const consoleLogHandler: LogHandler = async (log) => {
   const now = new Date();
   const scopePrefix = `**${log.source}** > `;
   const time = DF.format(now, "yyyy-MM-dd'T'HH:mm:ss.SSSX");
-  const message = `${scopePrefix}[${log.level}] [${time}] ${log.message}`;
+  const message = `${scopePrefix}[${log.level}] [${time}]`;
   originalConsole[consoleLogFn].apply(originalConsole, [message, ...log.args]);
 };
 
@@ -65,4 +63,10 @@ export function getOriginalConsole() {
   return originalConsole;
 }
 
-export const globalLogger = new Logger('main');
+export declare const globalLogger: Logger;
+
+export function initGlobalLogger(source: string) {
+  // @ts-ignore
+  // noinspection JSConstantReassignment
+  globalLogger = new Logger(source);
+}

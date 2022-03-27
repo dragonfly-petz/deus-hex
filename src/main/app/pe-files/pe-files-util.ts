@@ -1,49 +1,29 @@
-import { app } from 'electron';
 import path from 'path';
 import * as PE from 'pe-library';
 import { identity, pipe } from 'fp-ts/function';
-import { uuidV4 } from '../../../common/uuid';
 import { globalLogger } from '../../../common/logger';
 import { fsPromises } from '../util/fs-promises';
-import { run } from '../../../common/function';
-import { isDev } from '../util';
-import { getRepoRootPath } from '../asset-path';
-import { assertEqual } from '../../../common/assert';
+import { assert, assertEqual } from '../../../common/assert';
 import { safeLast, sortByNumeric, sumBy } from '../../../common/array';
-import { E } from '../../../common/fp-ts/fp';
+import { E, Either } from '../../../common/fp-ts/fp';
 import { PromiseInner } from '../../../common/promise';
 import { isNotNully, isNully } from '../../../common/null';
-import { decode } from '../../../common/codec/codec';
-import { resDirTableWithEntries } from '../../../common/petz/codecs/pe-rsrc';
-
-export async function withTempFile<A>(block: (filePath: string) => Promise<A>) {
-  const tmpPath = await run(async () => {
-    if (isDev()) {
-      await fsPromises.mkdir(getRepoRootPath('tmp'), { recursive: true });
-      // starting with a "." stops electronmon from relaunching
-      return getRepoRootPath('tmp', '.devTempFile');
-    }
-    const tempDir = app.getPath('temp');
-    const tempFileName = uuidV4();
-    return path.join(tempDir, tempFileName);
-  });
-
-  globalLogger.info(`Using temp file at ${tmpPath}`);
-  const res = await block(tmpPath);
-  await fsPromises.rm(tmpPath);
-  return res;
-}
-
-function _debugBuffer(buf: Buffer, offset: number, length: number) {
-  const strings = new Array<string>();
-  const bytes = new Array<number>();
-  for (let i = offset; i < offset + length; i++) {
-    bytes.push(buf[i]);
-    strings.push(buf[i].toString(16));
-  }
-  globalLogger.info(strings.join(' '));
-  globalLogger.info(bytesToString(bytes));
-}
+import {
+  decodeFromSection,
+  encodeToSection,
+  ResDirTable,
+} from '../../../common/petz/codecs/pe-rsrc';
+import { bytesToString } from '../../../common/buffer';
+import { withTempFile } from '../file/temp-file';
+import {
+  getDataEntryById,
+  ResourceEntryId,
+} from '../../../common/petz/codecs/rsrc-utility';
+import {
+  RcData,
+  rcDataCodec,
+  rcDataId,
+} from '../../../common/petz/codecs/rcdata';
 
 function toHexString(arr: Uint8Array) {
   return Array.from(arr)
@@ -61,35 +41,26 @@ function readChars(buf: Buffer, offset: number, length: number) {
   return strings.join('');
 }
 
-function readNullTerminatedString(buf: Buffer, offset: number) {
-  const strings = new Array<string>();
-  for (let i = offset; i < buf.length; i++) {
-    if (buf[i] === 0) break;
-    strings.push(String.fromCharCode(buf[i]));
-  }
-  return strings.join('');
-}
-
 function toHex(val: number, pad = 8) {
   return `0x${val.toString(16).padStart(pad, '0')}`;
 }
 
-function removeSymbolsNumber(buf: Buffer) {
+export function removeSymbolsNumber(buf: Buffer) {
   const elfanewOffset = 0x3c;
   const peOffset = buf.readUInt32LE(elfanewOffset);
   const peCheck = readChars(buf, peOffset, 4);
   assertEqual(peCheck, 'PE\0\0');
   const symbolNumberOffset = peOffset + 4 + 12;
-  const symbolNumber = buf.readUInt32LE(symbolNumberOffset);
-  globalLogger.info(
-    `Replacing symbol number ${symbolNumber} (${toHex(
-      symbolNumber
-    )}) with 0 at offset ${toHex(symbolNumberOffset)}`
-  );
+  /*  const symbolNumber = buf.readUInt32LE(symbolNumberOffset);
+    globalLogger.info(
+      `Replacing symbol number ${symbolNumber} (${toHex(
+        symbolNumber
+      )}) with 0 at offset ${toHex(symbolNumberOffset)}`
+    ); */
   buf.writeUInt32LE(0, symbolNumberOffset);
 }
 
-async function parsePE(buffer: Buffer) {
+export async function parsePE(buffer: Buffer) {
   return PE.NtExecutable.from(buffer);
 }
 
@@ -99,14 +70,6 @@ function stringToAsciiUint8(str: string) {
       return it.charCodeAt(0);
     })
   );
-}
-
-function bytesToString(bytes: ArrayLike<number>) {
-  return Array.from(bytes)
-    .map((it) => {
-      return String.fromCharCode(it);
-    })
-    .join('');
 }
 
 function stringToLengthUnicodeUint8(str: string) {
@@ -147,19 +110,10 @@ function toStringResult(newRe: RenameResultBytes) {
   };
 }
 
-const RESOURCE_ENTRY = 2;
+export const PE_RESOURCE_ENTRY = 2;
 
-function toArrayBuffer(buf: Buffer) {
-  const ab = new ArrayBuffer(buf.length);
-  const view = new Uint8Array(ab);
-  for (let i = 0; i < buf.length; i++) {
-    view[i] = buf[i];
-  }
-  return ab;
-}
-
-export async function getResourceSectionData(pe: PE.NtExecutable) {
-  const section = pe.getSectionByEntry(RESOURCE_ENTRY);
+export function getResourceSectionData(pe: PE.NtExecutable) {
+  const section = pe.getSectionByEntry(PE_RESOURCE_ENTRY);
   if (isNully(section)) {
     return E.left('Could not find resource section');
   }
@@ -173,32 +127,7 @@ export async function getResourceSectionData(pe: PE.NtExecutable) {
   });
 }
 
-export async function getBreedInfoOffsets(pe: PE.NtExecutable) {
-  return pipe(
-    await getResourceSectionData(pe),
-    E.chain(({ sectionData, section }) => {
-      // this doesn't work in all cases
-      const spriteOffset = sectionData.indexOf(stringToAsciiUint8('Sprite_'));
-      if (spriteOffset < 0) {
-        return E.left("Couldn't find offset for Sprite_");
-      }
-      const mainSpriteNameOffset = spriteOffset;
-      const spriteNameLength = 0x20;
-      const displayNameOffset = spriteOffset + spriteNameLength;
-      const displayNameLength = 0x20;
-      const breedIdOffset = spriteOffset + spriteNameLength + displayNameLength;
-      return E.right({
-        section,
-        sectionData,
-        mainSpriteNameOffset,
-        displayNameOffset,
-        breedIdOffset,
-      });
-    })
-  );
-}
-
-async function getExistingBreedInfos(targetFile: string) {
+export async function getExistingBreedInfos(targetFile: string) {
   const dir = path.dirname(targetFile);
   const files = await fsPromises.readdir(dir);
   globalLogger.info(`Processing ${files.length} files`);
@@ -217,7 +146,7 @@ async function getExistingBreedInfos(targetFile: string) {
       globalLogger.info(`Skipping ${it}, did not match extension ${targetExt}`);
       return null;
     }
-    return getFileInfo(innerPath);
+    return getFileInfoAndData(innerPath);
   });
   let promisesFinished = 0;
   promises.map(async (it) => {
@@ -231,7 +160,7 @@ async function getExistingBreedInfos(targetFile: string) {
   return res.filter(isNotNully);
 }
 
-export async function getFileInfo(filePath: string) {
+export async function getFileInfoAndData(filePath: string) {
   const buf = await fsPromises.readFile(filePath);
 
   removeSymbolsNumber(buf);
@@ -246,45 +175,115 @@ export async function getFileInfo(filePath: string) {
   );
 }
 
-export type FileInfo = PromiseInner<ReturnType<typeof getFileInfo>>;
+export type FileInfoAndData = PromiseInner<
+  ReturnType<typeof getFileInfoAndData>
+>;
+
+export async function getFileInfo(
+  filePath: string
+): Promise<Either<string, FileInfo>> {
+  return pipe(
+    await getFileInfoAndData(filePath),
+    E.map((it) => {
+      return {
+        filePath: it.filePath,
+        itemName: it.itemName,
+        rcInfo: it.rcData.rcData,
+      };
+    })
+  );
+}
+
+export interface FileInfo {
+  filePath: string;
+  itemName: string;
+  rcInfo: RcData;
+}
+
+function getRcData(table: ResDirTable) {
+  return pipe(
+    getDataEntryById(table, rcDataId),
+    E.fromNullable('No rcData found'),
+    E.chain((res) => {
+      return pipe(
+        rcDataCodec.decode(Buffer.from(res.data), 0, null),
+        E.map((it) => {
+          return {
+            rcData: it.result,
+            rcDataEntry: res,
+          };
+        })
+      );
+    })
+  );
+}
+
+export function getResourceData(pe: PE.NtExecutable) {
+  return pipe(
+    getResourceSectionData(pe),
+    E.chain((res) => {
+      return decodeFromSection(res.section.info, res.sectionData);
+    }),
+    E.chain((resDirTable) => {
+      return pipe(
+        getRcData(resDirTable.result),
+        E.map((res) => ({
+          rcData: res,
+          resDirTable: resDirTable.result,
+        }))
+      );
+    })
+  );
+}
 
 export async function setBreedId(pe: PE.NtExecutable, breedId: number) {
   return pipe(
-    await getBreedInfoOffsets(pe),
-    E.map((res) => {
-      res.sectionData.writeUInt32LE(breedId, res.breedIdOffset);
-      const newSection = {
-        ...res.section,
-        data: toArrayBuffer(res.sectionData),
-      };
-      pe.setSectionByEntry(RESOURCE_ENTRY, newSection);
-      return true;
+    getResourceSectionData(pe),
+    E.map((sectionData) => {
+      return pipe(
+        getResourceData(pe),
+        E.map((resData) => {
+          const rcDataReEncodedBuffer = Buffer.from(
+            new Uint8Array(resData.rcData.rcDataEntry.data.length)
+          );
+          const newRcData = {
+            ...resData.rcData.rcData,
+            breedId,
+          };
+          rcDataCodec.encode(newRcData, rcDataReEncodedBuffer, 0, null);
+          resData.rcData.rcDataEntry.data = new Uint8Array(
+            rcDataReEncodedBuffer
+          );
+          const encodedBuffer = encodeToSection(
+            sectionData.section.info,
+            resData.resDirTable
+          );
+
+          assert(
+            encodedBuffer.length <= sectionData.sectionData.length,
+            `Expected encoded length ${encodedBuffer.length} to be <= original length ${sectionData.sectionData.length}`
+          );
+          const newSection = {
+            ...sectionData.section,
+            data: encodedBuffer,
+          };
+          pe.setSectionByEntry(PE_RESOURCE_ENTRY, newSection);
+          return true;
+        })
+      );
     })
   );
 }
 
 export async function getResourceFileInfo(buffer: Buffer) {
+  const pe = await parsePE(buffer);
   return pipe(
-    await getBreedInfoOffsets(await parsePE(buffer)),
+    getResourceData(pe),
     E.map((res) => {
-      const codecRes = decode(res.sectionData, resDirTableWithEntries);
-      console.dir(codecRes, { depth: 5 });
-
-      const breedId = res.sectionData.readUInt32LE(res.breedIdOffset);
-      const displayName = readNullTerminatedString(
-        res.sectionData,
-        res.displayNameOffset
-      );
-      const spriteName = readNullTerminatedString(
-        res.sectionData,
-        res.mainSpriteNameOffset
-      );
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      const itemName = spriteName.split('_').pop()!;
+      const itemName = res.rcData.rcData.spriteName.split('_').pop()!;
       return {
-        displayName,
-        breedId,
-        spriteName,
+        ...res,
         itemName,
       };
     })
@@ -351,7 +350,7 @@ export async function renameClothingFile(
     const warnIdFailed = existingInfos.filter(E.isLeft).map((it) => it.left);
     const existingBreedIds = existingInfos
       .filter(E.isRight)
-      .map((it) => it.right.breedId);
+      .map((it) => it.right.rcData.rcData.breedId);
     sortByNumeric(existingBreedIds, identity);
     const highest = safeLast(existingBreedIds) ?? 20000;
     const newId = highest + 1;
@@ -371,6 +370,43 @@ export async function renameClothingFile(
       changes: offsetsChanged.map(toStringResult),
     });
   });
+}
+
+export async function updateResourceSection(
+  filepath: string,
+  id: ResourceEntryId,
+  data: Uint8Array
+) {
+  const buf = await fsPromises.readFile(filepath);
+  removeSymbolsNumber(buf);
+  const codecRes = pipe(
+    await getFileInfoAndData(filepath),
+    E.map((it) => it.resDirTable),
+    E.getOrElseW(() => {
+      throw new Error('Expected right');
+    })
+  );
+  const dataEntry = getDataEntryById(codecRes, id);
+  if (isNully(dataEntry)) {
+    throw new Error(`No data entry found for id ${JSON.stringify(id)}`);
+  }
+  dataEntry.data = data;
+  const pe = await parsePE(buf);
+  const sectionData = pipe(
+    await getResourceSectionData(pe),
+    E.getOrElseW(() => {
+      throw new Error('Expected right');
+    })
+  );
+  const encodedBuffer = encodeToSection(sectionData.section.info, codecRes);
+
+  const newSection = {
+    ...sectionData.section,
+    data: encodedBuffer,
+  };
+  pe.setSectionByEntry(PE_RESOURCE_ENTRY, newSection);
+  const generated = pe.generate();
+  await fsPromises.writeFile(filepath, Buffer.from(generated));
 }
 
 export type RenameClothingFileResult = PromiseInner<

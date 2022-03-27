@@ -1,6 +1,6 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
-const validChannels = ['mainIpcChannel'];
+const validChannels = ['mainIpcChannel', 'domIpcChannel'];
 
 contextBridge.exposeInMainWorld('electron', {
   ipcRenderer: {

@@ -4,7 +4,7 @@ import { globalLogger, Log } from '../../common/logger';
 function electronLogLoggerHandler(log: Log) {
   const logFn = log.level === 'status' ? 'info' : log.level;
   const logger = electronLog.scope(log.source);
-  logger[logFn](log.message, ...log.args);
+  logger[logFn](...log.args);
 }
 
 export function initElectronLogger() {

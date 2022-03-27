@@ -1,55 +1,98 @@
+@use '../style/styleVar';
+
 .main {
-  background-color: #e1e1e1;
+  background-color: styleVar.$themePrimaryBgColor;
   height: 100vh;
   display: flex;
   flex-direction: column;
 }
 
 .header {
-  background-color: darkorange;
   padding: 5px 10px;
   display: flex;
   align-items: center;
-  box-shadow: 0 3px 3px transparentize(black, 0.5);
+  margin-bottom: 15px;
+  position: relative;
+}
+
+.logoImg {
+  position: absolute;
+  top: 0;
+  left: -15px;
+  transform: scaleX(-1);
 }
 
 .logoArea {
+  margin-left: 200px;
+
   .logo {
-    font-size: 24px;
+    font-size: 2.4rem;
     font-weight: bold;
   }
 
   .version {
-    font-size: 18px;
+    font-size: 1.8rem;
     font-weight: bold;
   }
 }
 
 .tabsWrapper {
   margin-left: 20px;
+  flex-grow: 1;
+}
+
+.zoom {
+  display: flex;
+  justify-content: flex-end;
+
+  > * {
+    &:not(:last-child) {
+      margin-right: 3px;
+    }
+  }
 }
 
 .mainContent {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  overflow: hidden;
+  flex-grow: 1;
+}
+
+.centerContent {
+  flex-grow: 1;
   overflow: auto;
+}
+
+.leftBar,
+.rightBar {
+  flex-shrink: 0;
+  width: 300px;
+  background-color: styleVar.$themeSecondaryBgColor;
+  margin: 10px;
+  border: solid 2px styleVar.$panelBorderColor;
+  border-radius: 10px;
 }
 
 .tabs {
   display: flex;
+
+  > * {
+    &:not(:last-child) {
+      margin-right: 10px;
+    }
+  }
 }
 
-.tab {
-  padding: 5px 10px;
-  font-weight: bold;
-  background-color: blue;
-  margin-right: 5px;
-  color: white;
-  cursor: pointer;
+.navigation {
+  display: flex;
+  flex-direction: column;
 
-  &:hover {
-    background-color: darkblue;
+  > * {
+    margin-bottom: 10px;
   }
+}
 
-  &.tabActive {
-    background-color: purple;
-  }
+.actions {
 }

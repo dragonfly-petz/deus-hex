@@ -1,10 +1,12 @@
-import { BrowserWindow, shell } from 'electron';
+import { BrowserWindow, ipcMain, shell } from 'electron';
 import { getAssetPath, getPreloadPath, resolveHtmlPath } from './asset-path';
 import MenuBuilder from './menu';
 import { checkForUpdates } from './updater';
 import { isDev } from './util';
 import { globalLogger, Logger, LogLevel } from '../../common/logger';
 import { isNotNully } from '../../common/null';
+import { domIpcChannel, IpcHandler } from '../../common/ipc';
+import { DomIpc, DomIpcBase } from '../../renderer/dom-ipc';
 
 const installExtensions = async () => {
   // eslint-disable-next-line global-require
@@ -19,6 +21,11 @@ const installExtensions = async () => {
     )
     .catch(globalLogger.error);
 };
+
+export interface AppWindow {
+  window: BrowserWindow;
+  domIpc: DomIpc;
+}
 
 export async function createWindow() {
   if (isDev()) {
@@ -62,6 +69,17 @@ export async function createWindow() {
   });
   addDomLogHandler('mainDom', window);
   checkForUpdates();
+
+  return new Promise<AppWindow>((resolve) => {
+    window.webContents.once('did-finish-load', async () => {
+      const domIpc = new IpcHandler<DomIpcBase>(domIpcChannel, {
+        tag: 'mainToDom',
+        on: ipcMain.on.bind(ipcMain),
+        send: window.webContents.send.bind(window.webContents),
+      });
+      resolve({ window, domIpc: domIpc.target });
+    });
+  });
 }
 
 const electronLevelToLogLevel: Partial<Record<number, LogLevel>> = {

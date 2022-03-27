@@ -1,6 +1,6 @@
-import { IpcTransport } from '../common/ipc';
+import { IpcTransportRenderer } from '../common/ipc';
 
 export function getContextBridgeIpcRenderer() {
   // @ts-ignore
-  return window.electron.ipcRenderer as IpcTransport;
+  return window.electron.ipcRenderer as IpcTransportRenderer;
 }
