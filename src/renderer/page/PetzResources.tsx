@@ -10,6 +10,13 @@ import type { ResourcesInfo } from '../../main/app/resource/resource-manager';
 import { DropFile } from '../framework/form/DropFile';
 import { Button } from '../framework/Button';
 import { isNully, nullable } from '../../common/null';
+import type { TabDef } from '../layout/Tabs';
+import { ActionBar, ActionDef } from '../layout/ActionBar';
+import { throwRejection, throwRejectionK } from '../../common/promise';
+import { Panel, PanelBody, PanelButtons, PanelHeader } from '../layout/Panel';
+import { ger } from '../../common/error';
+import { ModalableProps, useModal } from '../framework/Modal';
+import { E } from '../../common/fp-ts/fp';
 
 const mkNavigation = () => {
   return {
@@ -20,6 +27,14 @@ const mkNavigation = () => {
   };
 };
 export type ResourcesPage = keyof ReturnType<typeof mkNavigation>;
+
+export function mkPetzResourcesTab(): TabDef {
+  return {
+    tabName: 'Petz Resources',
+    TabContent: PetzResources,
+    TabRightBar,
+  };
+}
 
 export const PetzResources = () => {
   const navigation = mkNavigation();
@@ -32,8 +47,7 @@ export const PetzResources = () => {
   useListenReactiveVal(
     userSettingsRemote.fmap.strict((it) => it.petzFolder),
     () => {
-      console.log('reloading!!');
-      resourcesOverviewQuery.reload();
+      throwRejectionK(() => resourcesOverviewQuery.reload());
     }
   );
 
@@ -54,27 +68,63 @@ export const PetzResources = () => {
     </div>
   );
 };
-const PetzFolderForm = () => {
+
+const TabRightBar = () => {
+  const actions = new Array<ActionDef>();
   const { userSettingsRemote } = useAppReactiveNodes();
-  const pickedPathNode = useMkReactiveNodeMemo(
-    nullable<string>('C:\\Users\\franc\\Documents\\Petz\\Petz 4')
+  const changePetzFolderModal = useModal({ Content: PetzFolderForm });
+
+  actions.push(
+    {
+      label: 'Reset Petz Folder',
+      icon: 'faEraser',
+      key: 'clearPetzFolder',
+      tooltip: 'Unsets your saved petz folder setting',
+      action: () =>
+        ger.withFlashMessage(
+          userSettingsRemote.setRemotePartial({ petzFolder: null })
+        ),
+    },
+    {
+      label: 'Change Petz Folder',
+      icon: 'faPencil',
+      key: 'changePetzFolder',
+      tooltip: 'Change your saved petz folder setting',
+      action: async () => {
+        changePetzFolderModal.setValue(true);
+        return E.right(null);
+      },
+    }
   );
 
+  return <ActionBar actions={actions} />;
+};
+const PetzFolderForm = ({ closeModal }: ModalableProps) => {
+  const { userSettingsRemote } = useAppReactiveNodes();
+  const pickedPathNode = useMkReactiveNodeMemo(nullable<string>());
+
   return (
-    <>
-      <DropFile
-        validExtensions={new Set([''])}
-        onChange={(it) => pickedPathNode.setValue(it)}
-      />
-      <Button
-        label="Save"
-        onClick={() => {
-          const val = pickedPathNode.getValue();
-          if (isNully(val)) return;
-          userSettingsRemote.setRemotePartial({ petzFolder: val });
-        }}
-      />
-    </>
+    <Panel>
+      <PanelHeader>Set Petz Folder</PanelHeader>
+      <PanelBody>
+        <DropFile validExtensions={new Set([''])} valueNode={pickedPathNode} />
+      </PanelBody>
+      <PanelButtons>
+        <Button
+          label="Save"
+          onClick={() => {
+            closeModal?.();
+            const val = pickedPathNode.getValue();
+            if (isNully(val)) return;
+            throwRejection(
+              ger.withFlashMessage(
+                userSettingsRemote.setRemotePartial({ petzFolder: val })
+              )
+            );
+          }}
+        />
+      </PanelButtons>
+    </Panel>
   );
 };
 const OverviewPage = ({ resourcesInfo }: { resourcesInfo: ResourcesInfo }) => {

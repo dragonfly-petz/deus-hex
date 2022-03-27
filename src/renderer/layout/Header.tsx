@@ -13,7 +13,7 @@ export const Header = () => {
   return (
     <div className={style.header}>
       <div className={style.logoImg}>
-        <img src={logoImg} />
+        <img src={logoImg} alt="Logo Image" />
       </div>
       <div className={style.logoArea}>
         <div className={style.logo}>

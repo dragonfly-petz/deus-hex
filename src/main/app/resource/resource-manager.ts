@@ -2,24 +2,24 @@ import path from 'path';
 import { pipe } from 'fp-ts/function';
 import { fromPromiseProperties, PromiseInner } from '../../../common/promise';
 import { isNully } from '../../../common/null';
-import { E } from '../../../common/fp-ts/fp';
+import { A, E } from '../../../common/fp-ts/fp';
 import { EitherRight } from '../../../common/fp-ts/either';
 import {
   mapObjectValues,
   mapObjectValuesStringKey,
+  unsafeObjectEntries,
 } from '../../../common/object';
 import { directoryExists, fileStat, getPathsInDir } from '../file/file-util';
 import { FileType, fileTypes } from '../../../common/petz/file-types';
 import { getFileInfo } from '../pe-files/pe-files-util';
 import { taggedValue } from '../../../common/tagged-value';
+import { snd } from '../../../common/array';
 
 export type ResourcesInfo = EitherRight<
   PromiseInner<ReturnType<ResourceManager['getResourcesInfo']>>
 >;
 
 export class ResourceManager {
-  constructor() {}
-
   async getResourcesInfo(petzFolder: string | null) {
     if (isNully(petzFolder)) return E.left('No Petz folder set');
     const paths = mapObjectValues(fileTypes, (it) => {
@@ -35,6 +35,10 @@ export class ResourceManager {
         )
       )
     );
+    const lefts = A.lefts(unsafeObjectEntries(res).map(snd));
+    if (lefts.length > 0) {
+      return E.left(lefts.join('\n'));
+    }
 
     const res2 = await fromPromiseProperties(
       mapObjectValuesStringKey(res, async (it, key) => {

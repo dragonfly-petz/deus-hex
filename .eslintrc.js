@@ -14,6 +14,7 @@ module.exports = {
     'react/require-default-props': 'off',
     '@typescript-eslint/no-non-null-assertion': 'off',
     'max-classes-per-file': 'off',
+    " react/jsx-props-no-spreading": "off",
     '@typescript-eslint/no-use-before-define': [
       'off',
       {

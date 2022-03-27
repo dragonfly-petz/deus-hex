@@ -3,6 +3,7 @@ import { Either } from 'fp-ts/Either';
 import { isNode } from './env';
 import { isObjectWithKey } from './type-assertion';
 import { E } from './fp-ts/fp';
+import type { FlashMessageProps } from '../renderer/framework/FlashMessage';
 
 class AppErrorBase {
   private constructorErr = new Error();
@@ -39,8 +40,31 @@ export type CaughtErrorHandler = (err: string) => void;
 export class ErrorReporter {
   constructor(
     private uncaughtHandler: ErrorHandler,
-    private caughtHandler: CaughtErrorHandler
+    private caughtHandler: CaughtErrorHandler,
+    private fmHandler: (fm: FlashMessageProps) => void
   ) {}
+
+  addFm(fm: FlashMessageProps) {
+    this.fmHandler(fm);
+  }
+
+  async withFlashMessage<A>(prom: Promise<Either<string, A>>) {
+    const res = await prom;
+    if (E.isLeft(res)) {
+      this.addFm({
+        kind: 'error',
+        message: res.left,
+        title: 'Failure',
+      });
+    } else {
+      this.addFm({
+        kind: 'success',
+        title: 'Success',
+        message: 'Succeeded',
+      });
+    }
+    return res;
+  }
 
   handleUncaught(err: AppError) {
     this.uncaughtHandler(err);
@@ -124,16 +148,25 @@ export async function tryCatchAsync<A>(
 let handlersInstalled = false;
 
 export declare const globalErrorReporter: ErrorReporter;
+export declare const ger: ErrorReporter;
 
 export function initGlobalErrorReporter(
   uncaughtErrorHandler: ErrorHandler,
-  caughtErrorHandler: CaughtErrorHandler
+  caughtErrorHandler: CaughtErrorHandler,
+  fmHandler: (fm: FlashMessageProps) => void
 ) {
   if (handlersInstalled) return;
-  const reporter = new ErrorReporter(uncaughtErrorHandler, caughtErrorHandler);
+  const reporter = new ErrorReporter(
+    uncaughtErrorHandler,
+    caughtErrorHandler,
+    fmHandler
+  );
   // @ts-ignore
   // noinspection JSConstantReassignment
   globalErrorReporter = reporter;
+  // @ts-ignore
+  // noinspection JSConstantReassignment
+  ger = reporter;
   const handlerErr = (err: unknown) => {
     const appErr = new UnhandledError(err);
     reporter.handleUncaught(appErr);

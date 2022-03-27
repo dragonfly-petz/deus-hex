@@ -7,10 +7,18 @@
   cursor: pointer;
   font-weight: bold;
   border-color: styleVar.$panelBorderColor;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   @include mixins.defaultStates {
     border-style: solid;
   }
 
+  .icon {
+    &:not(:last-child) {
+      margin-right: 4px;
+    }
+  }
 
   &:hover {
     background-color: styleVar.$buttonBgHoverColor;

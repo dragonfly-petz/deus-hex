@@ -6,7 +6,7 @@ import { useReactiveVal } from '../reactive-state/reactive-hooks';
 import { ClothingRename } from '../page/ClothingRename';
 import { TabName, tabNames } from './tab-names';
 import { Button } from '../framework/Button';
-import { PetzResources } from '../page/PetzResources';
+import { mkPetzResourcesTab } from '../page/PetzResources';
 
 export interface TabDef {
   tabName: string;
@@ -16,10 +16,7 @@ export interface TabDef {
 }
 
 export const tabs: Record<TabName, TabDef> = {
-  petzResources: {
-    tabName: 'Petz Resources',
-    TabContent: PetzResources,
-  },
+  petzResources: mkPetzResourcesTab(),
   breedClothingTransform: {
     tabName: 'Breed -> Clothing',
     TabContent: BreedClothingTransform,

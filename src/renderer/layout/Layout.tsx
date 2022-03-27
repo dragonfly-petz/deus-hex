@@ -8,6 +8,7 @@ import { globalSh } from '../framework/global-style-var';
 import { Header } from './Header';
 import { UserSettings } from '../../main/app/persisted/user-settings';
 import { emptyComponent } from '../framework/render';
+import { GlobalModals } from '../framework/Modal';
 
 export const Layout = () => {
   const { currentTabNode, userSettingsRemote } = useAppReactiveNodes();
@@ -43,10 +44,11 @@ export const Layout = () => {
           <TabContent />
         </div>
         <div className={style.rightBar}>
-          <TabLeftBar />
+          <TabRightBar />
         </div>
       </div>
       <FlashMessages />
+      <GlobalModals />
     </div>
   );
 };

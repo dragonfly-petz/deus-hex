@@ -1,7 +1,7 @@
 import { connectIpc, domIpcChannel, WrapWithCaughtError } from '../common/ipc';
 import { getContextBridgeIpcRenderer } from './context-bridge';
 import { ReactiveNode } from '../common/reactive/reactive-node';
-import { FlashMessage } from './framework/FlashMessage';
+import { FlashMessage, FlashMessageProps } from './framework/FlashMessage';
 import { UserSettings } from '../main/app/persisted/user-settings';
 import { Listenable } from '../common/reactive/listener';
 
@@ -16,16 +16,17 @@ export class DomIpcBase {
 
   // where modal / alert is appropriate
   async addUncaughtError(title: string, err: string) {
-    return this.addFlashMessage(new FlashMessage('error', title, err));
+    return this.addFlashMessage({ kind: 'error', title, message: err });
   }
 
   // where flash message is appropriate
   async addCaughtError(title: string, err: string) {
-    return this.addFlashMessage(new FlashMessage('warn', title, err));
+    return this.addFlashMessage({ kind: 'warn', title, message: err });
   }
 
-  async addFlashMessage(fm: FlashMessage) {
+  async addFlashMessage(fmProps: FlashMessageProps) {
     this.deps.flashMessagesNode.setValueFn((it) => {
+      const fm = new FlashMessage(fmProps);
       it.set(fm.id, fm);
       return it;
     });

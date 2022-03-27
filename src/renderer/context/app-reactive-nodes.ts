@@ -6,18 +6,21 @@ import { throwFromEither } from '../../common/fp-ts/either';
 import { MainIpc } from '../../main/app/main-ipc';
 import type { DomIpcBase } from '../dom-ipc';
 import type { ResourcesPage } from '../page/PetzResources';
+import type { ModalDef } from '../framework/Modal';
 
 export type AppReactiveNodesStatic = ReturnType<typeof mkStaticReactiveNodes>;
 
 export function mkStaticReactiveNodes() {
   const currentTabNode = new ReactiveNode(defaultTab);
   const flashMessagesNode = new ReactiveNode(new Map<string, FlashMessage>());
+  const modalsNode = new ReactiveNode(new Map<string, ModalDef>());
   const currentResourcesPage = new ReactiveNode<ResourcesPage>('overview');
 
   return {
     currentTabNode,
     flashMessagesNode,
     currentResourcesPage,
+    modalsNode,
   };
 }
 

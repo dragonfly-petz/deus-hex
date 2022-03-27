@@ -40,10 +40,14 @@ export const Button = ({
       >
         {renderNullable(icon, (i) => {
           const props = isIconDef(i) ? { icon: i } : i;
-          return <Icon {...props} />;
+          return (
+            <div className={style.icon}>
+              <Icon {...props} />
+            </div>
+          );
         })}
         {renderNullable(label, (it) => (
-          <>{it}</>
+          <div className={style.label}>{it}</div>
         ))}
       </button>
     </Tooltip>

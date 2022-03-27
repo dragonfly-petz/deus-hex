@@ -8,8 +8,19 @@
   background-color: blue;
   color: white;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+}
+
+.instruction {
+  font-weight: bold;
+}
+
+.currentFile {
+  font-weight: bold;
+  font-size: 2.4rem;
+  margin-bottom: 10px;
 }
 
 .isOver {

@@ -1,7 +1,11 @@
 import { useMemo } from 'react';
 import { E, Either } from '../../common/fp-ts/fp';
 import { Listenable } from '../../common/reactive/listener';
-import { emptyComponent, FunctionalComponent } from './render';
+import {
+  emptyComponent,
+  FunctionalComponent,
+  renderLineBreaks,
+} from './render';
 import style from './Query.module.scss';
 import { useReactiveVal } from '../reactive-state/reactive-hooks';
 import { isNever } from '../../common/type-assertion';
@@ -99,7 +103,9 @@ export const RenderQuery = <A,>({
             <div className={style.icon}>
               <Icon icon="faExclamationTriangle" />
             </div>
-            <div className={style.message}>Error: {queryState.value}</div>
+            <div className={style.message}>
+              Error: {renderLineBreaks(queryState.value)}
+            </div>
           </div>
           <AdditionalOnError />
         </>

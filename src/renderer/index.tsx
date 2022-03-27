@@ -27,6 +27,10 @@ initGlobalErrorReporter(
     globalLogger.warn(err);
     // noinspection JSIgnoredPromiseFromCall
     domIpc.addCaughtError('Caught DOM error', err);
+  },
+  (fm) => {
+    // noinspection JSIgnoredPromiseFromCall
+    domIpc.addFlashMessage(fm);
   }
 );
 

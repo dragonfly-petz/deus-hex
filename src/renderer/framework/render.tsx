@@ -2,7 +2,7 @@ import { Either } from 'fp-ts/Either';
 import React, { useEffect, useState } from 'react';
 import { isNully, nullable } from '../../common/null';
 import { E } from '../../common/fp-ts/fp';
-import { throwRejection } from '../../common/promise';
+import { throwRejectionK } from '../../common/promise';
 
 export type RenderFunction<A = void> = (input: A) => JSX.Element | null;
 export type FunctionalComponent<Props extends object = object> = (
@@ -55,7 +55,7 @@ export const RenderAsync = <A,>({
 }) => {
   const [val, setVal] = useState(nullable<A>());
   useEffect(() => {
-    throwRejection(async () => {
+    throwRejectionK(async () => {
       setVal(await value);
     });
   }, [value]);

@@ -6,7 +6,7 @@ import { globalLogger, initGlobalLogger } from '../common/logger';
 import { initGlobalErrorReporter } from '../common/error';
 import { DomIpc } from '../renderer/dom-ipc';
 import { isNully } from '../common/null';
-import { throwRejection } from '../common/promise';
+import { throwRejectionK } from '../common/promise';
 
 let domIpc: DomIpc | null;
 
@@ -30,6 +30,14 @@ initGlobalErrorReporter(
       // noinspection JSIgnoredPromiseFromCall
       domIpc.addCaughtError('Caught error in main', err);
     }
+  },
+  (fm) => {
+    if (isNully(domIpc)) {
+      dialog.showErrorBox(fm.title, fm.message);
+    } else {
+      // noinspection JSIgnoredPromiseFromCall
+      domIpc.addFlashMessage(fm);
+    }
   }
 );
 
@@ -48,7 +56,7 @@ if (isDev()) {
   require('electron-debug')();
 }
 
-throwRejection(async () => {
+throwRejectionK(async () => {
   globalLogger.info(
     `\n\n*** Starting Deus Hex ***\n    version: ${app.getVersion()}\n\n`
   );

@@ -10,6 +10,7 @@ import { globalLogger } from '../../../common/logger';
 import { globalErrorReporter } from '../../../common/error';
 import { Listenable } from '../../../common/reactive/listener';
 import { AsyncSequence } from '../../../common/async-sequence';
+import { E } from '../../../common/fp-ts/fp';
 
 export class PersistedStore<A> {
   constructor(private name: string, private migration: MigrationWithTarget<A>) {
@@ -51,7 +52,7 @@ export class PersistedStore<A> {
     return this.asyncSequence.sequence(async () => {
       await fsPromises.writeFile(this.getPath(), JSON.stringify(toPersist));
       this.listenable.notify(val);
-      return true;
+      return E.right(true);
     });
   }
 }

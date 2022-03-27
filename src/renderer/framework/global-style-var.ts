@@ -7,6 +7,8 @@ const globalStyleDef = {
   themePrimaryBgColor: '#c0e2fa',
   themeSecondaryBgColor: '#94cef6',
 
+  themeTertiaryBgColor: '#1e455d',
+
   headerFontColor: 'white',
   headerFontOutlineColor: '#6aabe2',
   headerFontOutlineSize: '3px',
@@ -27,7 +29,9 @@ const globalStyleDef = {
   successBgColor: '#d0fde0',
 
   mainFont: 'Arial, sans-serif',
-  mainFontColor: '#111',
+  primaryFontColor: '#111',
+  secondaryFontColor: '#111',
+  tertiaryFontColor: '#f3f3f3',
   headingFont: 'Comic Sans MS, Comic Sans, sans-serif',
 
   // local
@@ -42,5 +46,6 @@ function produceStyleVar() {
   for (const k of Object.keys(globalStyleDef)) {
     rows.push(`$${k}: declareVar(${k});`);
   }
+  // eslint-disable-next-line no-console
   console.log(`\n\n${rows.join(`\n`)}\n\n`);
 }

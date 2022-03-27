@@ -79,7 +79,7 @@ export class MainIpcBase {
   }
 
   async setUserSettings(us: UserSettings) {
-    this.userSettingsRemote.setRemote(us);
+    return this.userSettingsRemote.setRemote(us);
   }
 
   async getUserSettings() {

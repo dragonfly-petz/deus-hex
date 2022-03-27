@@ -2,7 +2,7 @@ import { Either } from 'fp-ts/Either';
 import style from './BreedClothingTransform.module.scss';
 import { Button } from '../framework/Button';
 import { nullable } from '../../common/null';
-import { throwRejection } from '../../common/promise';
+import { throwRejectionK } from '../../common/promise';
 import { useMainIpc } from '../context/context';
 import { isDev } from '../../main/app/util';
 import {
@@ -52,7 +52,7 @@ const TransformText = ({
         <Button
           label="Transform"
           onClick={() => {
-            throwRejection(async () => {
+            throwRejectionK(async () => {
               resultNode.setValue(await doTransform(textNode.getValue()));
             });
           }}

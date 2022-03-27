@@ -8,7 +8,7 @@ import {
 } from '../reactive-state/reactive-hooks';
 import { isNully, nullable } from '../../common/null';
 import { useMainIpc } from '../context/context';
-import { throwRejection } from '../../common/promise';
+import { throwRejectionK } from '../../common/promise';
 import { renderReactiveResult } from '../framework/result';
 import type {
   FileInfoAndData,
@@ -50,7 +50,7 @@ export const ClothingRename = () => {
     if (isNully(it)) {
       fileInfoNode.setValue(null);
     } else {
-      throwRejection(async () => {
+      throwRejectionK(async () => {
         const res = await mainIpc.getClothingFileInfo(it);
         if (E.isRight(res)) {
           globalLogger.log(res.right.resDirTable);
@@ -63,7 +63,7 @@ export const ClothingRename = () => {
     <div className={style.main}>
       <DropFile
         validExtensions={new Set([fileTypes.clothes.extension])}
-        onChange={(it) => pickedPathNode.setValue(it)}
+        valueNode={pickedPathNode}
       />
       <Button
         label="Reset"
@@ -108,7 +108,7 @@ export const ClothingRename = () => {
             <Button
               label="SAVE IT!!!"
               onClick={() => {
-                throwRejection(async () => {
+                throwRejectionK(async () => {
                   await mainIpc.updateResourceSection(
                     output.filePath,
                     dataId,
@@ -186,7 +186,7 @@ export const ClothingRename = () => {
                   <Button
                     label="Transform"
                     onClick={() => {
-                      throwRejection(async () => {
+                      throwRejectionK(async () => {
                         const res = await mainIpc.renameClothingFile(
                           output.filePath,
                           newFileName,

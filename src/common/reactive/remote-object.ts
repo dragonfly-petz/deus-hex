@@ -1,3 +1,4 @@
+import { Either } from 'fp-ts/Either';
 import { Listenable } from './listener';
 import { ReactiveVal } from './reactive-interface';
 import { ReactiveFmapHelper } from './reactive-fmap';
@@ -7,7 +8,7 @@ export class RemoteObject<A extends object> implements ReactiveVal<A> {
 
   constructor(
     private value: A,
-    private setAsync: (val: A) => Promise<unknown>,
+    private setAsync: (val: A) => Promise<Either<string, boolean>>,
     private srcEmitter: Listenable<[A]>
   ) {
     this.srcEmitter.listen((val) => {
@@ -21,16 +22,16 @@ export class RemoteObject<A extends object> implements ReactiveVal<A> {
     return this.value;
   }
 
-  setRemote(a: A) {
+  async setRemote(a: A) {
     // noinspection JSIgnoredPromiseFromCall
-    this.setAsync(a);
+    return this.setAsync(a);
   }
 
-  setRemoteFn(val: (old: A) => A) {
+  async setRemoteFn(val: (old: A) => A) {
     return this.setRemote(val(this.value));
   }
 
-  setRemotePartial(val: Partial<A>) {
+  async setRemotePartial(val: Partial<A>) {
     return this.setRemoteFn((it) => {
       return {
         ...it,
@@ -39,7 +40,7 @@ export class RemoteObject<A extends object> implements ReactiveVal<A> {
     });
   }
 
-  setRemotePartialFn(val: (old: A) => Partial<A>) {
+  async setRemotePartialFn(val: (old: A) => Partial<A>) {
     return this.setRemotePartial(val(this.value));
   }
 
