@@ -49,23 +49,24 @@ function toHex(val: number, pad = 8) {
   return `0x${val.toString(16).padStart(pad, '0')}`;
 }
 
-export function removeSymbolsNumber(buf: Buffer) {
+function removeSymbolsNumber(buf: Buffer) {
   const elfanewOffset = 0x3c;
   const peOffset = buf.readUInt32LE(elfanewOffset);
   const peCheck = readChars(buf, peOffset, 4);
   assertEqual(peCheck, 'PE\0\0');
   const symbolNumberOffset = peOffset + 4 + 12;
-  /*  const symbolNumber = buf.readUInt32LE(symbolNumberOffset);
-    globalLogger.info(
-      `Replacing symbol number ${symbolNumber} (${toHex(
-        symbolNumber
-      )}) with 0 at offset ${toHex(symbolNumberOffset)}`
-    ); */
+  const num = buf.readUInt32LE(symbolNumberOffset);
   buf.writeUInt32LE(0, symbolNumberOffset);
+  return num;
 }
 
 export async function parsePE(buffer: Buffer) {
-  return PE.NtExecutable.from(buffer);
+  // pe-library doesn't like this to exist...
+  const num = removeSymbolsNumber(buffer);
+  const pe = PE.NtExecutable.from(buffer);
+  // however we can set it to the original value again without issues when writing
+  pe.newHeader.fileHeader.numberOfSymbols = num;
+  return pe;
 }
 
 function stringToAsciiUint8(str: string) {
@@ -168,8 +169,6 @@ export async function getExistingBreedInfos(targetFile: string) {
 
 export async function getFileInfoAndData(filePath: string) {
   const buf = await fsPromises.readFile(filePath);
-
-  removeSymbolsNumber(buf);
   return pipe(
     await getResourceFileInfo(buf),
     E.mapLeft((it) => {
@@ -303,7 +302,6 @@ export async function renameClothingFile(
     await fsPromises.copyFile(filePath, tempPath);
     const buf = await fsPromises.readFile(tempPath);
     const fromFileName = path.parse(filePath).name;
-    removeSymbolsNumber(buf);
 
     const offsetsChanged = Array<RenameResultBytes>();
     offsetsChanged.push(
@@ -381,7 +379,6 @@ export async function updateResourceSection(
   data: Uint8Array
 ) {
   const buf = await fsPromises.readFile(filepath);
-  removeSymbolsNumber(buf);
   const codecRes = pipe(
     await getFileInfoAndData(filepath),
     E.map((it) => it.resDirTable),

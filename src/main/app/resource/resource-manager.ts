@@ -14,7 +14,6 @@ import {
   FileInfo,
   getFileInfo,
   parsePE,
-  removeSymbolsNumber,
   setBreedId,
 } from '../pe-files/pe-files-util';
 import { TaggedValue, taggedValue } from '../../../common/tagged-value';
@@ -182,7 +181,6 @@ async function fixDuplicateIds(petzFolder: string, type: FileType) {
   };
   const promises = toReassign.map(async (file) => {
     const buf = await fsPromises.readFile(file.path);
-    removeSymbolsNumber(buf);
     const pe = await parsePE(buf);
     const newId = pickNewId();
     await setBreedId(pe, newId);

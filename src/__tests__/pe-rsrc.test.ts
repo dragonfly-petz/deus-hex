@@ -6,7 +6,6 @@ import {
   PE_RELOC_ENTRY,
   PE_RESOURCE_ENTRY,
   peSetSectionByEntry,
-  removeSymbolsNumber,
   renameClothingFile,
 } from '../main/app/pe-files/pe-files-util';
 import { getTestResourcesPath } from '../common/asset-path';
@@ -77,7 +76,6 @@ function testCodecIdentityWithFile(fileName: string, expected: RcData) {
       await getFileInfoAndData(srcFilePath)
     );
     const buf = await fsPromises.readFile(srcFilePath);
-    removeSymbolsNumber(buf);
     const pe = await parsePE(buf);
 
     const originalRelocSize =
