@@ -17,6 +17,16 @@ export function bytesToString(bytes: ArrayLike<number>) {
     .join('');
 }
 
+export function bytesToStringForDiff(bytes: ArrayLike<number>) {
+  return Array.from(bytes)
+    .map((it) => {
+      if (it === 0) return '0';
+      if (it === 10) return '\\n';
+      return it === 0 ? '0' : String.fromCharCode(it);
+    })
+    .join('');
+}
+
 export function bytesToStringNullTerminated(bytes: ArrayLike<number>) {
   let str = '';
   for (let i = 0; i < bytes.length; i++) {

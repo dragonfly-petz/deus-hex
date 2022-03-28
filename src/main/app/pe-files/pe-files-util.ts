@@ -1,9 +1,13 @@
 import path from 'path';
 import * as PE from 'pe-library';
+import { NtExecutable } from 'pe-library';
 import { identity, pipe } from 'fp-ts/function';
+import { NtExecutableSection } from 'pe-library/dist/NtExecutable';
+import type ImageDataDirectoryArray from 'pe-library/dist/format/ImageDataDirectoryArray';
+import type { ImageDirectoryEntry } from 'pe-library/dist/format';
 import { globalLogger } from '../../../common/logger';
 import { fsPromises } from '../util/fs-promises';
-import { assert, assertEqual } from '../../../common/assert';
+import { assertEqual } from '../../../common/assert';
 import { safeLast, sortByNumeric, sumBy } from '../../../common/array';
 import { E, Either } from '../../../common/fp-ts/fp';
 import { PromiseInner } from '../../../common/promise';
@@ -13,7 +17,7 @@ import {
   encodeToSection,
   ResDirTable,
 } from '../../../common/petz/codecs/pe-rsrc';
-import { bytesToString } from '../../../common/buffer';
+import { bytesToString, bytesToStringForDiff } from '../../../common/buffer';
 import { withTempFile } from '../file/temp-file';
 import {
   getDataEntryById,
@@ -110,7 +114,9 @@ function toStringResult(newRe: RenameResultBytes) {
   };
 }
 
-export const PE_RESOURCE_ENTRY = 2;
+// the ImageDirectoryEntry export doesn't work properly so we redefine them here
+export const PE_RESOURCE_ENTRY = 2; // ImageDirectoryEntry.Resource
+export const PE_RELOC_ENTRY = 5; // ImageDirectoryEntry.BaseRelocation
 
 export function getResourceSectionData(pe: PE.NtExecutable) {
   const section = pe.getSectionByEntry(PE_RESOURCE_ENTRY);
@@ -259,15 +265,12 @@ export async function setBreedId(pe: PE.NtExecutable, breedId: number) {
             resData.resDirTable
           );
 
-          assert(
-            encodedBuffer.length <= sectionData.sectionData.length,
-            `Expected encoded length ${encodedBuffer.length} to be <= original length ${sectionData.sectionData.length}`
+          peSetSectionByEntry(
+            pe,
+            PE_RESOURCE_ENTRY,
+            sectionData.section,
+            encodedBuffer
           );
-          const newSection = {
-            ...sectionData.section,
-            data: encodedBuffer,
-          };
-          pe.setSectionByEntry(PE_RESOURCE_ENTRY, newSection);
           return true;
         })
       );
@@ -400,15 +403,64 @@ export async function updateResourceSection(
   );
   const encodedBuffer = encodeToSection(sectionData.section.info, codecRes);
 
-  const newSection = {
-    ...sectionData.section,
-    data: encodedBuffer,
-  };
-  pe.setSectionByEntry(PE_RESOURCE_ENTRY, newSection);
+  peSetSectionByEntry(
+    pe,
+    PE_RESOURCE_ENTRY,
+    sectionData.section,
+    encodedBuffer
+  );
   const generated = pe.generate();
   await fsPromises.writeFile(filepath, Buffer.from(generated));
+}
+
+export function peSetSectionByEntry(
+  pe: NtExecutable,
+  imgDir: ImageDirectoryEntry,
+  section: Readonly<NtExecutableSection>,
+  buffer: Buffer
+) {
+  // for some reason the original files often (always?) have a mismatch between the size of the reloc section
+  // in the optional data directory, and the size in the section header.
+  // pe-library overwrites the optional data directory entry with the section header info, but doing this
+  // makes the file unloadable in game. It seems that the specification for PE requires the
+  // optional data directory size to be correct, but not the size given in the section header
+  // so this breaks the file
+  // we therefore restore the value in the optional header after writing a section
+  const imageOptHeader = (pe as any)._dda as ImageDataDirectoryArray;
+  const originalEntry = imageOptHeader.get(PE_RELOC_ENTRY);
+  // make sure the virtual size is set correctly
+  const newSection = {
+    info: {
+      ...section.info,
+      virtualSize: buffer.length,
+    },
+    data: buffer,
+  };
+  pe.setSectionByEntry(imgDir, newSection);
+  if (isNotNully(originalEntry)) {
+    const newEntry = imageOptHeader.get(PE_RELOC_ENTRY);
+    if (isNully(newEntry)) {
+      throw new Error('Expected to find base relocation entry');
+    }
+    imageOptHeader.set(PE_RELOC_ENTRY, {
+      ...newEntry,
+      size: originalEntry.size,
+    });
+  }
 }
 
 export type RenameClothingFileResult = PromiseInner<
   ReturnType<typeof renameClothingFile>
 >;
+
+export function dumpBinary(buff: Buffer) {
+  const arr = Uint8Array.from(buff);
+  const chunkSize = 32;
+  const chunks = new Array<string>();
+  for (let i = 0; i < arr.length; i += chunkSize) {
+    const chunk = Array.from(arr.slice(i, i + chunkSize));
+    chunks.push(chunk.map((it) => it.toString(16).padStart(2, '0')).join(' '));
+    chunks.push(bytesToStringForDiff(chunk));
+  }
+  return chunks.join(`\n`);
+}
