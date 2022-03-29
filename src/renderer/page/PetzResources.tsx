@@ -19,12 +19,7 @@ import { DropFile } from '../framework/form/DropFile';
 import { Button } from '../framework/Button';
 import { isNully, nullable } from '../../common/null';
 import type { TabDef } from '../layout/Tabs';
-import {
-  ActionBar,
-  ActionDef,
-  ActionsNode,
-  useAddActions,
-} from '../layout/ActionBar';
+import { ActionBar, ActionsNode, useAddActions } from '../layout/ActionBar';
 import { throwRejection, throwRejectionK } from '../../common/promise';
 import { Panel, PanelBody, PanelButtons, PanelHeader } from '../layout/Panel';
 import { ger } from '../../common/error';
@@ -42,43 +37,45 @@ import { renderEither, renderNullable } from '../framework/render';
 import { eitherToNullable } from '../../common/fp-ts/either';
 
 const navigationNames = ['overview', 'catz', 'dogz', 'clothes'] as const;
+export type ResourcesPage = typeof navigationNames[number];
 
 interface NavigationDeps {
   resourcesInfo: ResourcesInfo;
   actionsNode: ActionsNode;
   // eslint-disable-next-line react/no-unused-prop-types
-  resourcesOverviewQuery: PetzResourcesDeps['resourcesOverviewQuery'];
+  resourcesOverviewQuery: TabDeps['resourcesOverviewQuery'];
 }
 
-const mkNavigation = (): Record<
-  ResourcesPage,
-  NavigationDef<NavigationDeps>
-> => {
+const useMkNavigation = (): NavigationDef<ResourcesPage, NavigationDeps> => {
+  const node = useAppReactiveNodes().currentResourcesPage;
   return {
-    overview: {
-      name: 'Overview',
-      Content: OverviewPage,
-    },
-    catz: {
-      name: 'Catz',
-      Content: (props) => <SpecificPage type="catz" {...props} />,
-    },
-    dogz: {
-      name: 'Dogz',
-      Content: (props) => <SpecificPage type="dogz" {...props} />,
-    },
-    clothes: {
-      name: 'Clothes',
-      Content: (props) => <SpecificPage type="clothes" {...props} />,
+    names: navigationNames,
+    node,
+    items: {
+      overview: {
+        name: 'Overview',
+        Content: OverviewPage,
+      },
+      catz: {
+        name: 'Catz',
+        Content: (props) => <SpecificPage type="catz" {...props} />,
+      },
+      dogz: {
+        name: 'Dogz',
+        Content: (props) => <SpecificPage type="dogz" {...props} />,
+      },
+      clothes: {
+        name: 'Clothes',
+        Content: (props) => <SpecificPage type="clothes" {...props} />,
+      },
     },
   };
 };
-export type ResourcesPage = typeof navigationNames[number];
 
 function useGetDeps() {
   const mainIpc = useMainIpc();
 
-  const navigation = mkNavigation();
+  const navigation = useMkNavigation();
   const resourcesOverviewQuery = useMkQueryMemo(() =>
     mainIpc.getResourcesInfo()
   );
@@ -86,9 +83,9 @@ function useGetDeps() {
   return { navigation, resourcesOverviewQuery, actionsNode };
 }
 
-type PetzResourcesDeps = ReturnType<typeof useGetDeps>;
+type TabDeps = ReturnType<typeof useGetDeps>;
 
-export function mkPetzResourcesTab(): TabDef<PetzResourcesDeps> {
+export function mkPetzResourcesTab(): TabDef<TabDeps> {
   return {
     tabName: 'Petz Resources',
     useGetDeps,
@@ -102,7 +99,7 @@ export const PetzResources = ({
   resourcesOverviewQuery,
   navigation,
   actionsNode,
-}: PetzResourcesDeps) => {
+}: TabDeps) => {
   const { userSettingsRemote } = useAppReactiveNodes();
 
   useListenReactiveVal(
@@ -118,10 +115,8 @@ export const PetzResources = ({
         query={resourcesOverviewQuery}
         OnSuccess={({ value }) => {
           // eslint-disable-next-line react-hooks/rules-of-hooks
-          const { currentResourcesPage } = useAppReactiveNodes();
-          // eslint-disable-next-line react-hooks/rules-of-hooks
-          const currentPage = useReactiveVal(currentResourcesPage);
-          const { Content } = navigation[currentPage];
+          const currentPage = useReactiveVal(navigation.node);
+          const { Content } = navigation.items[currentPage];
           return (
             <Content
               resourcesInfo={value}
@@ -130,29 +125,23 @@ export const PetzResources = ({
             />
           );
         }}
-        AdditionalOnError={PetzFolderForm}
+        AdditionalOnError={() => <PetzFolderForm modalProps={null} />}
       />
     </div>
   );
 };
-const TabLeftBar = () => {
-  const { currentResourcesPage } = useAppReactiveNodes();
-
+const TabLeftBar = ({ navigation }: TabDeps) => {
   return (
     <Navigation
-      navigationNames={navigationNames}
-      navigation={mkNavigation()}
-      node={currentResourcesPage}
+      navigationNames={navigation.names}
+      items={navigation.items}
+      node={navigation.node}
     />
   );
 };
 
-const TabRightBar = ({
-  actionsNode,
-  resourcesOverviewQuery,
-}: PetzResourcesDeps) => {
-  useAddActions(actionsNode, () => {
-    const actions: ActionDef[] = [];
+const TabRightBar = ({ actionsNode, resourcesOverviewQuery }: TabDeps) => {
+  useAddActions(actionsNode, (actions) => {
     actions.push({
       label: 'Refresh',
       icon: 'faSync',
@@ -162,12 +151,10 @@ const TabRightBar = ({
         return resourcesOverviewQuery.reload();
       },
     });
-
-    return actions;
   });
   return <ActionBar actions={actionsNode} />;
 };
-const PetzFolderForm = ({ closeModal }: ModalableProps) => {
+const PetzFolderForm = ({ modalProps }: ModalableProps) => {
   const { userSettingsRemote } = useAppReactiveNodes();
   const pickedPathNode = useMkReactiveNodeMemo(nullable<string>());
 
@@ -181,7 +168,7 @@ const PetzFolderForm = ({ closeModal }: ModalableProps) => {
         <Button
           label="Save"
           onClick={() => {
-            closeModal?.();
+            modalProps?.closeModal();
             const val = pickedPathNode.getValue();
             if (isNully(val)) return;
             throwRejection(
@@ -198,8 +185,8 @@ const PetzFolderForm = ({ closeModal }: ModalableProps) => {
 const OverviewPage = ({ resourcesInfo, actionsNode }: NavigationDeps) => {
   const { userSettingsRemote } = useAppReactiveNodes();
   const changePetzFolderModal = useModal({ Content: PetzFolderForm });
-  useAddActions(actionsNode, () => [
-    {
+  useAddActions(actionsNode, (actions) => {
+    actions.push({
       label: 'Reset Petz Folder',
       icon: 'faEraser',
       key: 'clearPetzFolder',
@@ -208,8 +195,8 @@ const OverviewPage = ({ resourcesInfo, actionsNode }: NavigationDeps) => {
         ger.withFlashMessage(
           userSettingsRemote.setRemotePartial({ petzFolder: null })
         ),
-    },
-    {
+    });
+    actions.push({
       label: 'Change Petz Folder',
       icon: 'faPencil',
       key: 'changePetzFolder',
@@ -218,8 +205,8 @@ const OverviewPage = ({ resourcesInfo, actionsNode }: NavigationDeps) => {
         changePetzFolderModal.setValue(true);
         return E.right(null);
       },
-    },
-  ]);
+    });
+  });
   const petzFolder = useUserSetting('petzFolder');
   return (
     <>
@@ -370,8 +357,7 @@ const SpecificPage = ({
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const mainIpc = useMainIpc();
     // eslint-disable-next-line react-hooks/rules-of-hooks
-    useAddActions(actionsNode, () => {
-      const actions: ActionDef[] = [];
+    useAddActions(actionsNode, (actions) => {
       if (duplicates.length > 0) {
         actions.push({
           label: 'Fix duplicate ids',
@@ -384,7 +370,6 @@ const SpecificPage = ({
           },
         });
       }
-      return actions;
     });
     return (
       <>

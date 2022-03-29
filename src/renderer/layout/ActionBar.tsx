@@ -18,10 +18,11 @@ export type ActionsNode = ReactiveNode<Map<string, ActionDef>>;
 
 export function useAddActions(
   actionsNode: ActionsNode,
-  getActions: () => ActionDef[]
+  getActions: (actions: ActionDef[]) => void
 ) {
   useEffect(() => {
-    const actions = getActions();
+    const actions = new Array<ActionDef>();
+    getActions(actions);
     const actionsToAdd = Array<[string, ActionDef]>();
     for (const action of actions) {
       const id = uuidV4();

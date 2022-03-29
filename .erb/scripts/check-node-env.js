@@ -1,6 +1,7 @@
 import chalk from 'chalk';
 
 export default function checkNodeEnv(expectedEnv) {
+  // eslint-disable-next-line no-constant-condition,@typescript-eslint/strict-boolean-expressions
   if (!expectedEnv) {
     throw new Error('"expectedEnv" not set');
   }

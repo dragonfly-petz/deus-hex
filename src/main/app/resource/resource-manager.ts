@@ -19,10 +19,11 @@ import {
 import { TaggedValue, taggedValue } from '../../../common/tagged-value';
 import { snd, sortByNumeric } from '../../../common/array';
 import { fsPromises } from '../util/fs-promises';
-import { globalLogger } from '../../../common/logger';
+import { Result } from '../../../common/result';
+import { isNever } from '../../../common/type-assertion';
 
 export type ResourceFolderInfo = PromiseInner<
-  ReturnType<typeof getResourcesInDir>
+  ReturnType<typeof getResourcesInDirImpl>
 >;
 
 export type ResourcesInfo = Record<FileType, ResourceFolderInfo>;
@@ -55,10 +56,14 @@ export class ResourceManager {
         if (E.isLeft(it)) {
           throw new Error(`Didn't expect left`);
         }
-        return getResourcesInDir(it.right, key);
+        return getResourcesInDirImpl(it.right, key);
       })
     );
     return E.right(res2);
+  }
+
+  async getResourceInfo(filePath: string, type: FileType) {
+    return getResourceInfoImpl(filePath, type);
   }
 
   fixDuplicateIds(petzFolder: string, type: FileType) {
@@ -72,12 +77,12 @@ export interface ResourceInfoWithPath {
   info: ResourceInfo;
 }
 
-async function getResourcesInDir(dir: string, type: FileType) {
+async function getResourcesInDirImpl(dir: string, type: FileType) {
   const paths = await getPathsInDir(dir);
   if (E.isLeft(paths)) return paths;
   const promises = paths.right.map(
     async (filePath): Promise<ResourceInfoWithPath> => {
-      const info = await getResourceInfo(filePath, type);
+      const info = await getResourceInfoImpl(filePath, type);
       return {
         fileName: path.basename(filePath),
         path: filePath,
@@ -97,11 +102,29 @@ export type ResourceInfo = Either<
   TaggedValue<'success', FileInfo>
 >;
 
-async function getResourceInfo(
+export function resourceInfoToResult(resInfo: ResourceInfo): Result<FileInfo> {
+  return pipe(
+    resInfo,
+    E.mapLeft((it) => {
+      switch (it.tag) {
+        case 'invalidPath':
+          return `Invalid path - ${it.value}`;
+        case 'error':
+          return `Error - ${it.value}`;
+        default:
+          return isNever(it);
+      }
+    }),
+    E.map((it) => {
+      return it.value;
+    })
+  );
+}
+
+async function getResourceInfoImpl(
   filePath: string,
   type: FileType
 ): Promise<ResourceInfo> {
-  globalLogger.info(`Getting info for file at ${filePath}`);
   const isRel = pipe(
     await fileStat(filePath),
     E.mapLeft((err) => {
@@ -135,7 +158,7 @@ async function getResourceInfo(
 
 async function fixDuplicateIds(petzFolder: string, type: FileType) {
   const dir = path.join(petzFolder, ...fileTypes[type].pathSegments);
-  const existingInfos = await getResourcesInDir(dir, type);
+  const existingInfos = await getResourcesInDirImpl(dir, type);
   if (E.isLeft(existingInfos)) return existingInfos;
   const withInfo = existingInfos.right.fileInfos
     .filter(

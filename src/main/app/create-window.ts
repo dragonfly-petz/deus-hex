@@ -11,7 +11,7 @@ import { DomIpc, DomIpcBase } from '../../renderer/dom-ipc';
 const installExtensions = async () => {
   // eslint-disable-next-line global-require
   const installer = require('electron-devtools-installer');
-  const forceDownload = !!process.env.UPGRADE_EXTENSIONS;
+  const forceDownload = Boolean(process.env.UPGRADE_EXTENSIONS);
   const extensions = ['REACT_DEVELOPER_TOOLS'];
 
   return installer
@@ -46,16 +46,9 @@ export async function createWindow() {
   window.loadURL(resolveHtmlPath('index.html'));
 
   window.on('ready-to-show', () => {
-    if (!window) {
-      throw new Error('"window" is not defined');
-    }
-    if (process.env.START_MINIMIZED) {
-      window.minimize();
-    } else {
-      window.show();
-      if (!isDev()) {
-        window.maximize();
-      }
+    window.show();
+    if (!isDev()) {
+      window.maximize();
     }
   });
 

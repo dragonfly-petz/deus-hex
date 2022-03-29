@@ -7,6 +7,7 @@ import webpackPaths from './webpack.paths';
 import { dependencies as externals } from '../../release/app/package.json';
 
 const configuration: webpack.Configuration = {
+  // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
   externals: [...Object.keys(externals || {})],
 
   stats: 'errors-only',

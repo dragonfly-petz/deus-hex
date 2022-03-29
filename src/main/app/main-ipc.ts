@@ -1,4 +1,4 @@
-import { app, ipcMain } from 'electron';
+import { app, ipcMain, shell } from 'electron';
 import { pipe } from 'fp-ts/function';
 import {
   parseAddBallsBreed,
@@ -27,12 +27,19 @@ import { RemoteObject } from '../../common/reactive/remote-object';
 import { ResourceManager } from './resource/resource-manager';
 import { FileType } from '../../common/petz/file-types';
 import { isNully } from '../../common/null';
+import {
+  getProjectManagerFolders,
+  ProjectManager,
+} from './resource/project-manager';
 
 export class MainIpcBase {
-  private resourceManager: ResourceManager;
+  private readonly resourceManager: ResourceManager;
+
+  private readonly projectManager: ProjectManager;
 
   constructor(private userSettingsRemote: RemoteObject<UserSettings>) {
     this.resourceManager = new ResourceManager();
+    this.projectManager = new ProjectManager(this.resourceManager);
   }
 
   async getAppVersion() {
@@ -88,10 +95,22 @@ export class MainIpcBase {
     return this.userSettingsRemote.getValue();
   }
 
+  async getProjectManagerFolders() {
+    return getProjectManagerFolders();
+  }
+
   async getResourcesInfo() {
     return this.resourceManager.getResourcesInfo(
       this.userSettingsRemote.getValue().petzFolder
     );
+  }
+
+  async getProjects() {
+    return this.projectManager.getProjects();
+  }
+
+  async createProjectFromFile(filePath: string, name: string) {
+    return this.projectManager.createProjectFromFile(filePath, name);
   }
 
   async fixDuplicateIds(type: FileType) {
@@ -100,6 +119,14 @@ export class MainIpcBase {
       return E.left('No petz folder set');
     }
     return this.resourceManager.fixDuplicateIds(petzFolder, type);
+  }
+
+  async openDirInExplorer(directoryPath: string) {
+    const errString = await shell.openPath(directoryPath);
+    if (errString !== '') {
+      return E.left(errString);
+    }
+    return E.right(true as const);
   }
 }
 

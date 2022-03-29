@@ -128,14 +128,14 @@ export function serializeWithCols<A>(
       return it.value;
     }
     const reqVals = cols.map((colName) => {
-      return `${it[colName]}`;
+      return it[colName];
     });
     const optVals = optionalCols
       .map((colName) => {
         if (isNully(it[colName])) {
           return null;
         }
-        return `${it[colName]}`;
+        return it[colName];
       })
       .filter(isNotNully);
     return flatten([reqVals, optVals]).join(',    ');
