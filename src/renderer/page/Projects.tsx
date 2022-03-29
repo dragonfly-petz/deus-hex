@@ -1,4 +1,4 @@
-import style from './PetzResources.module.scss';
+import style from './Projects.module.scss';
 import { useAppReactiveNodes, useMainIpc } from '../context/context';
 import { Query, RenderQuery, useMkQueryMemo } from '../framework/Query';
 import {
@@ -23,11 +23,14 @@ import { E } from '../../common/fp-ts/fp';
 import { objectEntries } from '../../common/object';
 import { allFileTypeExtensions, FileType } from '../../common/petz/file-types';
 import { Navigation, NavigationDef } from '../layout/NavgationBar';
-import { renderEither } from '../framework/render';
-import type { ProjectsByType } from '../../main/app/resource/project-manager';
+import type {
+  ProjectResult,
+  ProjectsByType,
+} from '../../main/app/resource/project-manager';
 import { sumBy } from '../../common/array';
 import { FormInput, FormItem, FormLabel } from '../framework/form/form';
 import { TextInput } from '../framework/form/TextInput';
+import { renderResult } from '../framework/result';
 
 const navigationNames = ['overview', 'catz', 'dogz', 'clothes'] as const;
 export type ProjectsPage = typeof navigationNames[number];
@@ -252,17 +255,36 @@ const SpecificPage = ({
   return (
     <>
       <h2>{type} projects</h2>
-      <p>
-        {renderEither(
-          projectsByType[type],
-          (err) => (
-            <>{err}</>
-          ),
-          (res) => (
-            <>{res.length}</>
-          )
-        )}
-      </p>
+      {renderResult(projectsByType[type], (projects) => {
+        return (
+          <>
+            {projects.map((it) => {
+              return <ProjectResult key={it.id.name} result={it} />;
+            })}
+          </>
+        );
+      })}
     </>
+  );
+};
+
+const ProjectResult = ({ result }: { result: ProjectResult }) => {
+  return (
+    <div className={style.fileInfo}>
+      <div className={style.infoRow}>
+        <div className={style.projectName}>{result.id.name}</div>
+        {renderResult(result.info, (inf) => {
+          return (
+            <>
+              <div className={style.currentName}>{inf.current.name}</div>
+              <div className={style.originalName}>
+                {inf.original?.name ?? '<None>'}
+              </div>
+              <div className={style.backups}>{inf.backups.length}</div>
+            </>
+          );
+        })}
+      </div>
+    </div>
   );
 };
