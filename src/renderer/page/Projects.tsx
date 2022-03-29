@@ -259,7 +259,7 @@ const SpecificPage = ({
         return (
           <>
             {projects.map((it) => {
-              return <ProjectResult key={it.id.name} result={it} />;
+              return <ProjectResultC key={it.id.name} result={it} />;
             })}
           </>
         );
@@ -268,7 +268,7 @@ const SpecificPage = ({
   );
 };
 
-const ProjectResult = ({ result }: { result: ProjectResult }) => {
+const ProjectResultC = ({ result }: { result: ProjectResult }) => {
   return (
     <div className={style.fileInfo}>
       <div className={style.infoRow}>
