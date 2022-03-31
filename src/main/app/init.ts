@@ -1,11 +1,11 @@
 import { app } from 'electron';
-import { createWindow } from './create-window';
+import { createWindow, DomIpcHolder } from './create-window';
 import { mkAndConnectMainIpc } from './main-ipc';
 import { PersistedStore } from './persisted/persisted-store';
 import { userSettingsMigration } from './persisted/user-settings';
 import { RemoteObject } from '../../common/reactive/remote-object';
 
-export async function init() {
+export async function init(domIpcHolder: DomIpcHolder) {
   const userSettingsStore = new PersistedStore(
     'userSettings',
     userSettingsMigration
@@ -20,10 +20,6 @@ export async function init() {
   app.on('window-all-closed', () => {
     app.quit();
   });
-  mkAndConnectMainIpc(userSettingsRemote);
-  const res = await createWindow();
-  userSettingsRemote.listenable.listen((it) => {
-    res.domIpc.updateUserSettings(it);
-  });
-  return res;
+  mkAndConnectMainIpc(userSettingsRemote, domIpcHolder);
+  await createWindow(domIpcHolder, userSettingsRemote);
 }

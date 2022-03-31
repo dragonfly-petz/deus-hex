@@ -9,6 +9,9 @@ import type { ResourcesPage } from '../page/PetzResources';
 import type { ModalDef } from '../framework/Modal';
 import { isDev } from '../../main/app/util';
 import type { ProjectsPage } from '../page/Projects';
+import { getContextBridgeWindowParams } from '../context-bridge';
+import { isNully } from '../../common/null';
+import { run } from '../../common/function';
 
 export type AppReactiveNodesStatic = ReturnType<typeof mkStaticReactiveNodes>;
 
@@ -46,8 +49,17 @@ export async function mkAsyncReactiveNodes(
   const projectManagerFolders = throwFromEither(
     await mainIpc.getProjectManagerFolders()
   );
+  const windowParams = getContextBridgeWindowParams();
+  const editorParams = await run(async () => {
+    if (isNully(windowParams.editorTarget)) {
+      return null;
+    }
+    return mainIpc.fileToEditorParams(windowParams.editorTarget);
+  });
+
   return {
     userSettingsRemote,
     projectManagerFolders,
+    editorParams: new ReactiveNode(editorParams),
   };
 }

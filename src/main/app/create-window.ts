@@ -1,4 +1,4 @@
-import { BrowserWindow, ipcMain, shell } from 'electron';
+import { BrowserWindow, dialog, ipcMain, shell } from 'electron';
 import { getAssetPath, getPreloadPath, resolveHtmlPath } from './asset-path';
 import MenuBuilder from './menu';
 import { checkForUpdates } from './updater';
@@ -6,7 +6,61 @@ import { isDev } from './util';
 import { globalLogger, Logger, LogLevel } from '../../common/logger';
 import { isNotNully } from '../../common/null';
 import { domIpcChannel, IpcHandler } from '../../common/ipc';
-import { DomIpc, DomIpcBase } from '../../renderer/dom-ipc';
+import type { DomIpc, DomIpcBase } from '../../renderer/dom-ipc';
+import type { FlashMessageProps } from '../../renderer/framework/FlashMessage';
+import { RemoteObject } from '../../common/reactive/remote-object';
+import { UserSettings } from './persisted/user-settings';
+
+// must put in preload as well!
+const windowParamKeys = ['editorTarget'] as const;
+export type WindowParamKey = typeof windowParamKeys[number];
+export type WindowParams = Partial<Record<WindowParamKey, string>>;
+
+function toParams(obj: object) {
+  const entries = Object.entries(obj);
+  return entries.map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&');
+}
+
+export class DomIpcHolder {
+  private domIpcs = new Set<DomIpc>();
+
+  addDomIpc(ipc: DomIpc) {
+    this.domIpcs.add(ipc);
+    return () => {
+      this.domIpcs.delete(ipc);
+    };
+  }
+
+  async addUncaughtError(title: string, err: string) {
+    if (this.domIpcs.size > 0) {
+      for (const ipc of this.domIpcs) {
+        ipc.addUncaughtError(title, err);
+      }
+    } else {
+      dialog.showErrorBox('Uncaught error in main', err);
+    }
+  }
+
+  async addCaughtError(title: string, err: string) {
+    if (this.domIpcs.size > 0) {
+      for (const ipc of this.domIpcs) {
+        ipc.addCaughtError(title, err);
+      }
+    } else {
+      dialog.showErrorBox(title, err);
+    }
+  }
+
+  async addFlashMessage(fm: FlashMessageProps) {
+    if (this.domIpcs.size > 0) {
+      for (const ipc of this.domIpcs) {
+        ipc.addFlashMessage(fm);
+      }
+    } else {
+      dialog.showErrorBox(fm.title, fm.message);
+    }
+  }
+}
 
 const installExtensions = async () => {
   // eslint-disable-next-line global-require
@@ -22,16 +76,18 @@ const installExtensions = async () => {
     .catch(globalLogger.error);
 };
 
-export interface AppWindow {
-  window: BrowserWindow;
-  domIpc: DomIpc;
-}
+let lastWindowId = 0;
 
-export async function createWindow() {
+export async function createWindow(
+  domIpcHolder: DomIpcHolder,
+  userSettingsRemote: RemoteObject<UserSettings>,
+  params: WindowParams = {}
+) {
   if (isDev()) {
     await installExtensions();
   }
-
+  const windowId = lastWindowId;
+  lastWindowId++;
   const window = new BrowserWindow({
     show: false,
     width: 1920,
@@ -41,9 +97,11 @@ export async function createWindow() {
       preload: getPreloadPath(),
     },
   });
-
+  const path = resolveHtmlPath('index.html');
+  const finalPath = `${path}?${toParams(params)}`;
+  globalLogger.info(`Opening window ${windowId} with path ${finalPath}`);
   // noinspection ES6MissingAwait
-  window.loadURL(resolveHtmlPath('index.html'));
+  window.loadURL(finalPath);
 
   window.on('ready-to-show', () => {
     window.show();
@@ -60,17 +118,28 @@ export async function createWindow() {
     shell.openExternal(edata.url);
     return { action: 'deny' };
   });
-  addDomLogHandler('mainDom', window);
+  addDomLogHandler(`domWindow_${windowId}`, window);
   checkForUpdates();
 
-  return new Promise<AppWindow>((resolve) => {
+  return new Promise<void>((resolve) => {
     window.webContents.once('did-finish-load', async () => {
       const domIpc = new IpcHandler<DomIpcBase>(domIpcChannel, {
         tag: 'mainToDom',
         on: ipcMain.on.bind(ipcMain),
         send: window.webContents.send.bind(window.webContents),
+      }).target;
+      const holderDisposer = domIpcHolder.addDomIpc(domIpc);
+      const userSettingsDisposer = userSettingsRemote.listenable.listen(
+        (it) => {
+          domIpc.updateUserSettings(it);
+        }
+      );
+      window.on('close', () => {
+        holderDisposer();
+        userSettingsDisposer();
       });
-      resolve({ window, domIpc: domIpc.target });
+
+      resolve();
     });
   });
 }

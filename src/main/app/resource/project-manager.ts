@@ -14,6 +14,7 @@ import { A, E, Either } from '../../../common/fp-ts/fp';
 import { isNully } from '../../../common/null';
 import { resourceInfoToResult, ResourceManager } from './resource-manager';
 import { eitherToNullable } from '../../../common/fp-ts/either';
+import { taggedValue, TaggedValue } from '../../../common/tagged-value';
 
 const projectFolderName = 'Deus Hex Projects';
 
@@ -31,7 +32,7 @@ function projectTypeFolder(type: FileType) {
 }
 
 function projectFolders(id: ProjectId) {
-  const folder = projectTypeFolder(id.type);
+  const folder = path.normalize(projectTypeFolder(id.type));
   const root = path.join(folder, id.name);
   const originalFolder = path.join(root, 'original');
   const currentFolder = path.join(root, 'current');
@@ -75,6 +76,16 @@ export interface ProjectInfo {
   backups: ProjectFileInfo[];
 }
 
+export interface EditorFileInfo {
+  path: string;
+  type: FileType;
+  projectId: ProjectId | null;
+}
+
+export type EditorParams =
+  | TaggedValue<'invalid', { file: string; message: string }>
+  | TaggedValue<'info', EditorFileInfo>;
+
 export type ProjectsByType = Record<FileType, Result<ProjectResult[]>>;
 
 export function getProjectManagerFolders() {
@@ -90,6 +101,33 @@ export function getProjectManagerFolders() {
 
 export class ProjectManager {
   constructor(private resourceManager: ResourceManager) {}
+
+  async fileToEditorParams(fileRaw: string): Promise<EditorParams> {
+    const file = path.normalize(fileRaw);
+    const mkInvalid = (message: string) =>
+      taggedValue('invalid', { file, message });
+    const type = typeFromFilePath(file);
+    if (isNully(type)) {
+      return mkInvalid(`Could not derive file type from path`);
+    }
+    const mCurrentDir = path.parse(file).dir;
+    const mNameDir = path.parse(mCurrentDir).dir;
+    const mName = path.parse(mNameDir).base;
+    const mId = { name: mName, type };
+    const projInfo = await this.getProjectById(mId);
+    if (E.isLeft(projInfo.info)) {
+      return taggedValue('info', {
+        path: file,
+        type,
+        projectId: null,
+      });
+    }
+    return taggedValue('info', {
+      path: file,
+      type,
+      projectId: mId,
+    });
+  }
 
   async createProjectFromFile(filePath: string, name: string) {
     const type = typeFromFilePath(filePath);

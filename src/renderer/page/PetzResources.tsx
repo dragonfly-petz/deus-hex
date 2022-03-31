@@ -412,6 +412,7 @@ const FilesList = ({
 };
 
 const FileInfo = ({ info }: { info: ResourceInfoWithPath }) => {
+  const mainIpc = useMainIpc();
   return (
     <div className={style.fileInfo}>
       <div className={style.infoRow}>
@@ -428,6 +429,18 @@ const FileInfo = ({ info }: { info: ResourceInfoWithPath }) => {
                 <div className={style.id}>{rcInfo.breedId}</div>
                 <div className={style.displayName}>{rcInfo.displayName}</div>
                 <div className={style.spriteName}>{rcInfo.spriteName}</div>
+                <div className={style.buttons}>
+                  <Button
+                    onClick={() => {
+                      throwRejectionK(async () => {
+                        return ger.withFlashMessage(
+                          mainIpc.openEditor(inf.value.filePath)
+                        );
+                      });
+                    }}
+                    label="Open Editor"
+                  />
+                </div>
               </>
             );
           }

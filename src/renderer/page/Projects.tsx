@@ -269,6 +269,7 @@ const SpecificPage = ({
 };
 
 const ProjectResultC = ({ result }: { result: ProjectResult }) => {
+  const mainIpc = useMainIpc();
   return (
     <div className={style.fileInfo}>
       <div className={style.infoRow}>
@@ -281,6 +282,18 @@ const ProjectResultC = ({ result }: { result: ProjectResult }) => {
                 {inf.original?.name ?? '<None>'}
               </div>
               <div className={style.backups}>{inf.backups.length}</div>
+              <div className={style.buttons}>
+                <Button
+                  onClick={() => {
+                    throwRejectionK(async () => {
+                      return ger.withFlashMessage(
+                        mainIpc.openEditor(inf.current.path)
+                      );
+                    });
+                  }}
+                  label="Open Editor"
+                />
+              </div>
             </>
           );
         })}

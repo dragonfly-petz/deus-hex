@@ -31,13 +31,17 @@ import {
   getProjectManagerFolders,
   ProjectManager,
 } from './resource/project-manager';
+import { createWindow, DomIpcHolder } from './create-window';
 
 export class MainIpcBase {
   private readonly resourceManager: ResourceManager;
 
   private readonly projectManager: ProjectManager;
 
-  constructor(private userSettingsRemote: RemoteObject<UserSettings>) {
+  constructor(
+    private userSettingsRemote: RemoteObject<UserSettings>,
+    private domIpcHolder: DomIpcHolder
+  ) {
     this.resourceManager = new ResourceManager();
     this.projectManager = new ProjectManager(this.resourceManager);
   }
@@ -128,14 +132,25 @@ export class MainIpcBase {
     }
     return E.right(true as const);
   }
+
+  async openEditor(file: string) {
+    return createWindow(this.domIpcHolder, this.userSettingsRemote, {
+      editorTarget: file,
+    });
+  }
+
+  async fileToEditorParams(file: string) {
+    return this.projectManager.fileToEditorParams(file);
+  }
 }
 
 export type MainIpc = WrapWithCaughtError<MainIpcBase>;
 
 export function mkAndConnectMainIpc(
-  userSettingsRemote: RemoteObject<UserSettings>
+  userSettingsRemote: RemoteObject<UserSettings>,
+  domIpcHolder: DomIpcHolder
 ) {
-  const mainIpc = new MainIpcBase(userSettingsRemote);
+  const mainIpc = new MainIpcBase(userSettingsRemote, domIpcHolder);
   connectIpc(mainIpc, mainIpcChannel, {
     tag: 'main',
     on: ipcMain.on.bind(ipcMain),

@@ -9,7 +9,6 @@ import { mkStaticReactiveNodes } from './context/app-reactive-nodes';
 import 'tippy.js/dist/tippy.css';
 
 initGlobalLogger('dom');
-
 const appReactiveNodes = mkStaticReactiveNodes();
 const domIpc = mkAndConnectDomIpc({
   flashMessagesNode: appReactiveNodes.flashMessagesNode,
