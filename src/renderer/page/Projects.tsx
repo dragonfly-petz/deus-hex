@@ -1,6 +1,10 @@
 import style from './Projects.module.scss';
-import { useAppReactiveNodes, useMainIpc } from '../context/context';
-import { Query, RenderQuery, useMkQueryMemo } from '../framework/Query';
+import {
+  useAppHelper,
+  useAppReactiveNodes,
+  useMainIpc,
+} from '../context/context';
+import { RenderQuery, useMkQueryMemo } from '../framework/Query';
 import {
   useMkReactiveNodeMemo,
   useReactiveVal,
@@ -24,6 +28,7 @@ import { objectEntries } from '../../common/object';
 import { allFileTypeExtensions, FileType } from '../../common/petz/file-types';
 import { Navigation, NavigationDef } from '../layout/NavgationBar';
 import type {
+  CreateProjectResult,
   ProjectResult,
   ProjectsByType,
 } from '../../main/app/resource/project-manager';
@@ -31,6 +36,7 @@ import { sumBy } from '../../common/array';
 import { FormInput, FormItem, FormLabel } from '../framework/form/form';
 import { TextInput } from '../framework/form/TextInput';
 import { renderResult } from '../framework/result';
+import { renderIf } from '../framework/render';
 
 const navigationNames = ['overview', 'catz', 'dogz', 'clothes'] as const;
 export type ProjectsPage = typeof navigationNames[number];
@@ -121,6 +127,7 @@ const TabLeftBar = ({ navigation }: TabDefs) => {
       navigationNames={navigation.names}
       items={navigation.items}
       node={navigation.node}
+      labelDeps={{}}
     />
   );
 };
@@ -128,8 +135,14 @@ const TabLeftBar = ({ navigation }: TabDefs) => {
 const TabRightBar = ({ actionsNode, projectsQuery }: TabDefs) => {
   const newProjectModalNode = useModal({
     Content: (rest) => (
-      // eslint-disable-next-line react/destructuring-assignment
-      <NewProjectForm projectsQuery={projectsQuery} {...rest.modalProps} />
+      <NewProjectForm
+        onProjectCreated={() => {
+          // noinspection JSIgnoredPromiseFromCall
+          projectsQuery.reload();
+          // eslint-disable-next-line react/destructuring-assignment
+        }}
+        {...rest.modalProps}
+      />
     ),
   });
 
@@ -159,12 +172,16 @@ const TabRightBar = ({ actionsNode, projectsQuery }: TabDefs) => {
   return <ActionBar actions={actionsNode} />;
 };
 
-const NewProjectForm = ({
+export const NewProjectForm = ({
   closeModal,
-  projectsQuery,
-}: ModalContentProps & { projectsQuery: Query<ProjectsByType> }) => {
+  fixedPath,
+  onProjectCreated,
+}: ModalContentProps & {
+  fixedPath?: string;
+  onProjectCreated?: (res: CreateProjectResult) => void;
+}) => {
   const mainIpc = useMainIpc();
-  const pickedPathNode = useMkReactiveNodeMemo(nullable<string>());
+  const pickedPathNode = useMkReactiveNodeMemo(nullable<string>(fixedPath));
   const projectNameNode = useMkReactiveNodeMemo('');
 
   return (
@@ -179,12 +196,14 @@ const NewProjectForm = ({
             </FormInput>
           </>
         </FormItem>
-        <FormItem>
-          <DropFile
-            validExtensions={new Set(allFileTypeExtensions)}
-            valueNode={pickedPathNode}
-          />
-        </FormItem>
+        {renderIf(isNully(fixedPath), () => (
+          <FormItem>
+            <DropFile
+              validExtensions={new Set(allFileTypeExtensions)}
+              valueNode={pickedPathNode}
+            />
+          </FormItem>
+        ))}
       </PanelBody>
       <PanelButtons>
         <Button
@@ -199,8 +218,7 @@ const NewProjectForm = ({
               );
               if (E.isRight(res)) {
                 closeModal();
-                // noinspection ES6MissingAwait
-                projectsQuery.reload();
+                onProjectCreated?.(res.right);
               }
             });
           }}
@@ -269,7 +287,7 @@ const SpecificPage = ({
 };
 
 const ProjectResultC = ({ result }: { result: ProjectResult }) => {
-  const mainIpc = useMainIpc();
+  const appHelper = useAppHelper();
   return (
     <div className={style.fileInfo}>
       <div className={style.infoRow}>
@@ -286,9 +304,7 @@ const ProjectResultC = ({ result }: { result: ProjectResult }) => {
                 <Button
                   onClick={() => {
                     throwRejectionK(async () => {
-                      return ger.withFlashMessage(
-                        mainIpc.openEditor(inf.current.path)
-                      );
+                      return appHelper.openEditorWithFile(inf.current.path);
                     });
                   }}
                   label="Open Editor"

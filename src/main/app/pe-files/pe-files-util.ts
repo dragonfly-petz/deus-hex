@@ -15,12 +15,13 @@ import { isNotNully, isNully } from '../../../common/null';
 import {
   decodeFromSection,
   encodeToSection,
+  ResDataEntry,
   ResDirTable,
 } from '../../../common/petz/codecs/pe-rsrc';
 import { bytesToString, bytesToStringForDiff } from '../../../common/buffer';
 import { withTempFile } from '../file/temp-file';
 import {
-  getDataEntryById,
+  getResourceEntryById,
   ResourceEntryId,
 } from '../../../common/petz/codecs/rsrc-utility';
 import {
@@ -28,6 +29,7 @@ import {
   rcDataCodec,
   rcDataId,
 } from '../../../common/petz/codecs/rcdata';
+import { Result } from '../../../common/result';
 
 function toHexString(arr: Uint8Array) {
   return Array.from(arr)
@@ -167,7 +169,9 @@ export async function getExistingBreedInfos(targetFile: string) {
   return res.filter(isNotNully);
 }
 
-export async function getFileInfoAndData(filePath: string) {
+export async function getFileInfoAndData(
+  filePath: string
+): Promise<Result<FileInfoAndData>> {
   const buf = await fsPromises.readFile(filePath);
   return pipe(
     await getResourceFileInfo(buf),
@@ -180,9 +184,11 @@ export async function getFileInfoAndData(filePath: string) {
   );
 }
 
-export type FileInfoAndData = PromiseInner<
-  ReturnType<typeof getFileInfoAndData>
->;
+export type FileInfoAndData = {
+  pathParsed: path.ParsedPath;
+  filePath: string;
+  itemName: string;
+} & ResourceData;
 
 export async function getFileInfo(
   filePath: string
@@ -193,7 +199,7 @@ export async function getFileInfo(
       return {
         filePath: it.filePath,
         itemName: it.itemName,
-        rcInfo: it.rcData.rcData,
+        rcInfo: it.rcDataAndEntry.rcData,
       };
     })
   );
@@ -205,17 +211,22 @@ export interface FileInfo {
   rcInfo: RcData;
 }
 
-function getRcData(table: ResDirTable) {
+export interface ResourceDataAndEntry {
+  rcData: RcData;
+  rcDataEntry: ResDataEntry;
+}
+
+function getRcDataAndEntry(table: ResDirTable): Result<ResourceDataAndEntry> {
   return pipe(
-    getDataEntryById(table, rcDataId),
+    getResourceEntryById(table, rcDataId),
     E.fromNullable('No rcData found'),
     E.chain((res) => {
       return pipe(
-        rcDataCodec.decode(Buffer.from(res.data), 0, null),
+        rcDataCodec.decode(Buffer.from(res.entry.data), 0, null),
         E.map((it) => {
           return {
             rcData: it.result,
-            rcDataEntry: res,
+            rcDataEntry: res.entry,
           };
         })
       );
@@ -223,7 +234,12 @@ function getRcData(table: ResDirTable) {
   );
 }
 
-export function getResourceData(pe: PE.NtExecutable) {
+export interface ResourceData {
+  rcDataAndEntry: ResourceDataAndEntry;
+  resDirTable: ResDirTable;
+}
+
+export function getResourceData(pe: PE.NtExecutable): Result<ResourceData> {
   return pipe(
     getResourceSectionData(pe),
     E.chain((res) => {
@@ -231,9 +247,9 @@ export function getResourceData(pe: PE.NtExecutable) {
     }),
     E.chain((resDirTable) => {
       return pipe(
-        getRcData(resDirTable.result),
+        getRcDataAndEntry(resDirTable.result),
         E.map((res) => ({
-          rcData: res,
+          rcDataAndEntry: res,
           resDirTable: resDirTable.result,
         }))
       );
@@ -249,14 +265,14 @@ export async function setBreedId(pe: PE.NtExecutable, breedId: number) {
         getResourceData(pe),
         E.map((resData) => {
           const rcDataReEncodedBuffer = Buffer.from(
-            new Uint8Array(resData.rcData.rcDataEntry.data.length)
+            new Uint8Array(resData.rcDataAndEntry.rcDataEntry.data.length)
           );
           const newRcData = {
-            ...resData.rcData.rcData,
+            ...resData.rcDataAndEntry.rcData,
             breedId,
           };
           rcDataCodec.encode(newRcData, rcDataReEncodedBuffer, 0, null);
-          resData.rcData.rcDataEntry.data = new Uint8Array(
+          resData.rcDataAndEntry.rcDataEntry.data = new Uint8Array(
             rcDataReEncodedBuffer
           );
           const encodedBuffer = encodeToSection(
@@ -283,7 +299,7 @@ export async function getResourceFileInfo(buffer: Buffer) {
     getResourceData(pe),
     E.map((res) => {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      const itemName = res.rcData.rcData.spriteName.split('_').pop()!;
+      const itemName = res.rcDataAndEntry.rcData.spriteName.split('_').pop()!;
       return {
         ...res,
         itemName,
@@ -351,7 +367,7 @@ export async function renameClothingFile(
     const warnIdFailed = existingInfos.filter(E.isLeft).map((it) => it.left);
     const existingBreedIds = existingInfos
       .filter(E.isRight)
-      .map((it) => it.right.rcData.rcData.breedId);
+      .map((it) => it.right.rcDataAndEntry.rcData.breedId);
     sortByNumeric(existingBreedIds, identity);
     const highest = safeLast(existingBreedIds) ?? 20000;
     const newId = highest + 1;
@@ -386,11 +402,11 @@ export async function updateResourceSection(
       throw new Error('Expected right');
     })
   );
-  const dataEntry = getDataEntryById(codecRes, id);
+  const dataEntry = getResourceEntryById(codecRes, id);
   if (isNully(dataEntry)) {
     throw new Error(`No data entry found for id ${JSON.stringify(id)}`);
   }
-  dataEntry.data = data;
+  dataEntry.entry.data = data;
   const pe = await parsePE(buf);
   const sectionData = pipe(
     await getResourceSectionData(pe),

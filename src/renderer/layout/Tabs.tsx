@@ -8,6 +8,7 @@ import { TabName, tabNames } from './tab-names';
 import { Button } from '../framework/Button';
 import { mkPetzResourcesTab } from '../page/PetzResources';
 import { mkProjectsTab } from '../page/Projects';
+import { mkEditorTab } from '../page/Editor';
 
 export interface TabDef<A extends object> {
   tabName: string;
@@ -20,6 +21,7 @@ export interface TabDef<A extends object> {
 export const tabs: Record<TabName, TabDef<any>> = {
   petzResources: mkPetzResourcesTab(),
   projects: mkProjectsTab(),
+  editor: mkEditorTab(),
   breedClothingTransform: {
     useGetDeps: () => {
       return {};

@@ -1,8 +1,9 @@
 import { ReactNode } from 'react';
+import { isString } from 'fp-ts/string';
 import style from './Button.module.scss';
 import { classNames } from '../../common/react';
 import { Icon, IconDef, IconProps, isIconDef } from './Icon';
-import { renderNullable } from './render';
+import { FunctionalComponent, renderNullable } from './render';
 import { Tooltip } from './Tooltip';
 import { isNully } from '../../common/null';
 
@@ -19,7 +20,7 @@ export const Button = ({
   icon,
   tooltip,
 }: {
-  label?: string;
+  label?: string | FunctionalComponent;
   onClick: () => void;
   active?: boolean;
   size?: ButtonSize;
@@ -46,9 +47,13 @@ export const Button = ({
             </div>
           );
         })}
-        {renderNullable(label, (it) => (
-          <div className={style.label}>{it}</div>
-        ))}
+        {renderNullable(label, (Label) => {
+          return (
+            <div className={style.label}>
+              {isString(Label) ? Label : <Label />}
+            </div>
+          );
+        })}
       </button>
     </Tooltip>
   );

@@ -29,7 +29,7 @@ describe('pe-rsrc', () => {
   test('read .clo file', async () => {
     const filePath = getTestResourcesPath('Nosepest.clo');
     const fileInfo = throwFromEither(await getFileInfoAndData(filePath));
-    const { rcData } = fileInfo.rcData;
+    const { rcData } = fileInfo.rcDataAndEntry;
     expect(rcData.breedId).toEqual(20836);
     expect(rcData.displayName).toEqual('Nosepest');
     expect(rcData.spriteName).toEqual('Sprite_Clot_SilNosepest');
@@ -52,7 +52,7 @@ describe('pe-rsrc', () => {
       const tempDestPath = path.join(tempDir, toName);
 
       const fileInfo = throwFromEither(await getFileInfoAndData(tempDestPath));
-      const { rcData } = fileInfo.rcData;
+      const { rcData } = fileInfo.rcDataAndEntry;
       expect(rcData.breedId).toEqual(20837);
       expect(rcData.displayName).toEqual('Dragonly');
       expect(rcData.spriteName).toEqual('Sprite_Clot_Dragonflyer');

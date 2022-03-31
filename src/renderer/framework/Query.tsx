@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { DependencyList, useMemo } from 'react';
 import { E, Either } from '../../common/fp-ts/fp';
 import { Listenable } from '../../common/reactive/listener';
 import {
@@ -45,6 +45,11 @@ export class Query<A> implements ReactiveVal<QueryState<A>> {
     this.runQuery();
   }
 
+  async setAndRunNewQuery(query: () => Promise<QueryResult<A>>) {
+    this.query = query;
+    return this.reload();
+  }
+
   private async runQuery() {
     this.setState({ tag: 'pending' });
     const res = await this.query();
@@ -70,10 +75,13 @@ export class Query<A> implements ReactiveVal<QueryState<A>> {
   }
 }
 
-export function useMkQueryMemo<A>(query: () => Promise<QueryResult<A>>) {
+export function useMkQueryMemo<A>(
+  query: () => Promise<QueryResult<A>>,
+  deps?: DependencyList
+) {
   // we specifically don't want this to be recreated
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  return useMemo(() => new Query(query), []);
+  return useMemo(() => new Query(query), deps);
 }
 
 export const RenderQuery = <A,>({

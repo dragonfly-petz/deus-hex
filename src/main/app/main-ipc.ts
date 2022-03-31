@@ -70,7 +70,7 @@ export class MainIpcBase {
     );
   }
 
-  async getClothingFileInfo(file: string) {
+  async getFileInfoAndData(file: string) {
     return getFileInfoAndData(file);
   }
 

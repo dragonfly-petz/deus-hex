@@ -16,6 +16,7 @@ module.exports = {
     'max-classes-per-file': 'off',
     'react/jsx-props-no-spreading': 'off',
     'react/prop-types': 'off',
+    'react/destructuring-assignment': 'off',
     'no-implicit-coercion': [
       'warn',
       {

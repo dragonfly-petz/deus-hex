@@ -4,6 +4,7 @@ import type { MainIpcBase } from '../../main/app/main-ipc';
 import { getContextBridgeIpcRenderer } from '../context-bridge';
 import { IpcHandler, mainIpcChannel } from '../../common/ipc';
 import {
+  AppReactiveNodesAsync,
   AppReactiveNodesStatic,
   mkAsyncReactiveNodes,
 } from './app-reactive-nodes';
@@ -13,6 +14,7 @@ import { throwFromEither } from '../../common/fp-ts/either';
 import { UserSettings } from '../../main/app/persisted/user-settings';
 import { ReactiveVal } from '../../common/reactive/reactive-interface';
 import { useReactiveVal } from '../reactive-state/reactive-hooks';
+import { AppHelper } from './app-helper';
 
 function contextName<Name extends string>(name: Name): `${Name}Context` {
   return `${name}Context`;
@@ -45,10 +47,11 @@ export function mkNullableContext<A>() {
 }
 
 export type AppContext = PromiseInner<ReturnType<typeof mkAppContext>>;
+export type AppReactiveNodes = AppReactiveNodesStatic & AppReactiveNodesAsync;
 
 export async function mkAppContext(
   domIpc: DomIpcBase,
-  appReactiveNodes: AppReactiveNodesStatic
+  appReactiveNodesStatic: AppReactiveNodesStatic
 ) {
   const mainIpc = new IpcHandler<MainIpcBase>(
     mainIpcChannel,
@@ -58,15 +61,23 @@ export async function mkAppContext(
   const isDev = throwFromEither(await mainIpc.isDev());
   const appVersion = throwFromEither(await mainIpc.getAppVersion());
   const asyncNodes = await mkAsyncReactiveNodes(mainIpc, domIpc);
+  const appReactiveNodes = {
+    ...appReactiveNodesStatic,
+    ...asyncNodes,
+  };
+  const appHelper = new AppHelper(mainIpc, appReactiveNodes);
+
+  if (appReactiveNodes.editorParams.getValue() !== null) {
+    appReactiveNodesStatic.currentTabNode.setValue('editor');
+  }
+
   return {
     mainIpc,
     isDev,
     appVersion,
-    appReactiveNodes: {
-      ...appReactiveNodes,
-      ...asyncNodes,
-    },
+    appReactiveNodes,
     domIpc,
+    appHelper,
   };
 }
 
@@ -74,6 +85,7 @@ export const { useAppContext, AppContextContext } =
   mkNullableContext<AppContext>()('AppContext');
 
 export const useMainIpc = () => useAppContext().mainIpc;
+export const useAppHelper = () => useAppContext().appHelper;
 export const useAppReactiveNodes = () => useAppContext().appReactiveNodes;
 
 export function useUserSettingNode<A extends keyof UserSettings & string>(

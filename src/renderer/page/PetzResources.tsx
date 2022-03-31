@@ -1,5 +1,6 @@
 import style from './PetzResources.module.scss';
 import {
+  useAppHelper,
   useAppReactiveNodes,
   useMainIpc,
   useUserSetting,
@@ -136,6 +137,7 @@ const TabLeftBar = ({ navigation }: TabDeps) => {
       navigationNames={navigation.names}
       items={navigation.items}
       node={navigation.node}
+      labelDeps={{}}
     />
   );
 };
@@ -412,7 +414,7 @@ const FilesList = ({
 };
 
 const FileInfo = ({ info }: { info: ResourceInfoWithPath }) => {
-  const mainIpc = useMainIpc();
+  const appHelper = useAppHelper();
   return (
     <div className={style.fileInfo}>
       <div className={style.infoRow}>
@@ -433,9 +435,7 @@ const FileInfo = ({ info }: { info: ResourceInfoWithPath }) => {
                   <Button
                     onClick={() => {
                       throwRejectionK(async () => {
-                        return ger.withFlashMessage(
-                          mainIpc.openEditor(inf.value.filePath)
-                        );
+                        return appHelper.openEditorWithFile(inf.value.filePath);
                       });
                     }}
                     label="Open Editor"

@@ -22,10 +22,11 @@ import { Button } from '../framework/Button';
 import { isDev } from '../../main/app/util';
 import { E } from '../../common/fp-ts/fp';
 import { TextArea } from '../framework/form/TextArea';
-import { getDataEntryById } from '../../common/petz/codecs/rsrc-utility';
+import { getResourceEntryById } from '../../common/petz/codecs/rsrc-utility';
 import { bytesToString, stringToBytes } from '../../common/buffer';
 import { globalLogger } from '../../common/logger';
 import { run } from '../../common/function';
+import { Result } from '../../common/result';
 
 const debugNewFileName = isDev() ? 'Zragonl ffffff' : '';
 const debugNewItemName = isDev() ? 'Zrangonlierfs' : '';
@@ -33,7 +34,9 @@ export const ClothingRename = () => {
   const pickedPathNode = useMkReactiveNodeMemo(nullable<string>());
   const newFileNameNode = useMkReactiveNodeMemo(debugNewFileName);
   const newItemNameNode = useMkReactiveNodeMemo(debugNewItemName);
-  const fileInfoNode = useMkReactiveNodeMemo(nullable<FileInfoAndData>());
+  const fileInfoNode = useMkReactiveNodeMemo(
+    nullable<Result<FileInfoAndData>>()
+  );
   const renameResultNode = useMkReactiveNodeMemo(
     nullable<RenameClothingFileResult>()
   );
@@ -51,7 +54,7 @@ export const ClothingRename = () => {
       fileInfoNode.setValue(null);
     } else {
       throwRejectionK(async () => {
-        const res = await mainIpc.getClothingFileInfo(it);
+        const res = await mainIpc.getFileInfoAndData(it);
         if (E.isRight(res)) {
           globalLogger.log(res.right.resDirTable);
         }
@@ -96,9 +99,8 @@ export const ClothingRename = () => {
           level: 'CLOT_BADGESHERIFF',
           language: 1033,
         };
-        const data = getDataEntryById(output.resDirTable, dataId)?.data ?? [
-          40, 40,
-        ];
+        const data = getResourceEntryById(output.resDirTable, dataId)?.entry
+          .data ?? [40, 40];
         // eslint-disable-next-line react-hooks/rules-of-hooks
         const lnzDataNode = useMkReactiveNodeMemo(bytesToString(data));
         return (
@@ -119,7 +121,7 @@ export const ClothingRename = () => {
             />
             <h2>File info</h2>
             {run(() => {
-              const { rcData } = output.rcData;
+              const { rcData } = output.rcDataAndEntry;
               const dataForOutput = {
                 filePath: output.filePath,
                 itemName: output.itemName,

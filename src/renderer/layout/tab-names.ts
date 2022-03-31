@@ -1,6 +1,7 @@
 export const tabNames = [
   'petzResources',
   'projects',
+  'editor',
   'breedClothingTransform',
   'clothingRename',
 ] as const;

@@ -34,3 +34,14 @@ export function getAndModifyOrPut<K, V, P extends V>(
   map.set(key, defaultValue);
   return defaultValue;
 }
+
+export function mapMapValue<K, A, B>(
+  map: Map<K, A>,
+  func: (a: A, k: K) => B
+): Map<K, B> {
+  const outMap = new Map<K, B>();
+  for (const [key, value] of map.entries()) {
+    outMap.set(key, func(value, key));
+  }
+  return outMap;
+}

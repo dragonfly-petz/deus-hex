@@ -12,6 +12,7 @@ import type { ProjectsPage } from '../page/Projects';
 import { getContextBridgeWindowParams } from '../context-bridge';
 import { isNully } from '../../common/null';
 import { run } from '../../common/function';
+import { PromiseInner } from '../../common/promise';
 
 export type AppReactiveNodesStatic = ReturnType<typeof mkStaticReactiveNodes>;
 
@@ -25,16 +26,20 @@ export function mkStaticReactiveNodes() {
     isDev() ? 'catz' : 'overview'
   );
   const currentProjectsPage = new ReactiveNode<ProjectsPage>('overview');
+  const currentEditorSection = new ReactiveNode<string>('overview');
   return {
     currentTabNode,
     flashMessagesNode,
     currentResourcesPage,
     modalsNode,
     currentProjectsPage,
+    currentEditorSection,
   };
 }
 
-export type AppReactiveNodesAsync = ReturnType<typeof mkAsyncReactiveNodes>;
+export type AppReactiveNodesAsync = PromiseInner<
+  ReturnType<typeof mkAsyncReactiveNodes>
+>;
 
 export async function mkAsyncReactiveNodes(
   mainIpc: MainIpc,

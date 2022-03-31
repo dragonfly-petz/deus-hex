@@ -99,6 +99,11 @@ export function getProjectManagerFolders() {
   };
 }
 
+export interface CreateProjectResult {
+  projectId: ProjectId;
+  currentFile: string;
+}
+
 export class ProjectManager {
   constructor(private resourceManager: ResourceManager) {}
 
@@ -129,7 +134,10 @@ export class ProjectManager {
     });
   }
 
-  async createProjectFromFile(filePath: string, name: string) {
+  async createProjectFromFile(
+    filePath: string,
+    name: string
+  ): Promise<Result<CreateProjectResult>> {
     const type = typeFromFilePath(filePath);
     if (isNully(type)) {
       return E.left(`Could not derive file type from path ${filePath}`);
@@ -146,11 +154,9 @@ export class ProjectManager {
       filePath,
       path.join(projectPaths.originalFolder, origFileName)
     );
-    await fsPromises.copyFile(
-      filePath,
-      path.join(projectPaths.currentFolder, origFileName)
-    );
-    return E.right(projectId);
+    const currentFile = path.join(projectPaths.currentFolder, origFileName);
+    await fsPromises.copyFile(filePath, currentFile);
+    return E.right({ projectId, currentFile });
   }
 
   async getProjects(): Promise<ProjectsByType> {
