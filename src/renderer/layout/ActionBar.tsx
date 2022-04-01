@@ -5,6 +5,8 @@ import { Button } from '../framework/Button';
 import { useReactiveVal } from '../reactive-state/reactive-hooks';
 import { ReactiveNode } from '../../common/reactive/reactive-node';
 import { uuidV4 } from '../../common/uuid';
+import { ReactiveVal } from '../../common/reactive/reactive-interface';
+import { Option } from '../../common/fp-ts/fp';
 
 export interface ActionDef {
   key: string;
@@ -12,6 +14,7 @@ export interface ActionDef {
   label?: string;
   icon?: IconDef;
   tooltip: string;
+  disable?: ReactiveVal<Option<string>> | string;
 }
 
 export type ActionsNode = ReactiveNode<Map<string, ActionDef>>;
@@ -57,6 +60,7 @@ export const ActionBar = ({ actions }: { actions: ActionsNode }) => {
             icon={action.icon}
             tooltip={action.tooltip}
             label={action.label}
+            disable={action.disable}
           />
         );
       })}

@@ -15,6 +15,7 @@ import { isNully } from '../../../common/null';
 import { resourceInfoToResult, ResourceManager } from './resource-manager';
 import { eitherToNullable } from '../../../common/fp-ts/either';
 import { taggedValue, TaggedValue } from '../../../common/tagged-value';
+import { DF } from '../../../common/df';
 
 const projectFolderName = 'Deus Hex Projects';
 
@@ -66,7 +67,8 @@ export interface ProjectResult {
 interface ProjectFileInfo {
   path: string;
   savedDate: Date;
-  name: string;
+  itemName: string;
+  fileName: string;
 }
 
 export interface ProjectInfo {
@@ -74,6 +76,7 @@ export interface ProjectInfo {
   current: ProjectFileInfo;
   original: ProjectFileInfo | null;
   backups: ProjectFileInfo[];
+  projectPaths: ReturnType<typeof projectFolders>;
 }
 
 export interface EditorFileInfo {
@@ -120,7 +123,7 @@ export class ProjectManager {
     const mName = path.parse(mNameDir).base;
     const mId = { name: mName, type };
     const projInfo = await this.getProjectById(mId);
-    if (E.isLeft(projInfo.info)) {
+    if (E.isLeft(projInfo.info) || projInfo.info.right.current.path !== file) {
       return taggedValue('info', {
         path: file,
         type,
@@ -214,6 +217,7 @@ export class ProjectManager {
         current: current.right,
         original: eitherToNullable(original),
         backups,
+        projectPaths,
       }),
     };
   }
@@ -254,9 +258,41 @@ export class ProjectManager {
         return {
           path: foundPath,
           savedDate: stat.ctime,
-          name: it.itemName,
+          itemName: it.itemName,
+          fileName: path.parse(foundPath).base,
         };
       })
     );
+  }
+
+  async save(filePath: string, projectId: ProjectId, data: Buffer) {
+    const { info } = await this.getProjectById(projectId);
+    if (E.isLeft(info)) {
+      return info;
+    }
+    if (info.right.current.path !== filePath) {
+      return E.left('Expected supplied path to match project current path');
+    }
+    await fsPromises.writeFile(filePath, data);
+    return E.right(true);
+  }
+
+  async saveBackup(filePath: string, projectId: ProjectId, data: Buffer) {
+    const { info } = await this.getProjectById(projectId);
+    if (E.isLeft(info)) {
+      return info;
+    }
+    if (info.right.current.path !== filePath) {
+      return E.left('Expected supplied path to match project current path');
+    }
+    const { backupsFolder } = info.right.projectPaths;
+    const newBackupFolderName = DF.format(new Date(), 'yyyy-MM-dd HH-mm-ss');
+    const backupFolderPath = path.join(backupsFolder, newBackupFolderName);
+    await fsPromises.mkdir(backupFolderPath);
+
+    const currentName = info.right.current.fileName;
+    const backupPath = path.join(backupFolderPath, currentName);
+    await fsPromises.writeFile(backupPath, data);
+    return E.right(`Backup saved to folder "${newBackupFolderName}"`);
   }
 }

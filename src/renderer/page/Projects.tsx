@@ -295,9 +295,9 @@ const ProjectResultC = ({ result }: { result: ProjectResult }) => {
         {renderResult(result.info, (inf) => {
           return (
             <>
-              <div className={style.currentName}>{inf.current.name}</div>
+              <div className={style.currentName}>{inf.current.itemName}</div>
               <div className={style.originalName}>
-                {inf.original?.name ?? '<None>'}
+                {inf.original?.itemName ?? '<None>'}
               </div>
               <div className={style.backups}>{inf.backups.length}</div>
               <div className={style.buttons}>

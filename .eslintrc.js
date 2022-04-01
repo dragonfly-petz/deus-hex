@@ -17,6 +17,7 @@ module.exports = {
     'react/jsx-props-no-spreading': 'off',
     'react/prop-types': 'off',
     'react/destructuring-assignment': 'off',
+    'react-hooks/rules-of-hooks': 'off',
     'no-implicit-coercion': [
       'warn',
       {

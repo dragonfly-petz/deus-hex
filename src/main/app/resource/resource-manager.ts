@@ -69,6 +69,22 @@ export class ResourceManager {
   fixDuplicateIds(petzFolder: string, type: FileType) {
     return fixDuplicateIds(petzFolder, type);
   }
+
+  async saveWithBackup(filePath: string, data: Buffer) {
+    const backupFile = `${filePath}.deusHexBackup`;
+    const stat = await fileStat(backupFile);
+    if (E.isLeft(stat)) {
+      await fsPromises.copyFile(filePath, backupFile);
+    }
+
+    await fsPromises.writeFile(filePath, data);
+    if (E.isRight(stat)) {
+      return E.right(
+        `Saved - did not back up original because backup already existed`
+      );
+    }
+    return E.right(`Saved and backed up original at ${backupFile}`);
+  }
 }
 
 export interface ResourceInfoWithPath {

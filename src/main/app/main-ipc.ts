@@ -12,11 +12,11 @@ import {
 import { parseLines, serializeLines } from '../../common/petz/parser/lines';
 import { isDev } from './util';
 import {
+  getFileAndUpdateResourceSections,
   getFileInfoAndData,
   renameClothingFile,
-  updateResourceSection,
+  SectionWithId,
 } from './pe-files/pe-files-util';
-import { ResourceEntryId } from '../../common/petz/codecs/rsrc-utility';
 import {
   connectIpc,
   mainIpcChannel,
@@ -32,6 +32,10 @@ import {
   ProjectManager,
 } from './resource/project-manager';
 import { createWindow, DomIpcHolder } from './create-window';
+
+export interface SaveResourceChangesOptions {
+  backup: boolean;
+}
 
 export class MainIpcBase {
   private readonly resourceManager: ResourceManager;
@@ -83,12 +87,26 @@ export class MainIpcBase {
     return renameClothingFile(filePath, toFileName, fromInternal, toInternal);
   }
 
-  async updateResourceSection(
-    filepath: string,
-    id: ResourceEntryId,
-    data: Uint8Array
+  async saveResourceSections(
+    filePath: string,
+    sections: Array<SectionWithId>,
+    options?: SaveResourceChangesOptions
   ) {
-    return updateResourceSection(filepath, id, data);
+    const fileInfo = await this.projectManager.fileToEditorParams(filePath);
+    if (fileInfo.tag === 'invalid') {
+      return E.left(fileInfo.value.message);
+    }
+
+    const buff = await getFileAndUpdateResourceSections(filePath, sections);
+    const { projectId } = fileInfo.value;
+    if (projectId) {
+      const saveBackup = options?.backup ?? false;
+      if (saveBackup) {
+        return this.projectManager.saveBackup(filePath, projectId, buff);
+      }
+      return this.projectManager.save(filePath, projectId, buff);
+    }
+    return this.resourceManager.saveWithBackup(filePath, buff);
   }
 
   async setUserSettings(us: UserSettings) {

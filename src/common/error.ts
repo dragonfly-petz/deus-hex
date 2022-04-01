@@ -69,6 +69,10 @@ export class ErrorReporter {
     return res;
   }
 
+  async withFlashMessageK<A>(prom: () => Promise<Either<string, A>>) {
+    return this.withFlashMessage(prom());
+  }
+
   handleUncaught(err: AppError) {
     this.uncaughtHandler(err);
   }

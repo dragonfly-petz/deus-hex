@@ -389,24 +389,32 @@ export async function renameClothingFile(
   });
 }
 
-export async function updateResourceSection(
-  filepath: string,
-  id: ResourceEntryId,
-  data: Uint8Array
+export interface SectionWithId {
+  id: ResourceEntryId;
+  data: Uint8Array;
+}
+
+export async function getFileAndUpdateResourceSections(
+  filePath: string,
+  sections: Array<SectionWithId>
 ) {
-  const buf = await fsPromises.readFile(filepath);
+  const buf = await fsPromises.readFile(filePath);
   const codecRes = pipe(
-    await getFileInfoAndData(filepath),
+    await getFileInfoAndData(filePath),
     E.map((it) => it.resDirTable),
     E.getOrElseW(() => {
       throw new Error('Expected right');
     })
   );
-  const dataEntry = getResourceEntryById(codecRes, id);
-  if (isNully(dataEntry)) {
-    throw new Error(`No data entry found for id ${JSON.stringify(id)}`);
+  for (const section of sections) {
+    const dataEntry = getResourceEntryById(codecRes, section.id);
+    if (isNully(dataEntry)) {
+      throw new Error(
+        `No data entry found for id ${JSON.stringify(section.id)}`
+      );
+    }
+    dataEntry.entry.data = section.data;
   }
-  dataEntry.entry.data = data;
   const pe = await parsePE(buf);
   const sectionData = pipe(
     await getResourceSectionData(pe),
@@ -423,7 +431,7 @@ export async function updateResourceSection(
     encodedBuffer
   );
   const generated = pe.generate();
-  await fsPromises.writeFile(filepath, Buffer.from(generated));
+  return Buffer.from(generated);
 }
 
 export function peSetSectionByEntry(

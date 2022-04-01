@@ -28,16 +28,24 @@ export class ReactiveSequence<A> implements ReactiveVal<Array<A>> {
   private subscribeToSource() {
     return sequenceDisposers(
       this.sources.map((it, idx) =>
-        it.listen((val) => this.updateValue(val, idx), true)
+        it.listen((val) => this.updateValue(val, idx), false)
       )
     );
   }
 
-  private updateValue(val: A, idx: number) {
-    const oldVal = pipe(
+  private _getVal() {
+    return pipe(
       this.value,
-      O.getOrElse(() => this.sources.map((it) => it.getValue()))
+      O.getOrElse(() => {
+        const val = this.sources.map((it) => it.getValue());
+        this.value = O.of(val);
+        return val;
+      })
     );
+  }
+
+  private updateValue(val: A, idx: number) {
+    const oldVal = this._getVal();
     const newVal = [...oldVal];
     newVal[idx] = val;
     this.value = O.of(newVal);
@@ -46,12 +54,7 @@ export class ReactiveSequence<A> implements ReactiveVal<Array<A>> {
 
   getValue(): Array<A> {
     this.listenable.assertHasListeners();
-    return pipe(
-      this.value,
-      O.getOrElseW(() => {
-        throw new Error('Expected value in ReactiveSequence, got none');
-      })
-    );
+    return this._getVal();
   }
 
   fmap<B>(

@@ -21,9 +21,6 @@ import { classNames } from '../../common/react';
 import { Button } from '../framework/Button';
 import { isDev } from '../../main/app/util';
 import { E } from '../../common/fp-ts/fp';
-import { TextArea } from '../framework/form/TextArea';
-import { getResourceEntryById } from '../../common/petz/codecs/rsrc-utility';
-import { bytesToString, stringToBytes } from '../../common/buffer';
 import { globalLogger } from '../../common/logger';
 import { run } from '../../common/function';
 import { Result } from '../../common/result';
@@ -94,31 +91,9 @@ export const ClothingRename = () => {
           newItemName.length === oldItemName.length
             ? null
             : `Item name must be same length (${oldItemName.length}) as old file name (${oldItemName}). Currently it is ${newItemName.length}`;
-        const dataId = {
-          type: 'CLZ',
-          level: 'CLOT_BADGESHERIFF',
-          language: 1033,
-        };
-        const data = getResourceEntryById(output.resDirTable, dataId)?.entry
-          .data ?? [40, 40];
-        // eslint-disable-next-line react-hooks/rules-of-hooks
-        const lnzDataNode = useMkReactiveNodeMemo(bytesToString(data));
+
         return (
           <div className={style.form}>
-            <h2>Linz editor</h2>
-            <TextArea valueNode={lnzDataNode} />
-            <Button
-              label="SAVE IT!!!"
-              onClick={() => {
-                throwRejectionK(async () => {
-                  await mainIpc.updateResourceSection(
-                    output.filePath,
-                    dataId,
-                    new Uint8Array(stringToBytes(lnzDataNode.getValue()))
-                  );
-                });
-              }}
-            />
             <h2>File info</h2>
             {run(() => {
               const { rcData } = output.rcDataAndEntry;

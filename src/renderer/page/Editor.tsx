@@ -4,13 +4,14 @@ import style from './Editor.module.scss';
 import { useAppReactiveNodes, useMainIpc } from '../context/context';
 import { RenderQuery, useMkQueryMemo } from '../framework/Query';
 import {
+  sequenceReactiveArray,
   useMkReactiveNodeMemo,
   useReactiveVal,
 } from '../reactive-state/reactive-hooks';
 import { isNotNully, isNully } from '../../common/null';
 import type { TabDef } from '../layout/Tabs';
-import { ActionBar, ActionsNode } from '../layout/ActionBar';
-import { E } from '../../common/fp-ts/fp';
+import { ActionBar, ActionsNode, useAddActions } from '../layout/ActionBar';
+import { E, O } from '../../common/fp-ts/fp';
 import { Navigation, NavigationDef } from '../layout/NavgationBar';
 import { FileInfoAndData } from '../../main/app/pe-files/pe-files-util';
 import {
@@ -18,7 +19,7 @@ import {
   ProjectId,
 } from '../../main/app/resource/project-manager';
 import { Result } from '../../common/result';
-import { run } from '../../common/function';
+import { identity, run } from '../../common/function';
 import {
   fileTypeToExpectedSections,
   ResourceDataSectionName,
@@ -28,6 +29,7 @@ import { unsafeObjectFromEntries } from '../../common/object';
 import {
   getAllDataEntriesWithId,
   getResourceEntryById,
+  ResourceEntryId,
   ResourceEntryIdQuery,
   resourceEntryIdToStringKey,
 } from '../../common/petz/codecs/rsrc-utility';
@@ -39,16 +41,12 @@ import { useModal } from '../framework/Modal';
 import { NewProjectForm } from './Projects';
 import { Button } from '../framework/Button';
 import { taggedValue } from '../../common/tagged-value';
-import { bytesToString } from '../../common/buffer';
+import { bytesToString, stringToBytes } from '../../common/buffer';
 import { TextArea } from '../framework/form/TextArea';
 import { ReactiveNode } from '../../common/reactive/reactive-node';
-import { mapMapValue } from '../../common/map';
 import { normalizeLineEndingsForTextArea } from '../../common/string';
 import { ReactiveVal } from '../../common/reactive/reactive-interface';
-
-type EditedEntriesStringMapNode = ReactiveNode<
-  Map<string, ReactiveNode<string>>
->;
+import { ger } from '../../common/error';
 
 interface NavigationDeps {
   fileInfo: FileInfoAndData & {
@@ -175,6 +173,7 @@ interface SectionAsString {
   original: string;
   editNode: ReactiveNode<string>;
   hasChanged: ReactiveVal<boolean>;
+  id: ResourceEntryId;
 }
 
 function useGetDeps() {
@@ -200,22 +199,23 @@ function useGetDeps() {
       res,
       E.map((resIn) => {
         const entries = getAllDataEntriesWithId(resIn.resDirTable);
-        const map = new Map(
-          entries.map((it) => [
-            resourceEntryIdToStringKey(it.id),
-            normalizeLineEndingsForTextArea(bytesToString(it.entry.data)),
-          ])
-        );
-        const sectionAsStringMap = mapMapValue(
-          map,
-          (original): SectionAsString => {
+        const sectionAsStringMap = new Map<string, SectionAsString>(
+          entries.map((it) => {
+            const original = normalizeLineEndingsForTextArea(
+              bytesToString(it.entry.data)
+            );
             const editNode = new ReactiveNode(original);
-            return {
-              original,
-              editNode,
-              hasChanged: editNode.fmapStrict((it) => it !== original),
-            };
-          }
+
+            return [
+              resourceEntryIdToStringKey(it.id),
+              {
+                original,
+                editNode,
+                hasChanged: editNode.fmapStrict((str) => str !== original),
+                id: it.id,
+              },
+            ];
+          })
         );
         return {
           ...resIn,
@@ -342,12 +342,82 @@ const RcDataRow = ({ label, value }: { label: string; value: string }) => {
   );
 };
 
-const TabRightBar = ({ actionsNode, fileInfoQuery }: TabDefs) => {
+const TabRightBar = ({ actionsNode, fileInfoQuery, projectId }: TabDefs) => {
   return (
     <>
       <RenderQuery
         query={fileInfoQuery}
         OnSuccess={({ value }) => {
+          const mainIpc = useMainIpc();
+          const sections = Array.from(value.sectionAsStringMap.values()).map(
+            (it) => it.hasChanged
+          );
+          const anyChangedNode = sequenceReactiveArray(sections).fmapStrict(
+            (it) => it.some(identity)
+          );
+          const getSectsToSave = () => {
+            return Array.from(value.sectionAsStringMap).map((it) => {
+              return {
+                id: it[1].id,
+                data: new Uint8Array(stringToBytes(it[1].editNode.getValue())),
+              };
+            });
+          };
+          useAddActions(actionsNode, (actions) => {
+            actions.push({
+              label: 'Open Containing Folder',
+              icon: 'faFolderOpen',
+              key: 'openFolder',
+              tooltip: 'Open folder that contains this file',
+              action: () => {
+                return mainIpc.openDirInExplorer(value.pathParsed.dir);
+              },
+            });
+
+            actions.push({
+              label: 'Save',
+              icon: 'faSave',
+              key: 'save',
+              tooltip: 'Save this file',
+              disable: anyChangedNode.fmapStrict((it) =>
+                it ? O.none : O.of('No changes made')
+              ),
+              action: () => {
+                return ger.withFlashMessageK(async () => {
+                  const res = await mainIpc.saveResourceSections(
+                    value.filePath,
+                    getSectsToSave()
+                  );
+                  if (E.isRight(res)) {
+                    fileInfoQuery.reload();
+                  }
+                  return res;
+                });
+              },
+            });
+            if (isNotNully(projectId)) {
+              actions.push({
+                label: 'Save Backup',
+                icon: 'faSave',
+                key: 'saveBackup',
+                tooltip:
+                  "Save the current changes as a backup file but don't save them to the current file",
+                disable: anyChangedNode.fmapStrict((it) =>
+                  it ? O.none : O.of('No changes made')
+                ),
+                action: () => {
+                  return ger.withFlashMessage(
+                    mainIpc.saveResourceSections(
+                      value.filePath,
+                      getSectsToSave(),
+                      { backup: true }
+                    )
+                  );
+                },
+              });
+            }
+          });
+
           return <ActionBar actions={actionsNode} />;
         }}
       />

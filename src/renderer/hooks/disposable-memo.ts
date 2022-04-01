@@ -50,6 +50,7 @@ export function useAsyncDisposableMemoWithDeps<
   // dispose when removed from dom
   useEffect(
     () => () => {
+      // eslint-disable-next-line promise/catch-or-return
       stateRef.current.promise.then((it) => it[1]());
     },
     []
