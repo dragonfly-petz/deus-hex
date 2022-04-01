@@ -27,6 +27,7 @@ export async function init(domIpcHolder: DomIpcHolder) {
   );
 
   app.on('window-all-closed', () => {
+    userSettingsRemote.dispose();
     app.quit();
   });
   mkAndConnectMainIpc(userSettingsRemote, domIpcHolder);

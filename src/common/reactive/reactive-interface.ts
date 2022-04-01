@@ -1,10 +1,17 @@
-import { Listenable } from './listener';
-import type { ReactiveFmapHelper } from './reactive-fmap';
+import { ChangeListener } from './listener';
+import { EqualityCheck } from '../equality';
+import { Disposer } from '../disposable';
 
-export interface ReactiveVal<A> {
-  readonly listenable: Listenable<[A, A]>;
+export interface FmapAble<A> {
+  fmap<B>(fn: (a: A) => B, equalityCheck: EqualityCheck<B>): ReactiveVal<B>;
 
-  readonly fmap: ReactiveFmapHelper<A>;
+  fmapStrict<B>(fn: (a: A) => B): ReactiveVal<B>;
+
+  fmapDeep<B>(fn: (a: A) => B): ReactiveVal<B>;
+}
+
+export interface ReactiveVal<A> extends FmapAble<A> {
+  listen(fn: ChangeListener<A>, callOnListen: boolean): Disposer;
 
   getValue(): A;
 }

@@ -39,7 +39,7 @@ export function mkStaticReactiveNodes() {
 
 export type AppReactiveNodesAsync = PromiseInner<
   ReturnType<typeof mkAsyncReactiveNodes>
->;
+>[0];
 
 export async function mkAsyncReactiveNodes(
   mainIpc: MainIpc,
@@ -62,9 +62,12 @@ export async function mkAsyncReactiveNodes(
     return mainIpc.fileToEditorParams(windowParams.editorTarget);
   });
 
-  return {
-    userSettingsRemote,
-    projectManagerFolders,
-    editorParams: new ReactiveNode(editorParams),
-  };
+  return [
+    {
+      userSettingsRemote,
+      projectManagerFolders,
+      editorParams: new ReactiveNode(editorParams),
+    },
+    () => userSettingsRemote.dispose(),
+  ] as const;
 }

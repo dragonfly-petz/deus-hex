@@ -104,7 +104,7 @@ export const PetzResources = ({
   const { userSettingsRemote } = useAppReactiveNodes();
 
   useListenReactiveVal(
-    userSettingsRemote.fmap.strict((it) => it.petzFolder),
+    userSettingsRemote.fmapStrict((it) => it.petzFolder),
     () => {
       throwRejectionK(() => resourcesOverviewQuery.reload());
     }

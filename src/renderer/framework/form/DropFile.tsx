@@ -24,7 +24,7 @@ export const DropFile = ({
 }) => {
   const dragEnterCounterNode = useMkReactiveNodeMemo(0);
   const isOver = useReactiveVal(
-    dragEnterCounterNode.fmap.strict((it) => it > 0)
+    dragEnterCounterNode.fmapStrict((it) => it > 0)
   );
   const droppedFileInfoNode = useMkReactiveNodeMemo(
     nullable<Either<string, string>>()
@@ -43,7 +43,7 @@ export const DropFile = ({
     setFromValueNode(valueNode.getValue());
   }, [valueNode, setFromValueNode]);
 
-  useListenReactiveVal(valueNode.fmap.strict(identity), setFromValueNode);
+  useListenReactiveVal(valueNode.fmapStrict(identity), setFromValueNode);
 
   const droppedFileInfo = useReactiveVal(droppedFileInfoNode);
 

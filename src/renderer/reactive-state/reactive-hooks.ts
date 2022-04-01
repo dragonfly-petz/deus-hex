@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ReactiveNode } from '../../common/reactive/reactive-node';
 import { ChangeListener } from '../../common/reactive/listener';
 import { ReactiveVal } from '../../common/reactive/reactive-interface';
 import { isNully, nullable } from '../../common/null';
 import { Disposer } from '../../common/disposable';
-import { run } from '../../common/function';
+import { ReactiveSequence } from '../../common/reactive/reactive-sequence';
 
 export function useMkReactiveNodeMemo<A>(initialVal: A) {
   // we specifically don't want this to be recreated
@@ -25,9 +25,9 @@ export function useReactiveVal<A>(node: ReactiveVal<A>, _debugLabel?: string) {
   ) {
     disposerRef.current.disposer?.();
     disposerRef.current.node = node;
-    disposerRef.current.disposer = node.listenable.listen(() => {
+    disposerRef.current.disposer = node.listen(() => {
       setRerenderState((it) => it + 1);
-    });
+    }, false);
   }
   useEffect(() => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -39,52 +39,16 @@ export function useReactiveVal<A>(node: ReactiveVal<A>, _debugLabel?: string) {
 
 export function useListenReactiveVal<A>(
   node: ReactiveVal<A>,
-  listener: ChangeListener<A>
+  listener: ChangeListener<A>,
+  callImmediately = false
 ) {
   useEffect(() => {
-    return node.listenable.listen(listener);
-  }, [node, listener]);
+    return node.listen(listener, callImmediately);
+  }, [node, listener, callImmediately]);
 }
 
-export function useSequenceMap<A, B>(
-  map: ReactiveVal<Map<A, ReactiveNode<B>>>
-): ReactiveVal<Map<A, B>> {
-  const mapFromSource = useCallback(
-    () =>
-      new Map<A, B>(
-        Array.from(map.getValue().entries()).map((it) => [
-          it[0],
-          it[1].getValue(),
-        ])
-      ),
-    [map]
-  );
-
-  const returnVal = useMemo(() => {
-    return new ReactiveNode(mapFromSource());
-  }, [mapFromSource]);
-
-  useEffect(() => {
-    const updateVal = () => {
-      returnVal.setValue(mapFromSource());
-    };
-    const valDisposers = new Array<Disposer>();
-    const baseDisposer = map.listenable.listen(() => {
-      valDisposers.forEach(run);
-      for (const val of map.getValue().values()) {
-        valDisposers.push(val.listenable.listen(updateVal));
-      }
-      updateVal();
-    });
-
-    for (const val of map.getValue().values()) {
-      valDisposers.push(val.listenable.listen(updateVal));
-    }
-    return () => {
-      baseDisposer();
-      valDisposers.forEach(run);
-    };
-  }, [map, returnVal, mapFromSource]);
-
-  return returnVal;
+export function sequenceReactiveArray<A>(
+  nodes: ReadonlyArray<ReactiveVal<A>>
+): ReactiveVal<Array<A>> {
+  return new ReactiveSequence(nodes);
 }

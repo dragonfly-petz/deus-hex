@@ -1,22 +1,33 @@
 import { Either } from 'fp-ts/Either';
-import { Listenable } from './listener';
+import { ChangeListener, Listenable, toChangeVal } from './listener';
 import { ReactiveVal } from './reactive-interface';
-import { ReactiveFmapHelper } from './reactive-fmap';
+import { EqualityCheck } from '../equality';
+import { fmapHelper } from './reactive-fmap';
+import { Disposable, Disposer } from '../disposable';
 
-export class RemoteObject<A extends object> implements ReactiveVal<A> {
-  readonly fmap: ReactiveFmapHelper<A> = new ReactiveFmapHelper(this);
+export class RemoteObject<A extends object>
+  implements ReactiveVal<A>, Disposable
+{
+  private readonly listenable = new Listenable<[A, A]>();
+
+  readonly dispose: Disposer;
 
   constructor(
     private value: A,
     private setAsync: (val: A) => Promise<Either<string, boolean>>,
     private srcEmitter: Listenable<[A]>
   ) {
-    this.srcEmitter.listen((val) => {
+    this.dispose = this.srcEmitter.listen((val) => {
       this._setValue(val);
     });
   }
 
-  readonly listenable = new Listenable<[A, A]>();
+  listen(fn: ChangeListener<A>, callOnListen: boolean): Disposer {
+    return this.listenable.listen(
+      fn,
+      callOnListen ? () => toChangeVal(this.getValue()) : undefined
+    );
+  }
 
   getValue() {
     return this.value;
@@ -48,5 +59,17 @@ export class RemoteObject<A extends object> implements ReactiveVal<A> {
     const old = this.value;
     this.value = a;
     this.listenable.notify(a, old);
+  }
+
+  fmap<B>(fn: (a: A) => B, equalityCheck: EqualityCheck<B>): ReactiveVal<B> {
+    return fmapHelper.fmap(this, fn, equalityCheck);
+  }
+
+  fmapStrict<B>(fn: (a: A) => B): ReactiveVal<B> {
+    return fmapHelper.fmapStrict(this, fn);
+  }
+
+  fmapDeep<B>(fn: (a: A) => B): ReactiveVal<B> {
+    return fmapHelper.fmapDeep(this, fn);
   }
 }

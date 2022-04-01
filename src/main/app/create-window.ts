@@ -129,11 +129,9 @@ export async function createWindow(
         send: window.webContents.send.bind(window.webContents),
       }).target;
       const holderDisposer = domIpcHolder.addDomIpc(domIpc);
-      const userSettingsDisposer = userSettingsRemote.listenable.listen(
-        (it) => {
-          domIpc.updateUserSettings(it);
-        }
-      );
+      const userSettingsDisposer = userSettingsRemote.listen((it) => {
+        domIpc.updateUserSettings(it);
+      }, false);
       window.on('close', () => {
         holderDisposer();
         userSettingsDisposer();

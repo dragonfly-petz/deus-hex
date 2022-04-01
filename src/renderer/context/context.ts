@@ -46,7 +46,7 @@ export function mkNullableContext<A>() {
   };
 }
 
-export type AppContext = PromiseInner<ReturnType<typeof mkAppContext>>;
+export type AppContext = PromiseInner<ReturnType<typeof mkAppContext>>[0];
 export type AppReactiveNodes = AppReactiveNodesStatic & AppReactiveNodesAsync;
 
 export async function mkAppContext(
@@ -60,7 +60,10 @@ export async function mkAppContext(
 
   const isDev = throwFromEither(await mainIpc.isDev());
   const appVersion = throwFromEither(await mainIpc.getAppVersion());
-  const asyncNodes = await mkAsyncReactiveNodes(mainIpc, domIpc);
+  const [asyncNodes, asyncNodesDisposer] = await mkAsyncReactiveNodes(
+    mainIpc,
+    domIpc
+  );
   const appReactiveNodes = {
     ...appReactiveNodesStatic,
     ...asyncNodes,
@@ -71,14 +74,17 @@ export async function mkAppContext(
     appReactiveNodesStatic.currentTabNode.setValue('editor');
   }
 
-  return {
-    mainIpc,
-    isDev,
-    appVersion,
-    appReactiveNodes,
-    domIpc,
-    appHelper,
-  };
+  return [
+    {
+      mainIpc,
+      isDev,
+      appVersion,
+      appReactiveNodes,
+      domIpc,
+      appHelper,
+    },
+    asyncNodesDisposer,
+  ] as const;
 }
 
 export const { useAppContext, AppContextContext } =
@@ -93,7 +99,7 @@ export function useUserSettingNode<A extends keyof UserSettings & string>(
 ): ReactiveVal<UserSettings[A]> {
   const { userSettingsRemote } = useAppReactiveNodes();
   return useMemo(() => {
-    return userSettingsRemote.fmap.strict((it) => it[a]);
+    return userSettingsRemote.fmapStrict((it) => it[a]);
   }, [userSettingsRemote, a]);
 }
 

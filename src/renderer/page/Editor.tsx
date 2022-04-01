@@ -6,7 +6,6 @@ import { RenderQuery, useMkQueryMemo } from '../framework/Query';
 import {
   useMkReactiveNodeMemo,
   useReactiveVal,
-  useSequenceMap,
 } from '../reactive-state/reactive-hooks';
 import { isNotNully, isNully } from '../../common/null';
 import type { TabDef } from '../layout/Tabs';
@@ -45,6 +44,7 @@ import { TextArea } from '../framework/form/TextArea';
 import { ReactiveNode } from '../../common/reactive/reactive-node';
 import { mapMapValue } from '../../common/map';
 import { normalizeLineEndingsForTextArea } from '../../common/string';
+import { ReactiveVal } from '../../common/reactive/reactive-interface';
 
 type EditedEntriesStringMapNode = ReactiveNode<
   Map<string, ReactiveNode<string>>
@@ -52,8 +52,7 @@ type EditedEntriesStringMapNode = ReactiveNode<
 
 interface NavigationDeps {
   fileInfo: FileInfoAndData & {
-    originalEntriesStringMap: Map<string, string>;
-    editedEntriesStringMapNode: EditedEntriesStringMapNode;
+    sectionAsStringMap: Map<string, SectionAsString>;
   };
   // eslint-disable-next-line react/no-unused-prop-types
   actionsNode: ActionsNode;
@@ -69,25 +68,23 @@ const SectionName = ({
 }: NavigationDeps & {
   name: ResourceDataSectionName;
 }) => {
-  const sequencedMap = useSequenceMap(fileInfo.editedEntriesStringMapNode);
-  const entWithIdM = getResourceEntryById(
-    fileInfo.resDirTable,
-    resourceDataSections[name].idMatcher
-  );
-  const editedEntriesMap = useReactiveVal(sequencedMap);
-  const originalMap = fileInfo.originalEntriesStringMap;
-
-  const isEdited = run(() => {
-    if (isNully(entWithIdM)) return false;
+  const hasChangedNode = run(() => {
+    const entWithIdM = getResourceEntryById(
+      fileInfo.resDirTable,
+      resourceDataSections[name].idMatcher
+    );
+    if (isNully(entWithIdM)) return new ReactiveNode(false);
     const key = resourceEntryIdToStringKey(entWithIdM.id);
-    const original = originalMap.get(key);
-    const edited = editedEntriesMap.get(key);
-    return isNotNully(original) && isNotNully(edited) && original !== edited;
+    return (
+      fileInfo.sectionAsStringMap.get(key)?.hasChanged ??
+      new ReactiveNode(false)
+    );
   });
+  const hasChanged = useReactiveVal(hasChangedNode);
   return (
     <div>
       {name}
-      {isEdited ? '*' : ''}
+      {hasChanged ? '*' : ''}
     </div>
   );
 };
@@ -174,6 +171,12 @@ const useMkNavigation = (
   return nav;
 };
 
+interface SectionAsString {
+  original: string;
+  editNode: ReactiveNode<string>;
+  hasChanged: ReactiveVal<boolean>;
+}
+
 function useGetDeps() {
   const mainIpc = useMainIpc();
   const params = useReactiveVal(useAppReactiveNodes().editorParams);
@@ -203,13 +206,20 @@ function useGetDeps() {
             normalizeLineEndingsForTextArea(bytesToString(it.entry.data)),
           ])
         );
-        const editedEntriesStringMapNode = new ReactiveNode(
-          mapMapValue(map, (it) => new ReactiveNode(it))
+        const sectionAsStringMap = mapMapValue(
+          map,
+          (original): SectionAsString => {
+            const editNode = new ReactiveNode(original);
+            return {
+              original,
+              editNode,
+              hasChanged: editNode.fmapStrict((it) => it !== original),
+            };
+          }
         );
         return {
           ...resIn,
-          originalEntriesStringMap: map,
-          editedEntriesStringMapNode,
+          sectionAsStringMap,
         };
       })
     );
@@ -332,8 +342,17 @@ const RcDataRow = ({ label, value }: { label: string; value: string }) => {
   );
 };
 
-const TabRightBar = ({ actionsNode }: TabDefs) => {
-  return <ActionBar actions={actionsNode} />;
+const TabRightBar = ({ actionsNode, fileInfoQuery }: TabDefs) => {
+  return (
+    <>
+      <RenderQuery
+        query={fileInfoQuery}
+        OnSuccess={({ value }) => {
+          return <ActionBar actions={actionsNode} />;
+        }}
+      />
+    </>
+  );
 };
 
 const SectionPage = ({
@@ -344,10 +363,8 @@ const SectionPage = ({
   const asEither = E.fromNullable('Section not found')(entWithIdM);
 
   return renderResult(asEither, (entWithId) => {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const map = useReactiveVal(fileInfo.editedEntriesStringMapNode);
     const stringKey = resourceEntryIdToStringKey(entWithId.id);
-    const node = map.get(stringKey);
+    const node = fileInfo.sectionAsStringMap.get(stringKey)?.editNode;
     if (isNully(node)) {
       return <div>Expected to find edit node for section key {stringKey}</div>;
     }
