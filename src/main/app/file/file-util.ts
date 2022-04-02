@@ -36,3 +36,17 @@ export async function getPathsInDir(dirPath: string) {
   const files = await fsPromises.readdir(dirPath);
   return E.right(files.map((it) => path.join(dirPath, it)));
 }
+
+export function watchPathForChange(path: string, onEvent: () => void) {
+  const ac = new AbortController();
+  const { signal } = ac;
+  const watcher = fsPromises.watch(path, { signal });
+  const run = async () => {
+    for await (const event of watcher) {
+      console.log(event);
+      onEvent();
+    }
+  };
+  const stop = () => ac.abort();
+  return { run, stop };
+}

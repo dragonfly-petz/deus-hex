@@ -8,9 +8,11 @@ import { isDev } from './util';
 
 const debugEditorFile =
   'C:\\Users\\franc\\Documents\\Petz\\Petz 4\\Resource\\Catz\\Calico.cat';
+const debugProjectFIle =
+  'C:\\Users\\franc\\AppData\\Roaming\\Electron\\Deus Hex Projects\\Catz Projects\\asdf\\current\\Calico.cat';
 const debugParams = isDev()
   ? {
-      editorTarget: debugEditorFile,
+      editorTarget: debugProjectFIle,
     }
   : undefined;
 

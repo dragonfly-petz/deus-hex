@@ -11,10 +11,10 @@ import type { FlashMessageProps } from '../../renderer/framework/FlashMessage';
 import { RemoteObject } from '../../common/reactive/remote-object';
 import { UserSettings } from './persisted/user-settings';
 
-// must put in preload as well!
-const windowParamKeys = ['editorTarget'] as const;
-export type WindowParamKey = typeof windowParamKeys[number];
-export type WindowParams = Partial<Record<WindowParamKey, string>>;
+export interface WindowParams {
+  windowId: string;
+  editorTarget?: string;
+}
 
 function toParams(obj: object) {
   const entries = Object.entries(obj);
@@ -22,18 +22,22 @@ function toParams(obj: object) {
 }
 
 export class DomIpcHolder {
-  private domIpcs = new Set<DomIpc>();
+  private domIpcs = new Map<number, DomIpc>();
 
-  addDomIpc(ipc: DomIpc) {
-    this.domIpcs.add(ipc);
+  getDomIpc(id: number) {
+    return this.domIpcs.get(id) ?? null;
+  }
+
+  addDomIpc(id: number, ipc: DomIpc) {
+    this.domIpcs.set(id, ipc);
     return () => {
-      this.domIpcs.delete(ipc);
+      this.domIpcs.delete(id);
     };
   }
 
   async addUncaughtError(title: string, err: string) {
     if (this.domIpcs.size > 0) {
-      for (const ipc of this.domIpcs) {
+      for (const ipc of this.domIpcs.values()) {
         ipc.addUncaughtError(title, err);
       }
     } else {
@@ -43,7 +47,7 @@ export class DomIpcHolder {
 
   async addCaughtError(title: string, err: string) {
     if (this.domIpcs.size > 0) {
-      for (const ipc of this.domIpcs) {
+      for (const ipc of this.domIpcs.values()) {
         ipc.addCaughtError(title, err);
       }
     } else {
@@ -53,7 +57,7 @@ export class DomIpcHolder {
 
   async addFlashMessage(fm: FlashMessageProps) {
     if (this.domIpcs.size > 0) {
-      for (const ipc of this.domIpcs) {
+      for (const ipc of this.domIpcs.values()) {
         ipc.addFlashMessage(fm);
       }
     } else {
@@ -81,7 +85,7 @@ let lastWindowId = 0;
 export async function createWindow(
   domIpcHolder: DomIpcHolder,
   userSettingsRemote: RemoteObject<UserSettings>,
-  params: WindowParams = {}
+  params: Partial<WindowParams> = {}
 ) {
   if (isDev()) {
     await installExtensions();
@@ -98,7 +102,8 @@ export async function createWindow(
     },
   });
   const path = resolveHtmlPath('index.html');
-  const finalPath = `${path}?${toParams(params)}`;
+  const finalParams = { ...params, windowId };
+  const finalPath = `${path}?${toParams(finalParams)}`;
   globalLogger.info(`Opening window ${windowId} with path ${finalPath}`);
   // noinspection ES6MissingAwait
   window.loadURL(finalPath);
@@ -118,7 +123,7 @@ export async function createWindow(
     shell.openExternal(edata.url);
     return { action: 'deny' };
   });
-  addDomLogHandler(`domWindow_${windowId}`, window);
+  addDomLogHandler(`domWindow<${windowId}>`, window);
   checkForUpdates();
 
   return new Promise<void>((resolve) => {
@@ -128,7 +133,7 @@ export async function createWindow(
         on: ipcMain.on.bind(ipcMain),
         send: window.webContents.send.bind(window.webContents),
       }).target;
-      const holderDisposer = domIpcHolder.addDomIpc(domIpc);
+      const holderDisposer = domIpcHolder.addDomIpc(windowId, domIpc);
       const userSettingsDisposer = userSettingsRemote.listen((it) => {
         domIpc.updateUserSettings(it);
       }, false);

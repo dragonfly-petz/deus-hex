@@ -32,6 +32,10 @@ import {
   ProjectManager,
 } from './resource/project-manager';
 import { createWindow, DomIpcHolder } from './create-window';
+import { uuidV4 } from '../../common/uuid';
+import { Disposer } from '../../common/disposable';
+import { watchPathForChange } from './file/file-util';
+import { globalLogger } from '../../common/logger';
 
 export interface SaveResourceChangesOptions {
   backup: boolean;
@@ -41,6 +45,8 @@ export class MainIpcBase {
   private readonly resourceManager: ResourceManager;
 
   private readonly projectManager: ProjectManager;
+
+  private readonly fileWatchers = new Map<string, Disposer>();
 
   constructor(
     private userSettingsRemote: RemoteObject<UserSettings>,
@@ -159,6 +165,35 @@ export class MainIpcBase {
 
   async fileToEditorParams(file: string) {
     return this.projectManager.fileToEditorParams(file);
+  }
+
+  async watchFile(file: string, windowId: number) {
+    const id = uuidV4();
+    const { run, stop } = watchPathForChange(file, () => {
+      const ipc = this.domIpcHolder.getDomIpc(windowId);
+      if (isNully(ipc)) {
+        globalLogger.warn(
+          `Expected to find window ${windowId} when handling file watch change`
+        );
+        return;
+      }
+      ipc.onFileWatchChange({ watcherId: id, filePath: file });
+    });
+    this.fileWatchers.set(id, stop);
+    run();
+    return id;
+  }
+
+  async disposeWatchFile(watcherId: string) {
+    const watcher = this.fileWatchers.get(watcherId);
+    if (isNully(watcher)) {
+      globalLogger.warn(
+        `Expected to find watcher for id  ${watcherId} when disposing watch file`
+      );
+      return;
+    }
+    watcher();
+    this.fileWatchers.delete(watcherId);
   }
 }
 

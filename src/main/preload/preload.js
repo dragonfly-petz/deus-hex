@@ -2,13 +2,12 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 const validChannels = ['mainIpcChannel', 'domIpcChannel'];
 
-const windowParamKeys = ['editorTarget'];
 const queryString = window.location.search;
 const urlParams = new URLSearchParams(queryString);
 const windowParams = {};
-for (const key of windowParamKeys) {
-  windowParams[key] = urlParams.get(key);
-}
+urlParams.forEach((val, key) => {
+  windowParams[key] = val;
+});
 
 contextBridge.exposeInMainWorld('electron', {
   windowParams,

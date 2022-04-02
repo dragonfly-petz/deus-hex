@@ -1,14 +1,18 @@
 import { useEffect } from 'react';
 import { pipe } from 'fp-ts/function';
 import style from './Editor.module.scss';
-import { useAppReactiveNodes, useMainIpc } from '../context/context';
+import {
+  useAppContext,
+  useAppReactiveNodes,
+  useMainIpc,
+} from '../context/context';
 import { RenderQuery, useMkQueryMemo } from '../framework/Query';
 import {
   sequenceReactiveArray,
   useMkReactiveNodeMemo,
   useReactiveVal,
 } from '../reactive-state/reactive-hooks';
-import { isNotNully, isNully } from '../../common/null';
+import { isNotNully, isNully, nullable } from '../../common/null';
 import type { TabDef } from '../layout/Tabs';
 import { ActionBar, ActionsNode, useAddActions } from '../layout/ActionBar';
 import { E, O } from '../../common/fp-ts/fp';
@@ -47,6 +51,8 @@ import { ReactiveNode } from '../../common/reactive/reactive-node';
 import { normalizeLineEndingsForTextArea } from '../../common/string';
 import { ReactiveVal } from '../../common/reactive/reactive-interface';
 import { ger } from '../../common/error';
+import { useDisposableEffectWithDeps } from '../hooks/disposable-memo';
+import { Disposer } from '../../common/disposable';
 
 interface NavigationDeps {
   fileInfo: FileInfoAndData & {
@@ -179,7 +185,7 @@ interface SectionAsString {
 function useGetDeps() {
   const mainIpc = useMainIpc();
   const params = useReactiveVal(useAppReactiveNodes().editorParams);
-
+  const { windowId } = useAppContext();
   const navigation = useMkNavigation(params);
 
   const fileInfoQuery = useMkQueryMemo(async () => {
@@ -194,6 +200,7 @@ function useGetDeps() {
         `Invalid file ${params.right.value.file}: ${params.right.value.message}`
       );
     }
+    const { projectId } = params.right.value;
     const res = await mainIpc.getFileInfoAndData(params.right.value.path);
     return pipe(
       res,
@@ -218,12 +225,41 @@ function useGetDeps() {
           })
         );
         return {
+          projectId,
           ...resIn,
           sectionAsStringMap,
         };
       })
     );
   }, [params]);
+
+  useDisposableEffectWithDeps(() => {
+    let watchDisposer = nullable<Promise<Disposer>>();
+    const listenDispose = fileInfoQuery.listen((change) => {
+      if (isNotNully(watchDisposer)) {
+        watchDisposer.then(run);
+        watchDisposer = null;
+      }
+      if (change.tag === 'success' && isNotNully(change.value.projectId)) {
+        watchDisposer = run(async () => {
+          const watcherId = await mainIpc.watchFile(
+            change.value.filePath,
+            windowId
+          );
+          return () => {
+            if (E.isRight(watcherId)) {
+              mainIpc.disposeWatchFile(watcherId.right);
+            }
+          };
+        });
+      }
+    }, true);
+    return () => {
+      listenDispose();
+      watchDisposer?.then(run);
+    };
+  }, [fileInfoQuery]);
+
   const actionsNode: ActionsNode = useMkReactiveNodeMemo(new Map());
   const projectId = isNully(params)
     ? null

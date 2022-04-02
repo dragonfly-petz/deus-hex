@@ -69,3 +69,13 @@ export function useAsyncDisposableMemoWithDeps<
 export function useDisposableMemo<A>(setup: () => [A, () => void]) {
   return useDisposableMemoWithDeps(setup, []);
 }
+
+export function useDisposableEffectWithDeps<Deps extends ReadonlyArray<any>>(
+  setup: (deps: Deps) => () => void,
+  deps: Deps
+) {
+  return useDisposableMemoWithDeps((deps) => {
+    const disp = setup(deps);
+    return [undefined, disp];
+  }, deps);
+}

@@ -1,7 +1,10 @@
 import React, { useContext, useMemo } from 'react';
 import { isNully } from '../../common/null';
 import type { MainIpcBase } from '../../main/app/main-ipc';
-import { getContextBridgeIpcRenderer } from '../context-bridge';
+import {
+  getContextBridgeIpcRenderer,
+  getContextBridgeWindowParams,
+} from '../context-bridge';
 import { IpcHandler, mainIpcChannel } from '../../common/ipc';
 import {
   AppReactiveNodesAsync,
@@ -73,7 +76,13 @@ export async function mkAppContext(
   if (appReactiveNodes.editorParams.getValue() !== null) {
     appReactiveNodesStatic.currentTabNode.setValue('editor');
   }
-
+  const windowParams = getContextBridgeWindowParams();
+  const windowId = parseInt(windowParams.windowId, 10);
+  if (Number.isNaN(windowId)) {
+    throw new Error(
+      `Expected a numeric window id, got ${windowParams.windowId}`
+    );
+  }
   return [
     {
       mainIpc,
@@ -82,6 +91,7 @@ export async function mkAppContext(
       appReactiveNodes,
       domIpc,
       appHelper,
+      windowId,
     },
     asyncNodesDisposer,
   ] as const;
