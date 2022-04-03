@@ -7,7 +7,7 @@ import {
   useDomIpc,
   useMainIpc,
 } from '../context/context';
-import { RenderQuery, useMkQueryMemo } from '../framework/Query';
+import { QueryInner, RenderQuery, useMkQueryMemo } from '../framework/Query';
 import {
   sequenceReactiveArray,
   useMkReactiveNodeMemo,
@@ -38,9 +38,9 @@ import {
   ResourceEntryIdQuery,
   resourceEntryIdToStringKey,
 } from '../../common/petz/codecs/rsrc-utility';
-import { safeHead } from '../../common/array';
+import { safeHead, sortByNumeric } from '../../common/array';
 import { renderResult } from '../framework/result';
-import { renderIf } from '../framework/render';
+import { renderIf, renderNullable } from '../framework/render';
 import { Banner, BannerBody, BannerButtons } from '../layout/Banner';
 import { useModal } from '../framework/Modal';
 import { NewProjectForm } from './Projects';
@@ -54,19 +54,20 @@ import { ReactiveVal } from '../../common/reactive/reactive-interface';
 import { ger } from '../../common/error';
 import { useDisposableEffectWithDeps } from '../hooks/disposable-memo';
 import { Disposer } from '../../common/disposable';
+import { formatDateDistance } from '../../common/df';
+import { throwRejectionK } from '../../common/promise';
 
 interface NavigationDeps {
   fileInfo: FileInfoAndData & {
     sectionAsStringMap: Map<string, SectionAsString>;
   };
-  // eslint-disable-next-line react/no-unused-prop-types
   actionsNode: ActionsNode;
-  // eslint-disable-next-line react/no-unused-prop-types
   fileInfoQuery: TabDefs['fileInfoQuery'];
-  // eslint-disable-next-line react/no-unused-prop-types
+  projectInfoQuery: TabDefs['projectInfoQuery'];
   projectId: ProjectId | null;
 }
 
+type FileInfoQueryResult = QueryInner<TabDefs['fileInfoQuery']>;
 const SectionName = ({
   name,
   fileInfo,
@@ -190,7 +191,7 @@ function useGetDeps() {
   const { windowId } = useAppContext();
   const navigation = useMkNavigation(params);
 
-  const fileInfoQuery = useMkQueryMemo(async () => {
+  const editorFileInfo = run(() => {
     if (isNully(params)) {
       return E.left('No file currently selected for editor to work with');
     }
@@ -202,8 +203,25 @@ function useGetDeps() {
         `Invalid file ${params.right.value.file}: ${params.right.value.message}`
       );
     }
-    const { projectId } = params.right.value;
-    const res = await mainIpc.getFileInfoAndData(params.right.value.path);
+    return E.right(params.right.value);
+  });
+
+  const projectInfoQuery = useMkQueryMemo(async () => {
+    if (E.isLeft(editorFileInfo)) {
+      return editorFileInfo;
+    }
+    if (isNotNully(editorFileInfo.right.projectId)) {
+      return mainIpc.getProjectById(editorFileInfo.right.projectId);
+    }
+    return E.right(null);
+  }, [editorFileInfo]);
+
+  const fileInfoQuery = useMkQueryMemo(async () => {
+    if (E.isLeft(editorFileInfo)) {
+      return editorFileInfo;
+    }
+    const { projectId } = editorFileInfo.right;
+    const res = await mainIpc.getFileInfoAndData(editorFileInfo.right.path);
     return pipe(
       res,
       E.map((resIn) => {
@@ -230,10 +248,18 @@ function useGetDeps() {
           projectId,
           ...resIn,
           sectionAsStringMap,
+          getSectsToSave: () => {
+            return Array.from(sectionAsStringMap).map((it) => {
+              return {
+                id: it[1].id,
+                data: new Uint8Array(stringToBytes(it[1].editNode.getValue())),
+              };
+            });
+          },
         };
       })
     );
-  }, [params]);
+  }, [editorFileInfo]);
 
   useDisposableEffectWithDeps(() => {
     let watchDisposer = nullable<Promise<Disposer>>();
@@ -245,6 +271,7 @@ function useGetDeps() {
       }
       if (change.tag === 'success' && isNotNully(change.value.projectId)) {
         watchDisposer = run(async () => {
+          const { value } = change;
           const fileToWatch = change.value.filePath;
           const watcherId = await mainIpc.watchFile(change.value.filePath, [
             windowId,
@@ -257,10 +284,15 @@ function useGetDeps() {
                 watcherId.right === fwChange.filePath
               ) {
                 const res = await ger.withFlashMessage(
-                  mainIpc.saveExternalChangeBackup(fwChange.filePath)
+                  mainIpc.saveResourceSections(
+                    value.filePath,
+                    value.getSectsToSave(),
+                    { backup: 'external' }
+                  )
                 );
                 if (E.isRight(res)) {
                   fileInfoQuery.reload();
+                  projectInfoQuery.reload();
                 }
               }
             }
@@ -294,6 +326,7 @@ function useGetDeps() {
   return {
     navigation,
     fileInfoQuery,
+    projectInfoQuery,
     actionsNode,
     projectId,
   };
@@ -316,6 +349,7 @@ export const EditorC = ({
   navigation,
   actionsNode,
   projectId,
+  projectInfoQuery,
 }: TabDefs) => {
   return (
     <div className={style.main}>
@@ -331,6 +365,7 @@ export const EditorC = ({
               actionsNode={actionsNode}
               fileInfoQuery={fileInfoQuery}
               projectId={projectId}
+              projectInfoQuery={projectInfoQuery}
             />
           );
         }}
@@ -339,7 +374,7 @@ export const EditorC = ({
   );
 };
 const TabLeftBar = (deps: TabDefs) => {
-  const { navigation, fileInfoQuery, projectId } = deps;
+  const { navigation, fileInfoQuery, projectId, projectInfoQuery } = deps;
   return (
     <>
       <RenderQuery
@@ -353,39 +388,55 @@ const TabLeftBar = (deps: TabDefs) => {
                 node={navigation.node}
                 labelDeps={{ ...deps, fileInfo: value }}
               />
-              <div className={style.rcData}>
-                <RcDataRow label="Path" value={value.filePath} />
-                <RcDataRow label="Item Name" value={value.itemName} />
-                <RcDataRow
-                  label="Sprite Name"
-                  value={value.rcDataAndEntry.rcData.spriteName}
-                />
-                <RcDataRow
-                  label="Display Name"
-                  value={value.rcDataAndEntry.rcData.displayName}
-                />
-                <RcDataRow
-                  label="Breed Id"
-                  value={value.rcDataAndEntry.rcData.breedId.toFixed()}
-                />
-                <RcDataRow
-                  label="Tag"
-                  value={value.rcDataAndEntry.rcData.tag.toFixed()}
-                />
-                <RcDataRow
-                  label="Is Project?"
-                  value={
-                    isNully(projectId)
-                      ? 'No'
-                      : `Yes - ${projectId.name} - ${projectId.type}`
-                  }
-                />
-              </div>
+              <RcDataInfo value={value} projectId={projectId} />
+              <BackupsInfo
+                projectInfoQuery={projectInfoQuery}
+                projectId={projectId}
+              />
             </>
           );
         }}
       />
     </>
+  );
+};
+
+const RcDataInfo = ({
+  value,
+  projectId,
+}: {
+  value: FileInfoQueryResult;
+  projectId: ProjectId | null;
+}) => {
+  return (
+    <div className={style.rcData}>
+      <RcDataRow label="Path" value={value.filePath} />
+      <RcDataRow label="Item Name" value={value.itemName} />
+      <RcDataRow
+        label="Sprite Name"
+        value={value.rcDataAndEntry.rcData.spriteName}
+      />
+      <RcDataRow
+        label="Display Name"
+        value={value.rcDataAndEntry.rcData.displayName}
+      />
+      <RcDataRow
+        label="Breed Id"
+        value={value.rcDataAndEntry.rcData.breedId.toFixed()}
+      />
+      <RcDataRow
+        label="Tag"
+        value={value.rcDataAndEntry.rcData.tag.toFixed()}
+      />
+      <RcDataRow
+        label="Is Project?"
+        value={
+          isNully(projectId)
+            ? 'No'
+            : `Yes - ${projectId.name} - ${projectId.type}`
+        }
+      />
+    </div>
   );
 };
 
@@ -398,7 +449,77 @@ const RcDataRow = ({ label, value }: { label: string; value: string }) => {
   );
 };
 
-const TabRightBar = ({ actionsNode, fileInfoQuery, projectId }: TabDefs) => {
+const BackupsInfo = ({
+  projectInfoQuery,
+  projectId,
+}: {
+  projectInfoQuery: NavigationDeps['projectInfoQuery'];
+  projectId: ProjectId | null;
+}) => {
+  const editorParamsNode = useAppReactiveNodes().editorParams;
+  const mainIpc = useMainIpc();
+  if (isNully(projectId)) {
+    return null;
+  }
+  return renderNullable(projectId, () => {
+    return (
+      <div className={style.externalBackups}>
+        <h2>External change backups</h2>
+        <RenderQuery
+          query={projectInfoQuery}
+          OnSuccess={({ value }) => {
+            return renderNullable(value, (infoE) => {
+              return renderResult(infoE.info, (info) => {
+                const sorted = info.externalBackups.slice();
+                sortByNumeric(sorted, (it) => -it.savedDate.getTime());
+                return (
+                  <>
+                    {sorted.map((back) => {
+                      return (
+                        <div key={back.path} className={style.backup}>
+                          <div className={style.date}>
+                            {formatDateDistance(back.savedDate)}
+                          </div>
+                          <div className={style.button}>
+                            <Button
+                              label="Restore"
+                              onClick={() => {
+                                throwRejectionK(async () => {
+                                  const res = await ger.withFlashMessageK(
+                                    async () => {
+                                      return mainIpc.restoreProjectFrom(
+                                        projectId,
+                                        back.path
+                                      );
+                                    }
+                                  );
+                                  if (E.isRight(res)) {
+                                    editorParamsNode.setValue(res);
+                                  }
+                                });
+                              }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </>
+                );
+              });
+            });
+          }}
+        />
+      </div>
+    );
+  });
+};
+
+const TabRightBar = ({
+  actionsNode,
+  fileInfoQuery,
+  projectId,
+  projectInfoQuery,
+}: TabDefs) => {
   return (
     <>
       <RenderQuery
@@ -411,14 +532,6 @@ const TabRightBar = ({ actionsNode, fileInfoQuery, projectId }: TabDefs) => {
           const anyChangedNode = sequenceReactiveArray(sections).fmapStrict(
             (it) => it.some(identity)
           );
-          const getSectsToSave = () => {
-            return Array.from(value.sectionAsStringMap).map((it) => {
-              return {
-                id: it[1].id,
-                data: new Uint8Array(stringToBytes(it[1].editNode.getValue())),
-              };
-            });
-          };
           useAddActions(actionsNode, (actions) => {
             actions.push({
               label: 'Open Containing Folder',
@@ -442,10 +555,11 @@ const TabRightBar = ({ actionsNode, fileInfoQuery, projectId }: TabDefs) => {
                 return ger.withFlashMessageK(async () => {
                   const res = await mainIpc.saveResourceSections(
                     value.filePath,
-                    getSectsToSave()
+                    value.getSectsToSave()
                   );
                   if (E.isRight(res)) {
                     fileInfoQuery.reload();
+                    projectInfoQuery.reload();
                   }
                   return res;
                 });
@@ -462,13 +576,17 @@ const TabRightBar = ({ actionsNode, fileInfoQuery, projectId }: TabDefs) => {
                   it ? O.none : O.of('No changes made')
                 ),
                 action: () => {
-                  return ger.withFlashMessage(
-                    mainIpc.saveResourceSections(
+                  return ger.withFlashMessageK(async () => {
+                    const res = await mainIpc.saveResourceSections(
                       value.filePath,
-                      getSectsToSave(),
-                      { backup: true }
-                    )
-                  );
+                      value.getSectsToSave(),
+                      { backup: 'explicit' }
+                    );
+                    if (E.isRight(res)) {
+                      projectInfoQuery.reload();
+                    }
+                    return res;
+                  });
                 },
               });
             }
@@ -497,7 +615,9 @@ const SectionPage = ({
     return (
       <>
         <h2>Editing section {resourceEntryIdToStringKey(entWithId.id)}</h2>
-        <TextArea valueNode={node} />
+        <div className={style.editorTextAreaWrapper}>
+          <TextArea valueNode={node} className={style.editorTextArea} />
+        </div>
       </>
     );
   });

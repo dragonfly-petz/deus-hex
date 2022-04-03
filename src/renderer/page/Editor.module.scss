@@ -1,6 +1,9 @@
 @use '../style/styleVar';
 
 .main {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .rcData {
@@ -16,4 +19,20 @@
 }
 
 .rcDataValue {
+}
+
+.externalBackups {
+}
+
+.editorTextAreaWrapper {
+  flex-grow: 1;
+  padding-bottom: 10px;
+}
+
+.editorTextArea {
+  height: 100%;
+}
+
+.backup {
+  display: flex;
 }

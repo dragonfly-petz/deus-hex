@@ -26,17 +26,17 @@ import { UserSettings } from './persisted/user-settings';
 import { RemoteObject } from '../../common/reactive/remote-object';
 import { ResourceManager } from './resource/resource-manager';
 import { FileType } from '../../common/petz/file-types';
-import { isNully } from '../../common/null';
+import { isNotNully, isNully } from '../../common/null';
 import {
   getProjectManagerFolders,
+  ProjectId,
   ProjectManager,
 } from './resource/project-manager';
 import { createWindow, DomIpcHolder } from './create-window';
 import { FileWatcher } from './file/file-watcher';
 
 export interface SaveResourceChangesOptions {
-  backup?: boolean;
-  suspendWatcherId?: string;
+  backup?: 'explicit' | 'external';
 }
 
 export class MainIpcBase {
@@ -107,28 +107,19 @@ export class MainIpcBase {
 
     const buff = await getFileAndUpdateResourceSections(filePath, sections);
     const { projectId } = fileInfo.value;
-    if (projectId) {
-      const saveBackup = options?.backup ?? false;
-      if (saveBackup) {
-        return this.projectManager.saveBackup(filePath, projectId, buff);
+    if (isNotNully(projectId)) {
+      const backupType = options?.backup;
+      if (isNotNully(backupType)) {
+        return this.projectManager.saveBackup(
+          filePath,
+          projectId,
+          backupType,
+          buff
+        );
       }
       return this.projectManager.save(filePath, projectId, buff);
     }
     return this.resourceManager.saveWithBackup(filePath, buff);
-  }
-
-  async saveExternalChangeBackup(filePath: string) {
-    const fileInfo = await this.projectManager.fileToEditorParams(filePath);
-    if (fileInfo.tag === 'invalid') {
-      return E.left(fileInfo.value.message);
-    }
-    const { projectId } = fileInfo.value;
-    if (isNully(projectId)) {
-      return E.left(
-        `External change backups can only be saved for project files.`
-      );
-    }
-    return this.projectManager.saveExternalChangeBackup(filePath, projectId);
   }
 
   async setUserSettings(us: UserSettings) {
@@ -151,6 +142,10 @@ export class MainIpcBase {
 
   async getProjects() {
     return this.projectManager.getProjects();
+  }
+
+  async getProjectById(id: ProjectId) {
+    return this.projectManager.getProjectById(id);
   }
 
   async createProjectFromFile(filePath: string, name: string) {
@@ -189,6 +184,10 @@ export class MainIpcBase {
 
   async unwatchFile(filePathRaw: string, windowIds: Array<number>) {
     return this.fileWatcher.unwatchFile(filePathRaw, windowIds);
+  }
+
+  async restoreProjectFrom(projectId: ProjectId, file: string) {
+    return this.projectManager.restoreProjectFrom(projectId, file);
   }
 
   unregisterWindow(windowId: number) {

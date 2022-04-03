@@ -4,3 +4,7 @@ import * as df from 'date-fns';
 export const DF = {
   ...df,
 };
+
+export function formatDateDistance(date: Date) {
+  return DF.formatDistanceToNow(date, { addSuffix: true });
+}

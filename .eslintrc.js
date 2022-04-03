@@ -18,6 +18,7 @@ module.exports = {
     'react/prop-types': 'off',
     'react/destructuring-assignment': 'off',
     'react-hooks/rules-of-hooks': 'off',
+    'react/no-unused-prop-types': 'off',
     'no-implicit-coercion': [
       'warn',
       {

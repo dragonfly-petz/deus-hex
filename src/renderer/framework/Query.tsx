@@ -21,6 +21,9 @@ import { fmapHelper } from '../../common/reactive/reactive-fmap';
 import { Disposer } from '../../common/disposable';
 
 export type QueryResult<A> = Either<string, A>;
+export type QueryInner<A extends Query<any>> = A extends Query<infer Inner>
+  ? Inner
+  : never;
 
 export type QueryState<A> =
   | {

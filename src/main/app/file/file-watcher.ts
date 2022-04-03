@@ -63,6 +63,13 @@ export class FileWatcher {
     );
   }
 
+  async copyFileSuspendWatch(src: string, dest: string) {
+    return bracketAsync(
+      () => this.suspendWatchFileIfWatching(dest),
+      () => fsPromises.copyFile(src, dest)
+    );
+  }
+
   suspendWatchFileIfWatching(filePathRaw: string) {
     const filePath = path.normalize(filePathRaw);
     const existing = this.fileWatchers.get(filePath);

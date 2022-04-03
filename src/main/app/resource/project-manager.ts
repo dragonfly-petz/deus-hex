@@ -23,6 +23,15 @@ import { globalLogger } from '../../../common/logger';
 
 const projectFolderName = 'Deus Hex Projects';
 
+export type BackupType = 'explicit' | 'external';
+
+const backupTypeToFolderPath: Record<BackupType, keyof ProjectFolders> = {
+  explicit: 'backupsFolder',
+  external: 'externalBackupsFolder',
+};
+
+const backupFolderNameDateFormat = 'yyyy-MM-dd HH-mm-ss';
+
 function getProjectFolder() {
   return path.join(app.getPath('userData'), projectFolderName);
 }
@@ -35,6 +44,8 @@ function projectTypeFolder(type: FileType) {
   const projFolder = getProjectFolder();
   return path.join(projFolder, fileTypeToProjectTypeFolder(type));
 }
+
+type ProjectFolders = ReturnType<typeof projectFolders>;
 
 function projectFolders(id: ProjectId) {
   const folder = path.normalize(projectTypeFolder(id.type));
@@ -82,6 +93,7 @@ export interface ProjectInfo {
   current: ProjectFileInfo;
   original: ProjectFileInfo | null;
   backups: ProjectFileInfo[];
+  externalBackups: ProjectFileInfo[];
   projectPaths: ReturnType<typeof projectFolders>;
 }
 
@@ -213,7 +225,7 @@ export class ProjectManager {
     return this.getProjectById({ type, name: projectName });
   }
 
-  private async getProjectById(id: ProjectId): Promise<ProjectResult> {
+  async getProjectById(id: ProjectId): Promise<ProjectResult> {
     const projectPaths = await this.getAndCreateProjectFolders(id);
     const current = await this.getProjectFileInfo(
       id.type,
@@ -233,6 +245,10 @@ export class ProjectManager {
       projectPaths.originalFolder
     );
     const backups = await this.getBackups(id.type, projectPaths.backupsFolder);
+    const externalBackups = await this.getBackups(
+      id.type,
+      projectPaths.externalBackupsFolder
+    );
 
     return {
       id,
@@ -241,9 +257,28 @@ export class ProjectManager {
         current: current.right,
         original: eitherToNullable(original),
         backups,
+        externalBackups,
         projectPaths,
       }),
     };
+  }
+
+  async restoreProjectFrom(id: ProjectId, filePath: string) {
+    const projectPaths = await this.getAndCreateProjectFolders(id);
+    const current = await this.getProjectFileInfo(
+      id.type,
+      projectPaths.currentFolder
+    );
+    if (E.isLeft(current)) return current;
+    await fsPromises.rm(current.right.path);
+    const backupFileName = path.basename(filePath);
+    const newCurrentFile = path.join(
+      projectPaths.currentFolder,
+      backupFileName
+    );
+
+    await this.fileWatcher.copyFileSuspendWatch(filePath, newCurrentFile);
+    return E.right(await this.fileToEditorParams(newCurrentFile));
   }
 
   private async getBackups(
@@ -301,7 +336,12 @@ export class ProjectManager {
     return E.right(true);
   }
 
-  async saveBackup(filePath: string, projectId: ProjectId, data: Buffer) {
+  async saveBackup(
+    filePath: string,
+    projectId: ProjectId,
+    type: BackupType,
+    data: Buffer
+  ) {
     const { info } = await this.getProjectById(projectId);
     if (E.isLeft(info)) {
       return info;
@@ -309,43 +349,35 @@ export class ProjectManager {
     if (info.right.current.path !== filePath) {
       return E.left('Expected supplied path to match project current path');
     }
-    const { backupsFolder } = info.right.projectPaths;
-    return this.createBackupInFolder(backupsFolder, info.right, data);
-  }
-
-  async saveExternalChangeBackup(filePath: string, projectId: ProjectId) {
-    const { info } = await this.getProjectById(projectId);
-    if (E.isLeft(info)) {
-      return info;
+    const folder = info.right.projectPaths[backupTypeToFolderPath[type]];
+    const res = this.createBackupInFolder(folder, info.right, data);
+    if (type === 'external') {
+      await this.cleanBackups(folder, 3);
     }
-    if (info.right.current.path !== filePath) {
-      return E.left('Expected supplied path to match project current path');
-    }
-    const { externalBackupsFolder } = info.right.projectPaths;
-    const data = await fsPromises.readFile(filePath);
-    const res = this.createBackupInFolder(
-      externalBackupsFolder,
-      info.right,
-      data
-    );
-    await this.cleanBackups(externalBackupsFolder, 3);
     return res;
   }
 
-  private async cleanBackups(folderPath: string, leaveLastN: number) {
+  private async getBackupFolders(folderPath: string) {
     const paths = await getPathsInDir(folderPath);
-    if (E.isLeft(paths)) return;
+    if (E.isLeft(paths)) return paths;
     const pathsWithDates = paths.right
       .map((it) => {
         const { base } = path.parse(it);
         try {
-          const date = DF.parse(base, 'yyyy-MM-dd HH-mm-ss', new Date());
+          const date = DF.parse(base, backupFolderNameDateFormat, new Date());
           return { folderPath: it, date };
         } catch {
           return null;
         }
       })
       .filter(isNotNully);
+    return E.right(pathsWithDates);
+  }
+
+  private async cleanBackups(folderPath: string, leaveLastN: number) {
+    const res = await this.getBackupFolders(folderPath);
+    if (E.isLeft(res)) return;
+    const pathsWithDates = res.right.slice();
     sortByNumeric(pathsWithDates, (it) => -it.date.getTime());
     const toDelete = pathsWithDates.slice(leaveLastN);
     await Promise.all(
@@ -365,7 +397,10 @@ export class ProjectManager {
     info: ProjectInfo,
     data: Buffer
   ) {
-    const newBackupFolderName = DF.format(new Date(), 'yyyy-MM-dd HH-mm-ss');
+    const newBackupFolderName = DF.format(
+      new Date(),
+      backupFolderNameDateFormat
+    );
     const backupFolderPath = path.join(folder, newBackupFolderName);
     await fsPromises.mkdir(backupFolderPath);
 
