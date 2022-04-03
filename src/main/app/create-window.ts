@@ -12,6 +12,10 @@ import { RemoteObject } from '../../common/reactive/remote-object';
 import { UserSettings } from './persisted/user-settings';
 import type { MainIpcBase } from './main-ipc';
 
+export interface CreateWindowParams {
+  editorTarget?: string;
+}
+
 export interface WindowParams {
   windowId: string;
   editorTarget?: string;
@@ -87,7 +91,7 @@ export async function createWindow(
   domIpcHolder: DomIpcHolder,
   userSettingsRemote: RemoteObject<UserSettings>,
   mainIpc: MainIpcBase,
-  params: Partial<WindowParams> = {}
+  params: CreateWindowParams | null
 ) {
   if (isDev()) {
     await installExtensions();
@@ -104,7 +108,10 @@ export async function createWindow(
     },
   });
   const path = resolveHtmlPath('index.html');
-  const finalParams = { ...params, windowId };
+  const finalParams: WindowParams = {
+    ...params,
+    windowId: windowId.toString(10),
+  };
   const finalPath = `${path}?${toParams(finalParams)}`;
   globalLogger.info(`Opening window ${windowId} with path ${finalPath}`);
   // noinspection ES6MissingAwait

@@ -187,7 +187,7 @@ export class ProjectManager {
       folderPaths.map(async (it) => {
         const res = await directoryExists(it);
         if (E.isLeft(res)) {
-          await fsPromises.mkdir(it);
+          await fsPromises.mkdir(it, { recursive: true });
         } else if (!res.right) {
           throw new Error(
             `Could not create directory ${it} because it already exists but is not a directory`
