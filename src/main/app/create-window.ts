@@ -137,11 +137,14 @@ export async function createWindow(
 
   return new Promise<void>((resolve) => {
     window.webContents.once('did-finish-load', async () => {
-      const domIpc = new IpcHandler<DomIpcBase>(domIpcChannel, {
-        tag: 'mainToDom',
-        on: ipcMain.on.bind(ipcMain),
-        send: window.webContents.send.bind(window.webContents),
-      }).target;
+      const domIpc = new IpcHandler<DomIpcBase>(
+        `${domIpcChannel}_${windowId}`,
+        {
+          tag: 'mainToDom',
+          on: ipcMain.on.bind(ipcMain),
+          send: window.webContents.send.bind(window.webContents),
+        }
+      ).target;
       const holderDisposer = domIpcHolder.addDomIpc(windowId, domIpc);
       const userSettingsDisposer = userSettingsRemote.listen((it) => {
         domIpc.updateUserSettings(it);

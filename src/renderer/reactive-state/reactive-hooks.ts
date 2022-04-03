@@ -1,12 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ReactiveNode } from '../../common/reactive/reactive-node';
 import { ChangeListener } from '../../common/reactive/listener';
-import { ReactiveVal } from '../../common/reactive/reactive-interface';
+import {
+  ReactiveVal,
+  ReactiveValInner,
+} from '../../common/reactive/reactive-interface';
 import { isNully, nullable } from '../../common/null';
 import { Disposer } from '../../common/disposable';
 import { ReactiveSequence } from '../../common/reactive/reactive-sequence';
 import { isObjectWithKey } from '../../common/type-assertion';
 import { O, Option } from '../../common/fp-ts/fp';
+import {
+  unsafeObjectEntries,
+  unsafeObjectFromEntries,
+} from '../../common/object';
+import { snd } from '../../common/array';
 
 export function useMkReactiveNodeMemo<A>(initialVal: A) {
   // we specifically don't want this to be recreated
@@ -53,6 +61,28 @@ export function sequenceReactiveArray<A>(
   nodes: ReadonlyArray<ReactiveVal<A>>
 ): ReactiveVal<Array<A>> {
   return new ReactiveSequence(nodes);
+}
+
+export type ReactiveProperties = Record<string, ReactiveVal<any>>;
+export type ReactivePropertiesSequenced<A extends ReactiveProperties> = {
+  [P in keyof A]: ReactiveValInner<A[P]>;
+};
+
+export function sequenceReactiveProperties<A extends ReactiveProperties>(
+  nodeProps: A
+): ReactiveVal<ReactivePropertiesSequenced<A>> {
+  const entries = unsafeObjectEntries(nodeProps);
+  const nodes = entries.map(snd);
+  const res = new ReactiveSequence(nodes).fmap(
+    (vals) => {
+      const newEntries = entries.map(([k], idx) => {
+        return [k, vals[idx]] as const;
+      });
+      return unsafeObjectFromEntries(newEntries);
+    },
+    () => false
+  );
+  return res as ReactiveVal<ReactivePropertiesSequenced<A>>;
 }
 
 export function isReactiveVal(val: unknown): val is ReactiveVal<any> {

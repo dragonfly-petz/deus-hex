@@ -1,14 +1,15 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
-const validChannels = ['mainIpcChannel', 'domIpcChannel'];
-
 const queryString = window.location.search;
 const urlParams = new URLSearchParams(queryString);
 const windowParams = {};
 urlParams.forEach((val, key) => {
   windowParams[key] = val;
 });
-
+const validChannels = [
+  'mainIpcChannel',
+  `domIpcChannel_${windowParams.windowId}`,
+];
 contextBridge.exposeInMainWorld('electron', {
   windowParams,
   ipcRenderer: {
@@ -19,7 +20,6 @@ contextBridge.exposeInMainWorld('electron', {
     },
     send(channel, ...args) {
       if (validChannels.includes(channel)) {
-        // Deliberately strip event as it includes `sender`
         ipcRenderer.send(channel, ...args);
       }
     },

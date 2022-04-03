@@ -1,5 +1,8 @@
 import { connectIpc, domIpcChannel, WrapWithCaughtError } from '../common/ipc';
-import { getContextBridgeIpcRenderer } from './context-bridge';
+import {
+  getContextBridgeIpcRenderer,
+  getContextBridgeWindowParams,
+} from './context-bridge';
 import { ReactiveNode } from '../common/reactive/reactive-node';
 import { FlashMessage, FlashMessageProps } from './framework/FlashMessage';
 import { UserSettings } from '../main/app/persisted/user-settings';
@@ -48,6 +51,11 @@ export type DomIpc = WrapWithCaughtError<DomIpcBase>;
 
 export function mkAndConnectDomIpc(deps: DomIpcDeps) {
   const domIpc = new DomIpcBase(deps);
-  connectIpc(domIpc, domIpcChannel, getContextBridgeIpcRenderer());
+  const { windowId } = getContextBridgeWindowParams();
+  connectIpc(
+    domIpc,
+    `${domIpcChannel}_${windowId}`,
+    getContextBridgeIpcRenderer()
+  );
   return domIpc;
 }

@@ -15,3 +15,6 @@ export interface ReactiveVal<A> extends FmapAble<A> {
 
   getValue(): A;
 }
+
+export type ReactiveValInner<A extends ReactiveVal<any>> =
+  A extends ReactiveVal<infer B> ? B : never;

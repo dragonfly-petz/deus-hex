@@ -3,12 +3,11 @@ import { Tabs } from './Tabs';
 import { Button } from '../framework/Button';
 import { useAppContext, useAppReactiveNodes } from '../context/context';
 import { Heading } from './text';
-import { userSettingsDefault } from '../../main/app/persisted/user-settings';
 import logoImg from '../../../assets/logoImage.png';
 
 export const Header = () => {
   const { appVersion } = useAppContext();
-  const { userSettingsRemote } = useAppReactiveNodes();
+  const { localFontSizeAdjust } = useAppReactiveNodes();
 
   return (
     <div className={style.header}>
@@ -29,27 +28,21 @@ export const Header = () => {
           tooltip="Reduce font size"
           icon="faMinus"
           onClick={() => {
-            userSettingsRemote.setRemotePartialFn((it) => ({
-              fontSize: it.fontSize - 1,
-            }));
+            localFontSizeAdjust.setValueFn((it) => it - 1);
           }}
         />
         <Button
           tooltip="Increase font size"
           icon="faPlus"
           onClick={() => {
-            userSettingsRemote.setRemotePartialFn((it) => ({
-              fontSize: it.fontSize + 1,
-            }));
+            localFontSizeAdjust.setValueFn((it) => it + 1);
           }}
         />
         <Button
           tooltip="Reset font size"
           icon="faSync"
           onClick={() => {
-            userSettingsRemote.setRemotePartialFn(() => ({
-              fontSize: userSettingsDefault.fontSize,
-            }));
+            localFontSizeAdjust.setValueFn(() => 0);
           }}
         />
       </div>

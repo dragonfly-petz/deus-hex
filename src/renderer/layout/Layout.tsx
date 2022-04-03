@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import style from './layout.module.scss';
 import { useAppReactiveNodes } from '../context/context';
 import {
+  sequenceReactiveProperties,
   useListenReactiveVal,
   useReactiveVal,
 } from '../reactive-state/reactive-hooks';
@@ -29,11 +30,16 @@ export const Layout = () => {
     return globalSh.listenable.listen(setStyle);
   }, []);
 
+  const currentFontSize = sequenceReactiveProperties({
+    globalFontSize: userSettingsRemote.fmapStrict((it) => it.fontSize),
+    localFontSizeAdjust: useAppReactiveNodes().localFontSizeAdjust,
+  }).fmapStrict((it) => it.globalFontSize + it.localFontSizeAdjust);
+
   useListenReactiveVal(
-    userSettingsRemote,
-    (us) =>
+    currentFontSize,
+    (it) =>
       globalSh.updateCurrentStyle({
-        htmlFontSize: globalSh.px(us.fontSize),
+        htmlFontSize: globalSh.px(it),
       }),
     true
   );
