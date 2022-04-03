@@ -70,7 +70,7 @@ export class IpcHandler<A extends object>
   private readonly resolveFunctions = new Map<string, ResolveHolder>();
 
   constructor(
-    private channel: IpcChannel,
+    private channel: IpcChannel | string,
     private transport: IpcTransportHandler
   ) {
     transport.on(this.channel, (_, arg: IpcReplyMessage) => {
@@ -113,7 +113,7 @@ export class IpcHandler<A extends object>
 
 export function connectIpc<A>(
   target: A,
-  channel: IpcChannel,
+  channel: IpcChannel | string,
   transport: IpcTransportConnect
 ) {
   transport.on(channel, async (event, arg: IpcCallMessage) => {

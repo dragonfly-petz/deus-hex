@@ -15,7 +15,7 @@ assertTypesEqual<UserSettings, MigrationFinal<typeof userSettingsMigration>>(
 );
 
 export const userSettingsMigration = baseMigration(() => {
-  return { fontSize: 10 };
+  return { fontSize: 9 };
 }).next((it) => ({
   ...it,
   petzFolder: nullable<string>(),

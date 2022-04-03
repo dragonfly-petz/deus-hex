@@ -1,6 +1,10 @@
-import { useMemo } from 'react';
+import { DependencyList, useMemo } from 'react';
 import { E, Either } from '../../common/fp-ts/fp';
-import { Listenable } from '../../common/reactive/listener';
+import {
+  ChangeListener,
+  Listenable,
+  toChangeVal,
+} from '../../common/reactive/listener';
 import {
   emptyComponent,
   FunctionalComponent,
@@ -12,9 +16,14 @@ import { isNever } from '../../common/type-assertion';
 import { Icon } from './Icon';
 import { classNames } from '../../common/react';
 import { ReactiveVal } from '../../common/reactive/reactive-interface';
-import { ReactiveFmapHelper } from '../../common/reactive/reactive-fmap';
+import { EqualityCheck } from '../../common/equality';
+import { fmapHelper } from '../../common/reactive/reactive-fmap';
+import { Disposer } from '../../common/disposable';
 
 export type QueryResult<A> = Either<string, A>;
+export type QueryInner<A extends Query<any>> = A extends Query<infer Inner>
+  ? Inner
+  : never;
 
 export type QueryState<A> =
   | {
@@ -30,11 +39,9 @@ export type QueryState<A> =
     };
 
 export class Query<A> implements ReactiveVal<QueryState<A>> {
-  readonly listenable = new Listenable<[QueryState<A>, QueryState<A>]>();
-
-  readonly fmap: ReactiveFmapHelper<QueryState<A>> = new ReactiveFmapHelper(
-    this
-  );
+  private readonly listenable = new Listenable<
+    [QueryState<A>, QueryState<A>]
+  >();
 
   private queryState: QueryState<A> = {
     tag: 'pending',
@@ -43,6 +50,18 @@ export class Query<A> implements ReactiveVal<QueryState<A>> {
   constructor(private query: () => Promise<QueryResult<A>>) {
     // noinspection JSIgnoredPromiseFromCall
     this.runQuery();
+  }
+
+  listen(fn: ChangeListener<QueryState<A>>, callOnListen: boolean): Disposer {
+    return this.listenable.listen(
+      fn,
+      callOnListen ? () => toChangeVal(this.getValue()) : undefined
+    );
+  }
+
+  async setAndRunNewQuery(query: () => Promise<QueryResult<A>>) {
+    this.query = query;
+    return this.reload();
   }
 
   private async runQuery() {
@@ -68,12 +87,30 @@ export class Query<A> implements ReactiveVal<QueryState<A>> {
   async reload() {
     return this.runQuery();
   }
+
+  fmap<B>(
+    fn: (a: QueryState<A>) => B,
+    equalityCheck: EqualityCheck<B>
+  ): ReactiveVal<B> {
+    return fmapHelper.fmap(this, fn, equalityCheck);
+  }
+
+  fmapStrict<B>(fn: (a: QueryState<A>) => B): ReactiveVal<B> {
+    return fmapHelper.fmapStrict(this, fn);
+  }
+
+  fmapDeep<B>(fn: (a: QueryState<A>) => B): ReactiveVal<B> {
+    return fmapHelper.fmapDeep(this, fn);
+  }
 }
 
-export function useMkQueryMemo<A>(query: () => Promise<QueryResult<A>>) {
+export function useMkQueryMemo<A>(
+  query: () => Promise<QueryResult<A>>,
+  deps?: DependencyList
+) {
   // we specifically don't want this to be recreated
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  return useMemo(() => new Query(query), []);
+  return useMemo(() => new Query(query), deps);
 }
 
 export const RenderQuery = <A,>({

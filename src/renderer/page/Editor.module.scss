@@ -1,0 +1,38 @@
+@use '../style/styleVar';
+
+.main {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.rcData {
+  overflow: hidden;
+}
+
+.rcDataRow {
+  display: flex;
+}
+
+.rcDataLabel {
+  margin-right: 5px;
+}
+
+.rcDataValue {
+}
+
+.externalBackups {
+}
+
+.editorTextAreaWrapper {
+  flex-grow: 1;
+  padding-bottom: 10px;
+}
+
+.editorTextArea {
+  height: 100%;
+}
+
+.backup {
+  display: flex;
+}

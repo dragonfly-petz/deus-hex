@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/strict-boolean-expressions */
 import { app } from 'electron';
 import path from 'path';
 import { URL } from 'url';

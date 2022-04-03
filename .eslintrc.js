@@ -16,6 +16,21 @@ module.exports = {
     'max-classes-per-file': 'off',
     'react/jsx-props-no-spreading': 'off',
     'react/prop-types': 'off',
+    'react/destructuring-assignment': 'off',
+    'react-hooks/rules-of-hooks': 'off',
+    'react/no-unused-prop-types': 'off',
+    'no-implicit-coercion': [
+      'warn',
+      {
+        boolean: true,
+        number: true,
+        string: true,
+        disallowTemplateShorthand: true,
+        allow: [],
+      },
+    ],
+    '@typescript-eslint/strict-boolean-expressions': 'error',
+
     '@typescript-eslint/no-use-before-define': [
       'off',
       {

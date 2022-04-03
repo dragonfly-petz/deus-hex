@@ -31,6 +31,7 @@ const configuration: webpack.Configuration = {
   module: require('./webpack.config.renderer.dev').default.module,
 
   entry: {
+    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
     renderer: Object.keys(dependencies || {}),
   },
 

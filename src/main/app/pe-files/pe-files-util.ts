@@ -1,9 +1,13 @@
 import path from 'path';
 import * as PE from 'pe-library';
+import { NtExecutable } from 'pe-library';
 import { identity, pipe } from 'fp-ts/function';
+import { NtExecutableSection } from 'pe-library/dist/NtExecutable';
+import type ImageDataDirectoryArray from 'pe-library/dist/format/ImageDataDirectoryArray';
+import type { ImageDirectoryEntry } from 'pe-library/dist/format';
 import { globalLogger } from '../../../common/logger';
 import { fsPromises } from '../util/fs-promises';
-import { assert, assertEqual } from '../../../common/assert';
+import { assertEqual } from '../../../common/assert';
 import { safeLast, sortByNumeric, sumBy } from '../../../common/array';
 import { E, Either } from '../../../common/fp-ts/fp';
 import { PromiseInner } from '../../../common/promise';
@@ -11,12 +15,13 @@ import { isNotNully, isNully } from '../../../common/null';
 import {
   decodeFromSection,
   encodeToSection,
+  ResDataEntry,
   ResDirTable,
 } from '../../../common/petz/codecs/pe-rsrc';
-import { bytesToString } from '../../../common/buffer';
+import { bytesToString, bytesToStringForDiff } from '../../../common/buffer';
 import { withTempFile } from '../file/temp-file';
 import {
-  getDataEntryById,
+  getResourceEntryById,
   ResourceEntryId,
 } from '../../../common/petz/codecs/rsrc-utility';
 import {
@@ -24,6 +29,7 @@ import {
   rcDataCodec,
   rcDataId,
 } from '../../../common/petz/codecs/rcdata';
+import { Result } from '../../../common/result';
 
 function toHexString(arr: Uint8Array) {
   return Array.from(arr)
@@ -45,23 +51,24 @@ function toHex(val: number, pad = 8) {
   return `0x${val.toString(16).padStart(pad, '0')}`;
 }
 
-export function removeSymbolsNumber(buf: Buffer) {
+function removeSymbolsNumber(buf: Buffer) {
   const elfanewOffset = 0x3c;
   const peOffset = buf.readUInt32LE(elfanewOffset);
   const peCheck = readChars(buf, peOffset, 4);
   assertEqual(peCheck, 'PE\0\0');
   const symbolNumberOffset = peOffset + 4 + 12;
-  /*  const symbolNumber = buf.readUInt32LE(symbolNumberOffset);
-    globalLogger.info(
-      `Replacing symbol number ${symbolNumber} (${toHex(
-        symbolNumber
-      )}) with 0 at offset ${toHex(symbolNumberOffset)}`
-    ); */
+  const num = buf.readUInt32LE(symbolNumberOffset);
   buf.writeUInt32LE(0, symbolNumberOffset);
+  return num;
 }
 
 export async function parsePE(buffer: Buffer) {
-  return PE.NtExecutable.from(buffer);
+  // pe-library doesn't like this to exist...
+  const num = removeSymbolsNumber(buffer);
+  const pe = PE.NtExecutable.from(buffer);
+  // however we can set it to the original value again without issues when writing
+  pe.newHeader.fileHeader.numberOfSymbols = num;
+  return pe;
 }
 
 function stringToAsciiUint8(str: string) {
@@ -110,7 +117,9 @@ function toStringResult(newRe: RenameResultBytes) {
   };
 }
 
-export const PE_RESOURCE_ENTRY = 2;
+// the ImageDirectoryEntry export doesn't work properly so we redefine them here
+export const PE_RESOURCE_ENTRY = 2; // ImageDirectoryEntry.Resource
+export const PE_RELOC_ENTRY = 5; // ImageDirectoryEntry.BaseRelocation
 
 export function getResourceSectionData(pe: PE.NtExecutable) {
   const section = pe.getSectionByEntry(PE_RESOURCE_ENTRY);
@@ -160,10 +169,10 @@ export async function getExistingBreedInfos(targetFile: string) {
   return res.filter(isNotNully);
 }
 
-export async function getFileInfoAndData(filePath: string) {
+export async function getFileInfoAndData(
+  filePath: string
+): Promise<Result<FileInfoAndData>> {
   const buf = await fsPromises.readFile(filePath);
-
-  removeSymbolsNumber(buf);
   return pipe(
     await getResourceFileInfo(buf),
     E.mapLeft((it) => {
@@ -175,9 +184,11 @@ export async function getFileInfoAndData(filePath: string) {
   );
 }
 
-export type FileInfoAndData = PromiseInner<
-  ReturnType<typeof getFileInfoAndData>
->;
+export type FileInfoAndData = {
+  pathParsed: path.ParsedPath;
+  filePath: string;
+  itemName: string;
+} & ResourceData;
 
 export async function getFileInfo(
   filePath: string
@@ -188,7 +199,7 @@ export async function getFileInfo(
       return {
         filePath: it.filePath,
         itemName: it.itemName,
-        rcInfo: it.rcData.rcData,
+        rcInfo: it.rcDataAndEntry.rcData,
       };
     })
   );
@@ -200,17 +211,22 @@ export interface FileInfo {
   rcInfo: RcData;
 }
 
-function getRcData(table: ResDirTable) {
+export interface ResourceDataAndEntry {
+  rcData: RcData;
+  rcDataEntry: ResDataEntry;
+}
+
+function getRcDataAndEntry(table: ResDirTable): Result<ResourceDataAndEntry> {
   return pipe(
-    getDataEntryById(table, rcDataId),
+    getResourceEntryById(table, rcDataId),
     E.fromNullable('No rcData found'),
     E.chain((res) => {
       return pipe(
-        rcDataCodec.decode(Buffer.from(res.data), 0, null),
+        rcDataCodec.decode(Buffer.from(res.entry.data), 0, null),
         E.map((it) => {
           return {
             rcData: it.result,
-            rcDataEntry: res,
+            rcDataEntry: res.entry,
           };
         })
       );
@@ -218,7 +234,12 @@ function getRcData(table: ResDirTable) {
   );
 }
 
-export function getResourceData(pe: PE.NtExecutable) {
+export interface ResourceData {
+  rcDataAndEntry: ResourceDataAndEntry;
+  resDirTable: ResDirTable;
+}
+
+export function getResourceData(pe: PE.NtExecutable): Result<ResourceData> {
   return pipe(
     getResourceSectionData(pe),
     E.chain((res) => {
@@ -226,9 +247,9 @@ export function getResourceData(pe: PE.NtExecutable) {
     }),
     E.chain((resDirTable) => {
       return pipe(
-        getRcData(resDirTable.result),
+        getRcDataAndEntry(resDirTable.result),
         E.map((res) => ({
-          rcData: res,
+          rcDataAndEntry: res,
           resDirTable: resDirTable.result,
         }))
       );
@@ -244,14 +265,14 @@ export async function setBreedId(pe: PE.NtExecutable, breedId: number) {
         getResourceData(pe),
         E.map((resData) => {
           const rcDataReEncodedBuffer = Buffer.from(
-            new Uint8Array(resData.rcData.rcDataEntry.data.length)
+            new Uint8Array(resData.rcDataAndEntry.rcDataEntry.data.length)
           );
           const newRcData = {
-            ...resData.rcData.rcData,
+            ...resData.rcDataAndEntry.rcData,
             breedId,
           };
           rcDataCodec.encode(newRcData, rcDataReEncodedBuffer, 0, null);
-          resData.rcData.rcDataEntry.data = new Uint8Array(
+          resData.rcDataAndEntry.rcDataEntry.data = new Uint8Array(
             rcDataReEncodedBuffer
           );
           const encodedBuffer = encodeToSection(
@@ -259,15 +280,12 @@ export async function setBreedId(pe: PE.NtExecutable, breedId: number) {
             resData.resDirTable
           );
 
-          assert(
-            encodedBuffer.length <= sectionData.sectionData.length,
-            `Expected encoded length ${encodedBuffer.length} to be <= original length ${sectionData.sectionData.length}`
+          peSetSectionByEntry(
+            pe,
+            PE_RESOURCE_ENTRY,
+            sectionData.section,
+            encodedBuffer
           );
-          const newSection = {
-            ...sectionData.section,
-            data: encodedBuffer,
-          };
-          pe.setSectionByEntry(PE_RESOURCE_ENTRY, newSection);
           return true;
         })
       );
@@ -281,7 +299,7 @@ export async function getResourceFileInfo(buffer: Buffer) {
     getResourceData(pe),
     E.map((res) => {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      const itemName = res.rcData.rcData.spriteName.split('_').pop()!;
+      const itemName = res.rcDataAndEntry.rcData.spriteName.split('_').pop()!;
       return {
         ...res,
         itemName,
@@ -300,7 +318,6 @@ export async function renameClothingFile(
     await fsPromises.copyFile(filePath, tempPath);
     const buf = await fsPromises.readFile(tempPath);
     const fromFileName = path.parse(filePath).name;
-    removeSymbolsNumber(buf);
 
     const offsetsChanged = Array<RenameResultBytes>();
     offsetsChanged.push(
@@ -350,7 +367,7 @@ export async function renameClothingFile(
     const warnIdFailed = existingInfos.filter(E.isLeft).map((it) => it.left);
     const existingBreedIds = existingInfos
       .filter(E.isRight)
-      .map((it) => it.right.rcData.rcData.breedId);
+      .map((it) => it.right.rcDataAndEntry.rcData.breedId);
     sortByNumeric(existingBreedIds, identity);
     const highest = safeLast(existingBreedIds) ?? 20000;
     const newId = highest + 1;
@@ -372,25 +389,32 @@ export async function renameClothingFile(
   });
 }
 
-export async function updateResourceSection(
-  filepath: string,
-  id: ResourceEntryId,
-  data: Uint8Array
+export interface SectionWithId {
+  id: ResourceEntryId;
+  data: Uint8Array;
+}
+
+export async function getFileAndUpdateResourceSections(
+  filePath: string,
+  sections: Array<SectionWithId>
 ) {
-  const buf = await fsPromises.readFile(filepath);
-  removeSymbolsNumber(buf);
+  const buf = await fsPromises.readFile(filePath);
   const codecRes = pipe(
-    await getFileInfoAndData(filepath),
+    await getFileInfoAndData(filePath),
     E.map((it) => it.resDirTable),
     E.getOrElseW(() => {
       throw new Error('Expected right');
     })
   );
-  const dataEntry = getDataEntryById(codecRes, id);
-  if (isNully(dataEntry)) {
-    throw new Error(`No data entry found for id ${JSON.stringify(id)}`);
+  for (const section of sections) {
+    const dataEntry = getResourceEntryById(codecRes, section.id);
+    if (isNully(dataEntry)) {
+      throw new Error(
+        `No data entry found for id ${JSON.stringify(section.id)}`
+      );
+    }
+    dataEntry.entry.data = section.data;
   }
-  dataEntry.data = data;
   const pe = await parsePE(buf);
   const sectionData = pipe(
     await getResourceSectionData(pe),
@@ -400,15 +424,64 @@ export async function updateResourceSection(
   );
   const encodedBuffer = encodeToSection(sectionData.section.info, codecRes);
 
-  const newSection = {
-    ...sectionData.section,
-    data: encodedBuffer,
-  };
-  pe.setSectionByEntry(PE_RESOURCE_ENTRY, newSection);
+  peSetSectionByEntry(
+    pe,
+    PE_RESOURCE_ENTRY,
+    sectionData.section,
+    encodedBuffer
+  );
   const generated = pe.generate();
-  await fsPromises.writeFile(filepath, Buffer.from(generated));
+  return Buffer.from(generated);
+}
+
+export function peSetSectionByEntry(
+  pe: NtExecutable,
+  imgDir: ImageDirectoryEntry,
+  section: Readonly<NtExecutableSection>,
+  buffer: Buffer
+) {
+  // for some reason the original files often (always?) have a mismatch between the size of the reloc section
+  // in the optional data directory, and the size in the section header.
+  // pe-library overwrites the optional data directory entry with the section header info, but doing this
+  // makes the file unloadable in game. It seems that the specification for PE requires the
+  // optional data directory size to be correct, but not the size given in the section header
+  // so this breaks the file
+  // we therefore restore the value in the optional header after writing a section
+  const imageOptHeader = (pe as any)._dda as ImageDataDirectoryArray;
+  const originalEntry = imageOptHeader.get(PE_RELOC_ENTRY);
+  // make sure the virtual size is set correctly
+  const newSection = {
+    info: {
+      ...section.info,
+      virtualSize: buffer.length,
+    },
+    data: buffer,
+  };
+  pe.setSectionByEntry(imgDir, newSection);
+  if (isNotNully(originalEntry)) {
+    const newEntry = imageOptHeader.get(PE_RELOC_ENTRY);
+    if (isNully(newEntry)) {
+      throw new Error('Expected to find base relocation entry');
+    }
+    imageOptHeader.set(PE_RELOC_ENTRY, {
+      ...newEntry,
+      size: originalEntry.size,
+    });
+  }
 }
 
 export type RenameClothingFileResult = PromiseInner<
   ReturnType<typeof renameClothingFile>
 >;
+
+export function dumpBinary(buff: Buffer) {
+  const arr = Uint8Array.from(buff);
+  const chunkSize = 32;
+  const chunks = new Array<string>();
+  for (let i = 0; i < arr.length; i += chunkSize) {
+    const chunk = Array.from(arr.slice(i, i + chunkSize));
+    chunks.push(chunk.map((it) => it.toString(16).padStart(2, '0')).join(' '));
+    chunks.push(bytesToStringForDiff(chunk));
+  }
+  return chunks.join(`\n`);
+}

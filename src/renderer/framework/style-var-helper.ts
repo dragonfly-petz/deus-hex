@@ -57,7 +57,7 @@ export class StyleVarHelper<A extends Record<string, StyleType>> {
   setOnHtml(el: HTMLElement, style: Partial<A>) {
     const asStyle = this.toStyle(style);
     for (const [key, val] of objectEntries(asStyle)) {
-      el.style.setProperty(key, isNully(val) ? null : `${val}`);
+      el.style.setProperty(key, isNully(val) ? null : String(val));
     }
   }
 

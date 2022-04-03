@@ -42,6 +42,11 @@ export type OnlyStringKeys<R> = keyof R extends string ? R : never;
 export const objectEntries = <R extends object>(record: OnlyStringKeys<R>) =>
   Object.entries(record) as unknown as Array<EntryTuples<R>>;
 
+type ValueOf<T> = T extends any ? T[keyof T] : never;
+
+export const objectValues = <R extends object>(record: R) =>
+  Object.values(record) as Array<ValueOf<R>>;
+
 type NumericValueKey<A, Key extends keyof A> = A[Key] extends number
   ? Key
   : never;

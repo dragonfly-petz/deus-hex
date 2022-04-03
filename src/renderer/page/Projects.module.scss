@@ -1,0 +1,27 @@
+@use '../style/styleVar';
+
+.main {
+}
+
+.infoRow {
+  display: flex;
+  padding: 5px 10px;
+  background-color: styleVar.$themeSecondaryBgColor;
+  margin-bottom: 5px;
+}
+
+.projectName {
+  width: 200px;
+}
+
+.currentName {
+  width: 200px;
+}
+
+.originalName {
+  width: 200px;
+}
+
+.backups {
+  width: 50px;
+}

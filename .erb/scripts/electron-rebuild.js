@@ -4,6 +4,7 @@ import { dependencies } from '../../release/app/package.json';
 import webpackPaths from '../configs/webpack.paths';
 
 if (
+  // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
   Object.keys(dependencies || {}).length > 0 &&
   fs.existsSync(webpackPaths.appNodeModulesPath)
 ) {

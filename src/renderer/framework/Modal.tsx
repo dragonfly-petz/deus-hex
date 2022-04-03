@@ -9,12 +9,20 @@ import style from './Modal.module.scss';
 import { useAppReactiveNodes } from '../context/context';
 import { uuidV4 } from '../../common/uuid';
 
-export interface ModalableProps {
-  closeModal?: () => void;
+export type ModalableProps = {
+  modalProps: ModalContentProps | null;
+};
+
+export type ModalProps = {
+  modalProps: ModalContentProps;
+};
+
+export interface ModalContentProps {
+  closeModal: () => void;
 }
 
 export interface ModalConfig {
-  Content: FunctionalComponent<ModalableProps>;
+  Content: FunctionalComponent<ModalProps>;
   closable?: boolean;
 }
 
@@ -62,8 +70,17 @@ const ModalC = ({
         }
       }}
     >
-      <div className={style.modal}>
-        <Content closeModal={() => modalStateNode.setValue(false)} />
+      <div
+        className={style.modal}
+        onClick={(e) => {
+          e.stopPropagation();
+        }}
+      >
+        <Content
+          modalProps={{
+            closeModal: () => modalStateNode.setValue(false),
+          }}
+        />
       </div>
     </div>
   );

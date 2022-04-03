@@ -3,8 +3,9 @@ import {
   getFileInfoAndData,
   getResourceSectionData,
   parsePE,
+  PE_RELOC_ENTRY,
   PE_RESOURCE_ENTRY,
-  removeSymbolsNumber,
+  peSetSectionByEntry,
   renameClothingFile,
 } from '../main/app/pe-files/pe-files-util';
 import { getTestResourcesPath } from '../common/asset-path';
@@ -28,7 +29,7 @@ describe('pe-rsrc', () => {
   test('read .clo file', async () => {
     const filePath = getTestResourcesPath('Nosepest.clo');
     const fileInfo = throwFromEither(await getFileInfoAndData(filePath));
-    const { rcData } = fileInfo.rcData;
+    const { rcData } = fileInfo.rcDataAndEntry;
     expect(rcData.breedId).toEqual(20836);
     expect(rcData.displayName).toEqual('Nosepest');
     expect(rcData.spriteName).toEqual('Sprite_Clot_SilNosepest');
@@ -51,7 +52,7 @@ describe('pe-rsrc', () => {
       const tempDestPath = path.join(tempDir, toName);
 
       const fileInfo = throwFromEither(await getFileInfoAndData(tempDestPath));
-      const { rcData } = fileInfo.rcData;
+      const { rcData } = fileInfo.rcDataAndEntry;
       expect(rcData.breedId).toEqual(20837);
       expect(rcData.displayName).toEqual('Dragonly');
       expect(rcData.spriteName).toEqual('Sprite_Clot_Dragonflyer');
@@ -60,11 +61,11 @@ describe('pe-rsrc', () => {
 
   // eslint-disable-next-line jest/expect-expect
   test('rsrc section codec identity', async () => {
-    await testCodecIdentityWithFile('Nosepest.clo', nosepestExpectedRcData);
     await testCodecIdentityWithFile(
       'Vampyre Collar_Black P4.clo',
       vampyreExpectedRcData
     );
+    await testCodecIdentityWithFile('Nosepest.clo', nosepestExpectedRcData);
   });
 });
 
@@ -75,8 +76,11 @@ function testCodecIdentityWithFile(fileName: string, expected: RcData) {
       await getFileInfoAndData(srcFilePath)
     );
     const buf = await fsPromises.readFile(srcFilePath);
-    removeSymbolsNumber(buf);
     const pe = await parsePE(buf);
+
+    const originalRelocSize =
+      pe.newHeader.optionalHeaderDataDirectory.get(PE_RELOC_ENTRY).size;
+    expect(originalRelocSize).toEqual(0x534);
     const sectionData = throwFromEither(await getResourceSectionData(pe));
 
     const data = checkRcData(resDirTable, expected);
@@ -94,7 +98,7 @@ function testCodecIdentityWithFile(fileName: string, expected: RcData) {
       resDirTable
     );
     expect(encodedBuffer.length).toBeLessThanOrEqual(
-      sectionData.sectionData.length
+      sectionData.sectionData.length * 10
     );
 
     const decodedAgain = throwFromEither(
@@ -102,12 +106,18 @@ function testCodecIdentityWithFile(fileName: string, expected: RcData) {
     ).result;
     expect(decodedAgain).toEqual(resDirTable);
 
-    const newSection = {
-      ...sectionData.section,
-      data: encodedBuffer,
-    };
-    pe.setSectionByEntry(PE_RESOURCE_ENTRY, newSection);
+    peSetSectionByEntry(
+      pe,
+      PE_RESOURCE_ENTRY,
+      sectionData.section,
+      encodedBuffer
+    );
+    const newRelocSize =
+      pe.newHeader.optionalHeaderDataDirectory.get(PE_RELOC_ENTRY).size;
+    expect(newRelocSize).toEqual(originalRelocSize);
+
     const generated = pe.generate();
+
     await fsPromises.writeFile(tmpFile, Buffer.from(generated));
 
     const resDirTable2 = throwFromEither(

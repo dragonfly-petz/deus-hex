@@ -11,3 +11,17 @@ export function strictEqualityCheck<A>(a: A, b: A) {
 export function deepEqualityCheck<A>(a: A, b: A) {
   return deepEqual(a, b);
 }
+
+export function mkArrayEqualityCheck<A>(
+  equalityCheck: EqualityCheck<A>,
+  a: ReadonlyArray<A>,
+  b: ReadonlyArray<A>
+) {
+  return (
+    a.length === b.length && a.every((val, idx) => equalityCheck(val, b[idx]))
+  );
+}
+
+export function equalElements<A>(a: ReadonlyArray<A>, b: ReadonlyArray<A>) {
+  return mkArrayEqualityCheck(strictEqualityCheck, a, b);
+}
