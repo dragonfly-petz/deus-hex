@@ -4,14 +4,10 @@ import { ReactiveNode } from '../common/reactive/reactive-node';
 import { FlashMessage, FlashMessageProps } from './framework/FlashMessage';
 import { UserSettings } from '../main/app/persisted/user-settings';
 import { Listenable } from '../common/reactive/listener';
+import { FileWatchChange } from '../main/app/file/file-watcher';
 
 export interface DomIpcDeps {
   flashMessagesNode: ReactiveNode<Map<string, FlashMessage>>;
-}
-
-export interface FileWatchChange {
-  watcherId: string;
-  filePath: string;
 }
 
 export class DomIpcBase {
@@ -44,7 +40,6 @@ export class DomIpcBase {
   }
 
   async onFileWatchChange(change: FileWatchChange) {
-    console.log(change);
     this.fileWatchListenable.notify(change);
   }
 }

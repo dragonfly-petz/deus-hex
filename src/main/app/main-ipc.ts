@@ -32,13 +32,11 @@ import {
   ProjectManager,
 } from './resource/project-manager';
 import { createWindow, DomIpcHolder } from './create-window';
-import { uuidV4 } from '../../common/uuid';
-import { Disposer } from '../../common/disposable';
-import { watchPathForChange } from './file/file-util';
-import { globalLogger } from '../../common/logger';
+import { FileWatcher } from './file/file-watcher';
 
 export interface SaveResourceChangesOptions {
-  backup: boolean;
+  backup?: boolean;
+  suspendWatcherId?: string;
 }
 
 export class MainIpcBase {
@@ -46,14 +44,18 @@ export class MainIpcBase {
 
   private readonly projectManager: ProjectManager;
 
-  private readonly fileWatchers = new Map<string, Disposer>();
+  private readonly fileWatcher: FileWatcher;
 
   constructor(
     private userSettingsRemote: RemoteObject<UserSettings>,
     private domIpcHolder: DomIpcHolder
   ) {
-    this.resourceManager = new ResourceManager();
-    this.projectManager = new ProjectManager(this.resourceManager);
+    this.fileWatcher = new FileWatcher(domIpcHolder);
+    this.resourceManager = new ResourceManager(this.fileWatcher);
+    this.projectManager = new ProjectManager(
+      this.resourceManager,
+      this.fileWatcher
+    );
   }
 
   async getAppVersion() {
@@ -115,6 +117,20 @@ export class MainIpcBase {
     return this.resourceManager.saveWithBackup(filePath, buff);
   }
 
+  async saveExternalChangeBackup(filePath: string) {
+    const fileInfo = await this.projectManager.fileToEditorParams(filePath);
+    if (fileInfo.tag === 'invalid') {
+      return E.left(fileInfo.value.message);
+    }
+    const { projectId } = fileInfo.value;
+    if (isNully(projectId)) {
+      return E.left(
+        `External change backups can only be saved for project files.`
+      );
+    }
+    return this.projectManager.saveExternalChangeBackup(filePath, projectId);
+  }
+
   async setUserSettings(us: UserSettings) {
     return this.userSettingsRemote.setRemote(us);
   }
@@ -158,7 +174,7 @@ export class MainIpcBase {
   }
 
   async openEditor(file: string) {
-    return createWindow(this.domIpcHolder, this.userSettingsRemote, {
+    return createWindow(this.domIpcHolder, this.userSettingsRemote, this, {
       editorTarget: file,
     });
   }
@@ -167,33 +183,16 @@ export class MainIpcBase {
     return this.projectManager.fileToEditorParams(file);
   }
 
-  async watchFile(file: string, windowId: number) {
-    const id = uuidV4();
-    const { run, stop } = watchPathForChange(file, () => {
-      const ipc = this.domIpcHolder.getDomIpc(windowId);
-      if (isNully(ipc)) {
-        globalLogger.warn(
-          `Expected to find window ${windowId} when handling file watch change`
-        );
-        return;
-      }
-      ipc.onFileWatchChange({ watcherId: id, filePath: file });
-    });
-    this.fileWatchers.set(id, stop);
-    run();
-    return id;
+  async watchFile(filePathRaw: string, windowIds: Array<number>) {
+    return this.fileWatcher.watchFile(filePathRaw, windowIds);
   }
 
-  async disposeWatchFile(watcherId: string) {
-    const watcher = this.fileWatchers.get(watcherId);
-    if (isNully(watcher)) {
-      globalLogger.warn(
-        `Expected to find watcher for id  ${watcherId} when disposing watch file`
-      );
-      return;
-    }
-    watcher();
-    this.fileWatchers.delete(watcherId);
+  async unwatchFile(filePathRaw: string, windowIds: Array<number>) {
+    return this.fileWatcher.unwatchFile(filePathRaw, windowIds);
+  }
+
+  unregisterWindow(windowId: number) {
+    this.fileWatcher.unregisterWindow(windowId);
   }
 }
 
@@ -208,4 +207,5 @@ export function mkAndConnectMainIpc(
     tag: 'main',
     on: ipcMain.on.bind(ipcMain),
   });
+  return mainIpc;
 }

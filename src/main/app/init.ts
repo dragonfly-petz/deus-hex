@@ -6,7 +6,7 @@ import { userSettingsMigration } from './persisted/user-settings';
 import { RemoteObject } from '../../common/reactive/remote-object';
 import { isDev } from './util';
 
-const debugEditorFile =
+const _debugEditorFile =
   'C:\\Users\\franc\\Documents\\Petz\\Petz 4\\Resource\\Catz\\Calico.cat';
 const debugProjectFIle =
   'C:\\Users\\franc\\AppData\\Roaming\\Electron\\Deus Hex Projects\\Catz Projects\\asdf\\current\\Calico.cat';
@@ -32,7 +32,7 @@ export async function init(domIpcHolder: DomIpcHolder) {
     userSettingsRemote.dispose();
     app.quit();
   });
-  mkAndConnectMainIpc(userSettingsRemote, domIpcHolder);
+  const mainIpc = mkAndConnectMainIpc(userSettingsRemote, domIpcHolder);
 
-  await createWindow(domIpcHolder, userSettingsRemote, debugParams);
+  await createWindow(domIpcHolder, userSettingsRemote, mainIpc, debugParams);
 }

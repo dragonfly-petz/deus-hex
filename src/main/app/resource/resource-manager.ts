@@ -21,6 +21,7 @@ import { snd, sortByNumeric } from '../../../common/array';
 import { fsPromises } from '../util/fs-promises';
 import { Result } from '../../../common/result';
 import { isNever } from '../../../common/type-assertion';
+import { FileWatcher } from '../file/file-watcher';
 
 export type ResourceFolderInfo = PromiseInner<
   ReturnType<typeof getResourcesInDirImpl>
@@ -29,6 +30,8 @@ export type ResourceFolderInfo = PromiseInner<
 export type ResourcesInfo = Record<FileType, ResourceFolderInfo>;
 
 export class ResourceManager {
+  constructor(private fileWatcher: FileWatcher) {}
+
   async getResourcesInfo(
     petzFolder: string | null
   ): Promise<Either<string, ResourcesInfo>> {
@@ -67,7 +70,7 @@ export class ResourceManager {
   }
 
   fixDuplicateIds(petzFolder: string, type: FileType) {
-    return fixDuplicateIds(petzFolder, type);
+    return fixDuplicateIds(petzFolder, type, this.fileWatcher);
   }
 
   async saveWithBackup(filePath: string, data: Buffer) {
@@ -76,8 +79,8 @@ export class ResourceManager {
     if (E.isLeft(stat)) {
       await fsPromises.copyFile(filePath, backupFile);
     }
+    await this.fileWatcher.writeFileSuspendWatcher(filePath, data);
 
-    await fsPromises.writeFile(filePath, data);
     if (E.isRight(stat)) {
       return E.right(
         `Saved - did not back up original because backup already existed`
@@ -172,7 +175,11 @@ async function getResourceInfoImpl(
   return E.right(taggedValue('success', fileInfo.right));
 }
 
-async function fixDuplicateIds(petzFolder: string, type: FileType) {
+async function fixDuplicateIds(
+  petzFolder: string,
+  type: FileType,
+  fileWatcher: FileWatcher
+) {
   const dir = path.join(petzFolder, ...fileTypes[type].pathSegments);
   const existingInfos = await getResourcesInDirImpl(dir, type);
   if (E.isLeft(existingInfos)) return existingInfos;
@@ -223,7 +230,10 @@ async function fixDuplicateIds(petzFolder: string, type: FileType) {
     const pe = await parsePE(buf);
     const newId = pickNewId();
     await setBreedId(pe, newId);
-    await fsPromises.writeFile(file.path, Buffer.from(pe.generate()));
+    await fileWatcher.writeFileSuspendWatcher(
+      file.path,
+      Buffer.from(pe.generate())
+    );
   });
 
   await Promise.all(promises);

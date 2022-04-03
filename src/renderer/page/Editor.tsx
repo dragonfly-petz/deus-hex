@@ -4,6 +4,7 @@ import style from './Editor.module.scss';
 import {
   useAppContext,
   useAppReactiveNodes,
+  useDomIpc,
   useMainIpc,
 } from '../context/context';
 import { RenderQuery, useMkQueryMemo } from '../framework/Query';
@@ -184,6 +185,7 @@ interface SectionAsString {
 
 function useGetDeps() {
   const mainIpc = useMainIpc();
+  const domIpc = useDomIpc();
   const params = useReactiveVal(useAppReactiveNodes().editorParams);
   const { windowId } = useAppContext();
   const navigation = useMkNavigation(params);
@@ -237,18 +239,36 @@ function useGetDeps() {
     let watchDisposer = nullable<Promise<Disposer>>();
     const listenDispose = fileInfoQuery.listen((change) => {
       if (isNotNully(watchDisposer)) {
+        // eslint-disable-next-line promise/catch-or-return
         watchDisposer.then(run);
         watchDisposer = null;
       }
       if (change.tag === 'success' && isNotNully(change.value.projectId)) {
         watchDisposer = run(async () => {
-          const watcherId = await mainIpc.watchFile(
-            change.value.filePath,
-            windowId
+          const fileToWatch = change.value.filePath;
+          const watcherId = await mainIpc.watchFile(change.value.filePath, [
+            windowId,
+          ]);
+
+          const fileChangeDispose = domIpc.fileWatchListenable.listen(
+            async (fwChange) => {
+              if (
+                E.isRight(watcherId) &&
+                watcherId.right === fwChange.filePath
+              ) {
+                const res = await ger.withFlashMessage(
+                  mainIpc.saveExternalChangeBackup(fwChange.filePath)
+                );
+                if (E.isRight(res)) {
+                  fileInfoQuery.reload();
+                }
+              }
+            }
           );
           return () => {
+            fileChangeDispose();
             if (E.isRight(watcherId)) {
-              mainIpc.disposeWatchFile(watcherId.right);
+              mainIpc.unwatchFile(fileToWatch, [windowId]);
             }
           };
         });
@@ -258,7 +278,7 @@ function useGetDeps() {
       listenDispose();
       watchDisposer?.then(run);
     };
-  }, [fileInfoQuery]);
+  }, [fileInfoQuery, domIpc]);
 
   const actionsNode: ActionsNode = useMkReactiveNodeMemo(new Map());
   const projectId = isNully(params)

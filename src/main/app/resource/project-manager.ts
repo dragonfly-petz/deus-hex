@@ -5,17 +5,21 @@ import { FileType, fileTypes } from '../../../common/petz/file-types';
 import {
   mapObjectValuesStringKey,
   objectEntries,
+  objectValues,
 } from '../../../common/object';
 import { fromPromiseProperties } from '../../../common/promise';
 import { directoryExists, getPathsInDir } from '../file/file-util';
 import { fsPromises } from '../util/fs-promises';
 import { Result } from '../../../common/result';
 import { A, E, Either } from '../../../common/fp-ts/fp';
-import { isNully } from '../../../common/null';
+import { isNotNully, isNully } from '../../../common/null';
 import { resourceInfoToResult, ResourceManager } from './resource-manager';
 import { eitherToNullable } from '../../../common/fp-ts/either';
 import { taggedValue, TaggedValue } from '../../../common/tagged-value';
 import { DF } from '../../../common/df';
+import { FileWatcher } from '../file/file-watcher';
+import { sortByNumeric } from '../../../common/array';
+import { globalLogger } from '../../../common/logger';
 
 const projectFolderName = 'Deus Hex Projects';
 
@@ -38,11 +42,13 @@ function projectFolders(id: ProjectId) {
   const originalFolder = path.join(root, 'original');
   const currentFolder = path.join(root, 'current');
   const backupsFolder = path.join(root, 'backups');
+  const externalBackupsFolder = path.join(root, 'externalBackups');
   return {
     root,
     originalFolder,
     currentFolder,
     backupsFolder,
+    externalBackupsFolder,
   };
 }
 
@@ -108,7 +114,10 @@ export interface CreateProjectResult {
 }
 
 export class ProjectManager {
-  constructor(private resourceManager: ResourceManager) {}
+  constructor(
+    private resourceManager: ResourceManager,
+    private fileWatcher: FileWatcher
+  ) {}
 
   async fileToEditorParams(fileRaw: string): Promise<EditorParams> {
     const file = path.normalize(fileRaw);
@@ -146,11 +155,7 @@ export class ProjectManager {
       return E.left(`Could not derive file type from path ${filePath}`);
     }
     const projectId: ProjectId = { type, name };
-    const projectPaths = projectFolders(projectId);
-    await fsPromises.mkdir(projectPaths.root);
-    await fsPromises.mkdir(projectPaths.originalFolder);
-    await fsPromises.mkdir(projectPaths.currentFolder);
-    await fsPromises.mkdir(projectPaths.backupsFolder);
+    const projectPaths = await this.getAndCreateProjectFolders(projectId);
     const origFileName = path.basename(filePath);
 
     await fsPromises.copyFile(
@@ -160,6 +165,25 @@ export class ProjectManager {
     const currentFile = path.join(projectPaths.currentFolder, origFileName);
     await fsPromises.copyFile(filePath, currentFile);
     return E.right({ projectId, currentFile });
+  }
+
+  private async getAndCreateProjectFolders(projectId: ProjectId) {
+    const projectPaths = projectFolders(projectId);
+    const folderPaths = objectValues(projectPaths);
+
+    await Promise.all(
+      folderPaths.map(async (it) => {
+        const res = await directoryExists(it);
+        if (E.isLeft(res)) {
+          await fsPromises.mkdir(it);
+        } else if (!res.right) {
+          throw new Error(
+            `Could not create directory ${it} because it already exists but is not a directory`
+          );
+        }
+      })
+    );
+    return projectPaths;
   }
 
   async getProjects(): Promise<ProjectsByType> {
@@ -190,7 +214,7 @@ export class ProjectManager {
   }
 
   private async getProjectById(id: ProjectId): Promise<ProjectResult> {
-    const projectPaths = projectFolders(id);
+    const projectPaths = await this.getAndCreateProjectFolders(id);
     const current = await this.getProjectFileInfo(
       id.type,
       projectPaths.currentFolder
@@ -273,7 +297,7 @@ export class ProjectManager {
     if (info.right.current.path !== filePath) {
       return E.left('Expected supplied path to match project current path');
     }
-    await fsPromises.writeFile(filePath, data);
+    await this.fileWatcher.writeFileSuspendWatcher(filePath, data);
     return E.right(true);
   }
 
@@ -286,13 +310,70 @@ export class ProjectManager {
       return E.left('Expected supplied path to match project current path');
     }
     const { backupsFolder } = info.right.projectPaths;
+    return this.createBackupInFolder(backupsFolder, info.right, data);
+  }
+
+  async saveExternalChangeBackup(filePath: string, projectId: ProjectId) {
+    const { info } = await this.getProjectById(projectId);
+    if (E.isLeft(info)) {
+      return info;
+    }
+    if (info.right.current.path !== filePath) {
+      return E.left('Expected supplied path to match project current path');
+    }
+    const { externalBackupsFolder } = info.right.projectPaths;
+    const data = await fsPromises.readFile(filePath);
+    const res = this.createBackupInFolder(
+      externalBackupsFolder,
+      info.right,
+      data
+    );
+    await this.cleanBackups(externalBackupsFolder, 3);
+    return res;
+  }
+
+  private async cleanBackups(folderPath: string, leaveLastN: number) {
+    const paths = await getPathsInDir(folderPath);
+    if (E.isLeft(paths)) return;
+    const pathsWithDates = paths.right
+      .map((it) => {
+        const { base } = path.parse(it);
+        try {
+          const date = DF.parse(base, 'yyyy-MM-dd HH-mm-ss', new Date());
+          return { folderPath: it, date };
+        } catch {
+          return null;
+        }
+      })
+      .filter(isNotNully);
+    sortByNumeric(pathsWithDates, (it) => -it.date.getTime());
+    const toDelete = pathsWithDates.slice(leaveLastN);
+    await Promise.all(
+      toDelete.map(async (it) => {
+        await fsPromises.rm(it.folderPath, { recursive: true });
+      })
+    );
+    if (toDelete.length > 0) {
+      globalLogger.info(
+        `Cleaned ${toDelete.length} backup folders in ${folderPath}`
+      );
+    }
+  }
+
+  private async createBackupInFolder(
+    folder: string,
+    info: ProjectInfo,
+    data: Buffer
+  ) {
     const newBackupFolderName = DF.format(new Date(), 'yyyy-MM-dd HH-mm-ss');
-    const backupFolderPath = path.join(backupsFolder, newBackupFolderName);
+    const backupFolderPath = path.join(folder, newBackupFolderName);
     await fsPromises.mkdir(backupFolderPath);
 
-    const currentName = info.right.current.fileName;
+    const currentName = info.current.fileName;
     const backupPath = path.join(backupFolderPath, currentName);
-    await fsPromises.writeFile(backupPath, data);
+
+    await this.fileWatcher.writeFileSuspendWatcher(backupPath, data);
+
     return E.right(`Backup saved to folder "${newBackupFolderName}"`);
   }
 }

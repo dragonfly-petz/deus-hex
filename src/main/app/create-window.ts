@@ -10,6 +10,7 @@ import type { DomIpc, DomIpcBase } from '../../renderer/dom-ipc';
 import type { FlashMessageProps } from '../../renderer/framework/FlashMessage';
 import { RemoteObject } from '../../common/reactive/remote-object';
 import { UserSettings } from './persisted/user-settings';
+import type { MainIpcBase } from './main-ipc';
 
 export interface WindowParams {
   windowId: string;
@@ -85,6 +86,7 @@ let lastWindowId = 0;
 export async function createWindow(
   domIpcHolder: DomIpcHolder,
   userSettingsRemote: RemoteObject<UserSettings>,
+  mainIpc: MainIpcBase,
   params: Partial<WindowParams> = {}
 ) {
   if (isDev()) {
@@ -138,6 +140,7 @@ export async function createWindow(
         domIpc.updateUserSettings(it);
       }, false);
       window.on('close', () => {
+        mainIpc.unregisterWindow(windowId);
         holderDisposer();
         userSettingsDisposer();
       });

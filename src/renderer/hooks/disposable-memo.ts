@@ -74,8 +74,8 @@ export function useDisposableEffectWithDeps<Deps extends ReadonlyArray<any>>(
   setup: (deps: Deps) => () => void,
   deps: Deps
 ) {
-  return useDisposableMemoWithDeps((deps) => {
-    const disp = setup(deps);
+  return useDisposableMemoWithDeps((depsInner) => {
+    const disp = setup(depsInner);
     return [undefined, disp];
   }, deps);
 }

@@ -1,4 +1,5 @@
 import { unsafeObjectEntries, unsafeObjectFromEntries } from './object';
+import { Disposer } from './disposable';
 
 class RunAsyncError extends Error {}
 
@@ -51,6 +52,18 @@ export async function fromPromiseProperties<
       return [k, results[idx]];
     })
   ) as any;
+}
+
+export async function bracketAsync<A>(
+  acquire: () => Disposer,
+  block: () => Promise<A>
+) {
+  const dispose = acquire();
+  try {
+    return await block();
+  } finally {
+    dispose();
+  }
 }
 
 export class TrackablePromise<A = void> {

@@ -101,6 +101,7 @@ export const { useAppContext, AppContextContext } =
   mkNullableContext<AppContext>()('AppContext');
 
 export const useMainIpc = () => useAppContext().mainIpc;
+export const useDomIpc = () => useAppContext().domIpc;
 export const useAppHelper = () => useAppContext().appHelper;
 export const useAppReactiveNodes = () => useAppContext().appReactiveNodes;
 
