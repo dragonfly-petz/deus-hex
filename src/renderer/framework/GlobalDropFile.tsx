@@ -47,7 +47,7 @@ export const GlobalDropFile = () => {
     disposers.push(
       addEventListenerDocument(document, 'drop', (ev) => {
         dragEnterCounterNode.setValue(0);
-        if ((ev as any)._deusHexHandled) {
+        if ((ev as any)._deusHexHandled as boolean) {
           return;
         }
 
@@ -77,7 +77,7 @@ export const GlobalDropFile = () => {
       })
     );
     return sequenceDisposers(disposers);
-  }, []);
+  }, [appHelper, domIpc, dragEnterCounterNode]);
   if (!isOver || dropFileHasDrag) return null;
   return (
     <div className={style.wrapper}>

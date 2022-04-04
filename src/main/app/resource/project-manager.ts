@@ -28,8 +28,6 @@ const backupTypeToFolderPath: Record<BackupType, keyof ProjectFolders> = {
   external: 'temporaryBackupsFolder',
 };
 
-const backupFolderNameDateFormat = 'yyyy-MM-dd HH-mm-ss';
-
 function getProjectFolder() {
   return path.join(app.getPath('userData'), projectFolderName);
 }
@@ -308,7 +306,7 @@ export class ProjectManager {
     const parsed = path.parse(filePath);
     const split = parsed.name.split('_');
     const last = safeLast(split) ?? '';
-    const number = parseInt(last.slice(1));
+    const number = parseInt(last.slice(1), 10);
     if (split.length < 2 || last[0] !== 'v' || Number.isNaN(number)) {
       return E.left("Expected a format like 'name_v1'");
     }
