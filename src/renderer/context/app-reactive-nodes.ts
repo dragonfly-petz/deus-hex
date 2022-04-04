@@ -28,6 +28,7 @@ export function mkStaticReactiveNodes() {
   const currentProjectsPage = new ReactiveNode<ProjectsPage>('overview');
   const currentEditorSection = new ReactiveNode<string>('overview');
   const localFontSizeAdjust = new ReactiveNode<number>(0);
+  const dropFileHasDrag = new ReactiveNode(false);
   return {
     currentTabNode,
     flashMessagesNode,
@@ -36,6 +37,7 @@ export function mkStaticReactiveNodes() {
     currentProjectsPage,
     currentEditorSection,
     localFontSizeAdjust,
+    dropFileHasDrag,
   };
 }
 

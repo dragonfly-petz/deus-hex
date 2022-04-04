@@ -15,7 +15,7 @@ import { isNotNully, isNully } from '../../common/null';
 const _debugEditorFile =
   'C:\\Users\\franc\\Documents\\Petz\\Petz 4\\Resource\\Catz\\Calico.cat';
 const debugProjectFIle =
-  'C:\\Users\\franc\\AppData\\Roaming\\Electron\\Deus Hex Projects\\Catz Projects\\asdfsd\\current\\Calico.cat';
+  'C:\\Users\\franc\\AppData\\Roaming\\Electron\\Deus Hex Projects\\Catz Projects\\foo\\Current Version\\Alley Cat.cat';
 const debugParams = isDev()
   ? {
       editorTarget: debugProjectFIle,

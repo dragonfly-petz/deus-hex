@@ -52,3 +52,8 @@ export function sum(value: Array<number>) {
 export function sumBy<A>(value: ReadonlyArray<A>, by: (a: A) => number) {
   return value.reduce((accum, val) => accum + by(val), 0);
 }
+
+export const includesNarrowing = <A extends readonly any[]>(
+  array: A,
+  value: unknown
+): value is A[number] => array.includes(value);

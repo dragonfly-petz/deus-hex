@@ -38,6 +38,10 @@ type AppError = UnhandledError | UnhandledRejection | AppErrorUnknown;
 export type ErrorHandler = (err: AppError) => void;
 export type CaughtErrorHandler = (err: string) => void;
 
+export interface WithFlashMessageOptions {
+  successOnlyOnString: boolean;
+}
+
 export class ErrorReporter {
   constructor(
     private uncaughtHandler: ErrorHandler,
@@ -49,7 +53,10 @@ export class ErrorReporter {
     this.fmHandler(fm);
   }
 
-  async withFlashMessage<A>(prom: Promise<Either<string, A>>) {
+  async withFlashMessage<A>(
+    prom: Promise<Either<string, A>>,
+    options?: WithFlashMessageOptions
+  ) {
     const res = await prom;
     if (E.isLeft(res)) {
       this.addFm({
@@ -59,18 +66,23 @@ export class ErrorReporter {
       });
     } else {
       const message = isString(res.right) ? res.right : 'Succeeded';
-
-      this.addFm({
-        kind: 'success',
-        title: 'Success',
-        message,
-      });
+      const onlySuccessOnString = options?.successOnlyOnString ?? false;
+      if (isString(res.right) || !onlySuccessOnString) {
+        this.addFm({
+          kind: 'success',
+          title: 'Success',
+          message,
+        });
+      }
     }
     return res;
   }
 
-  async withFlashMessageK<A>(prom: () => Promise<Either<string, A>>) {
-    return this.withFlashMessage(prom());
+  async withFlashMessageK<A>(
+    prom: () => Promise<Either<string, A>>,
+    options?: WithFlashMessageOptions
+  ) {
+    return this.withFlashMessage(prom(), options);
   }
 
   handleUncaught(err: AppError) {

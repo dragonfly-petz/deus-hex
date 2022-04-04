@@ -1,5 +1,6 @@
 import { app, ipcMain, shell } from 'electron';
 import { pipe } from 'fp-ts/function';
+import path from 'path';
 import {
   parseAddBallsBreed,
   serializeClothingAddBalls,
@@ -122,6 +123,14 @@ export class MainIpcBase {
     return this.resourceManager.saveWithBackup(filePath, buff);
   }
 
+  async exportCurrentToGame(
+    petzFolder: string,
+    id: ProjectId,
+    overwrite: boolean
+  ) {
+    return this.projectManager.exportCurrentToGame(petzFolder, id, overwrite);
+  }
+
   async setUserSettings(us: UserSettings) {
     return this.userSettingsRemote.setRemote(us);
   }
@@ -166,6 +175,11 @@ export class MainIpcBase {
       return E.left(errString);
     }
     return E.right(true as const);
+  }
+
+  async openFileInExplorer(filePath: string) {
+    // ideally this would also select the folder
+    return this.openDirInExplorer(path.parse(filePath).dir);
   }
 
   async openEditor(file: string) {
