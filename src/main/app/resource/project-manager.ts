@@ -226,7 +226,7 @@ export class ProjectManager {
   }
 
   async getProjectById(id: ProjectId): Promise<ProjectResult> {
-    const projectPaths = await this.getAndCreateProjectFolders(id);
+    const projectPaths = projectFolders(id);
     const current = await this.getProjectFileInfo(
       id.type,
       projectPaths.currentFolder

@@ -12,6 +12,7 @@ import { globalSh } from '../framework/global-style-var';
 import { Header } from './Header';
 import { emptyComponent } from '../framework/render';
 import { GlobalModals } from '../framework/Modal';
+import { GlobalDropFile } from '../framework/GlobalDropFile';
 
 export const Layout = () => {
   const { currentTabNode, userSettingsRemote } = useAppReactiveNodes();
@@ -67,6 +68,7 @@ export const Layout = () => {
         <TabC />
       </div>
       <FlashMessages />
+      <GlobalDropFile />
       <GlobalModals />
     </div>
   );

@@ -1,0 +1,22 @@
+@use '../style/styleVar';
+@use '../style/mixins';
+
+.wrapper {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background-color: #00000099;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  pointer-events: none;
+}
+
+.info {
+  background-color: styleVar.$themeSecondaryBgColor;
+  padding: 30px;
+  border-radius: 10px;
+  font-size: 3rem;
+  font-weight: bold;
+  margin-bottom: 100px;
+}
