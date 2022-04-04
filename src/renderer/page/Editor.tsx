@@ -470,7 +470,7 @@ const BackupsInfo = ({
           OnSuccess={({ value }) => {
             return renderNullable(value, (infoE) => {
               return renderResult(infoE.info, (info) => {
-                const sorted = info.externalBackups.slice();
+                const sorted = info.temporaryBackups.slice();
                 sortByNumeric(sorted, (it) => -it.savedDate.getTime());
                 return (
                   <>
@@ -572,9 +572,6 @@ const TabRightBar = ({
                 key: 'saveBackup',
                 tooltip:
                   "Save the current changes as a backup file but don't save them to the current file",
-                disable: anyChangedNode.fmapStrict((it) =>
-                  it ? O.none : O.of('No changes made')
-                ),
                 action: () => {
                   return ger.withFlashMessageK(async () => {
                     const res = await mainIpc.saveResourceSections(

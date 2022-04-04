@@ -296,10 +296,7 @@ const ProjectResultC = ({ result }: { result: ProjectResult }) => {
           return (
             <>
               <div className={style.currentName}>{inf.current.itemName}</div>
-              <div className={style.originalName}>
-                {inf.original?.itemName ?? '<None>'}
-              </div>
-              <div className={style.backups}>{inf.backups.length}</div>
+              <div className={style.backups}>{inf.previousVersions.length}</div>
               <div className={style.buttons}>
                 <Button
                   onClick={() => {

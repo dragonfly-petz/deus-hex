@@ -12,13 +12,11 @@ import { directoryExists, getPathsInDir } from '../file/file-util';
 import { fsPromises } from '../util/fs-promises';
 import { Result } from '../../../common/result';
 import { A, E, Either } from '../../../common/fp-ts/fp';
-import { isNotNully, isNully } from '../../../common/null';
+import { isNully } from '../../../common/null';
 import { resourceInfoToResult, ResourceManager } from './resource-manager';
-import { eitherToNullable } from '../../../common/fp-ts/either';
 import { taggedValue, TaggedValue } from '../../../common/tagged-value';
-import { DF } from '../../../common/df';
 import { FileWatcher } from '../file/file-watcher';
-import { sortByNumeric } from '../../../common/array';
+import { safeLast, sortByNumeric } from '../../../common/array';
 import { globalLogger } from '../../../common/logger';
 
 const projectFolderName = 'Deus Hex Projects';
@@ -26,8 +24,8 @@ const projectFolderName = 'Deus Hex Projects';
 export type BackupType = 'explicit' | 'external';
 
 const backupTypeToFolderPath: Record<BackupType, keyof ProjectFolders> = {
-  explicit: 'backupsFolder',
-  external: 'externalBackupsFolder',
+  explicit: 'previousVersionsFolder',
+  external: 'temporaryBackupsFolder',
 };
 
 const backupFolderNameDateFormat = 'yyyy-MM-dd HH-mm-ss';
@@ -50,16 +48,14 @@ type ProjectFolders = ReturnType<typeof projectFolders>;
 function projectFolders(id: ProjectId) {
   const folder = path.normalize(projectTypeFolder(id.type));
   const root = path.join(folder, id.name);
-  const originalFolder = path.join(root, 'original');
-  const currentFolder = path.join(root, 'current');
-  const backupsFolder = path.join(root, 'backups');
-  const externalBackupsFolder = path.join(root, 'externalBackups');
+  const currentFolder = path.join(root, 'Current Version');
+  const previousVersionsFolder = path.join(root, 'Previous Versions');
+  const temporaryBackupsFolder = path.join(root, 'Temporary Backups');
   return {
     root,
-    originalFolder,
     currentFolder,
-    backupsFolder,
-    externalBackupsFolder,
+    previousVersionsFolder,
+    temporaryBackupsFolder,
   };
 }
 
@@ -88,12 +84,15 @@ interface ProjectFileInfo {
   fileName: string;
 }
 
+interface ProjectFileInfoWithVersion extends ProjectFileInfo {
+  version: number;
+}
+
 export interface ProjectInfo {
   id: ProjectId;
   current: ProjectFileInfo;
-  original: ProjectFileInfo | null;
-  backups: ProjectFileInfo[];
-  externalBackups: ProjectFileInfo[];
+  previousVersions: ProjectFileInfoWithVersion[];
+  temporaryBackups: ProjectFileInfo[];
   projectPaths: ReturnType<typeof projectFolders>;
 }
 
@@ -169,10 +168,14 @@ export class ProjectManager {
     const projectId: ProjectId = { type, name };
     const projectPaths = await this.getAndCreateProjectFolders(projectId);
     const origFileName = path.basename(filePath);
+    const parsedOrig = path.parse(origFileName);
 
     await fsPromises.copyFile(
       filePath,
-      path.join(projectPaths.originalFolder, origFileName)
+      path.join(
+        projectPaths.previousVersionsFolder,
+        `${parsedOrig.name}_base${parsedOrig.ext}`
+      )
     );
     const currentFile = path.join(projectPaths.currentFolder, origFileName);
     await fsPromises.copyFile(filePath, currentFile);
@@ -227,7 +230,7 @@ export class ProjectManager {
 
   async getProjectById(id: ProjectId): Promise<ProjectResult> {
     const projectPaths = projectFolders(id);
-    const current = await this.getProjectFileInfo(
+    const current = await this.getOneProjectFileInfo(
       id.type,
       projectPaths.currentFolder
     );
@@ -240,14 +243,14 @@ export class ProjectManager {
     if (E.isLeft(current)) {
       return retErrResult(current);
     }
-    const original = await this.getProjectFileInfo(
+
+    const previousVersions = await this.getProjectFileInfosVersioned(
       id.type,
-      projectPaths.originalFolder
+      projectPaths.previousVersionsFolder
     );
-    const backups = await this.getBackups(id.type, projectPaths.backupsFolder);
-    const externalBackups = await this.getBackups(
+    const temporaryBackups = await this.getProjectFileInfos(
       id.type,
-      projectPaths.externalBackupsFolder
+      projectPaths.temporaryBackupsFolder
     );
 
     return {
@@ -255,9 +258,10 @@ export class ProjectManager {
       info: E.right({
         id,
         current: current.right,
-        original: eitherToNullable(original),
-        backups,
-        externalBackups,
+        previousVersions,
+        temporaryBackups: E.isRight(temporaryBackups)
+          ? temporaryBackups.right
+          : [],
         projectPaths,
       }),
     };
@@ -265,7 +269,7 @@ export class ProjectManager {
 
   async restoreProjectFrom(id: ProjectId, filePath: string) {
     const projectPaths = await this.getAndCreateProjectFolders(id);
-    const current = await this.getProjectFileInfo(
+    const current = await this.getOneProjectFileInfo(
       id.type,
       projectPaths.currentFolder
     );
@@ -276,52 +280,89 @@ export class ProjectManager {
       projectPaths.currentFolder,
       backupFileName
     );
-
     await this.fileWatcher.copyFileSuspendWatch(filePath, newCurrentFile);
     return E.right(await this.fileToEditorParams(newCurrentFile));
   }
 
-  private async getBackups(
-    type: FileType,
-    folder: string
-  ): Promise<ProjectFileInfo[]> {
-    const paths = await getPathsInDir(folder);
-    if (E.isLeft(paths)) return [];
-    const promises = paths.right.map(async (it) => {
-      return this.getProjectFileInfo(type, it);
-    });
-    const results = await Promise.all(promises);
-    return A.rights(results);
-  }
-
-  private async getProjectFileInfo(
-    type: FileType,
-    folder: string
-  ): Promise<Result<ProjectFileInfo>> {
-    const paths = await getPathsInDir(folder);
-    if (E.isLeft(paths)) return paths;
-    const foundPath = paths.right.find((it) => {
-      return path.extname(it) === fileTypes[type].extension;
-    });
-    if (isNully(foundPath)) {
-      return E.left(
-        `No file found matching extension ${fileTypes[type].extension}`
-      );
-    }
-    const stat = await fsPromises.stat(foundPath);
-
-    const resInfo = await this.resourceManager.getResourceInfo(foundPath, type);
+  private async getOneProjectFileInfo(type: FileType, folder: string) {
+    const res = await this.getProjectFileInfos(type, folder);
     return pipe(
-      resourceInfoToResult(resInfo),
-      E.map((it) => {
-        return {
-          path: foundPath,
-          savedDate: stat.ctime,
-          itemName: it.itemName,
-          fileName: path.parse(foundPath).base,
-        };
+      res,
+      E.chain((it) => {
+        if (it.length === 1) {
+          return E.right(it[0]);
+        }
+        return E.left(`Expected to find a single file, found ${it.length}`);
       })
     );
+  }
+
+  private mkVersionedFileName(filePath: string, version: number) {
+    const parsed = path.parse(filePath);
+    return path.join(parsed.dir, `${parsed.name}_v${version}${parsed.ext}`);
+  }
+
+  private getVersionForFileName(filePath: string) {
+    const parsed = path.parse(filePath);
+    const split = parsed.name.split('_');
+    const last = safeLast(split) ?? '';
+    const number = parseInt(last.slice(1));
+    if (split.length < 2 || last[0] !== 'v' || Number.isNaN(number)) {
+      return E.left("Expected a format like 'name_v1'");
+    }
+    return E.right(number);
+  }
+
+  private async getProjectFileInfosVersioned(
+    type: FileType,
+    folder: string
+  ): Promise<ProjectFileInfoWithVersion[]> {
+    const res = await this.getProjectFileInfos(type, folder);
+    if (E.isLeft(res)) return [];
+    const asVersion = res.right.map((info) => {
+      const version = this.getVersionForFileName(info.path);
+      if (E.isLeft(version)) {
+        return version;
+      }
+      return E.right({
+        ...info,
+        version: version.right,
+      });
+    });
+    return A.rights(asVersion);
+  }
+
+  private async getProjectFileInfos(
+    type: FileType,
+    folder: string
+  ): Promise<Result<ProjectFileInfo[]>> {
+    const paths = await getPathsInDir(folder);
+    if (E.isLeft(paths)) return paths;
+    const foundPaths = paths.right.filter((it) => {
+      return path.extname(it) === fileTypes[type].extension;
+    });
+    const results = await Promise.all(
+      foundPaths.map(async (filePath) => {
+        const stat = await fsPromises.stat(filePath);
+
+        const resInfo = await this.resourceManager.getResourceInfo(
+          filePath,
+          type
+        );
+        return pipe(
+          resourceInfoToResult(resInfo),
+          E.map((it) => {
+            return {
+              path: filePath,
+              savedDate: stat.ctime,
+              itemName: it.itemName,
+              fileName: path.parse(filePath).base,
+            };
+          })
+        );
+      })
+    );
+    return E.right(A.rights(results));
   }
 
   async save(filePath: string, projectId: ProjectId, data: Buffer) {
@@ -350,44 +391,30 @@ export class ProjectManager {
       return E.left('Expected supplied path to match project current path');
     }
     const folder = info.right.projectPaths[backupTypeToFolderPath[type]];
-    const res = this.createBackupInFolder(folder, info.right, data);
+    const res = await this.createBackupInFolder(folder, info.right, data);
     if (type === 'external') {
-      await this.cleanBackups(folder, 3);
+      await this.cleanBackups(projectId.type, folder, 3);
     }
     return res;
   }
 
-  private async getBackupFolders(folderPath: string) {
-    const paths = await getPathsInDir(folderPath);
-    if (E.isLeft(paths)) return paths;
-    const pathsWithDates = paths.right
-      .map((it) => {
-        const { base } = path.parse(it);
-        try {
-          const date = DF.parse(base, backupFolderNameDateFormat, new Date());
-          return { folderPath: it, date };
-        } catch {
-          return null;
-        }
-      })
-      .filter(isNotNully);
-    return E.right(pathsWithDates);
-  }
-
-  private async cleanBackups(folderPath: string, leaveLastN: number) {
-    const res = await this.getBackupFolders(folderPath);
-    if (E.isLeft(res)) return;
-    const pathsWithDates = res.right.slice();
-    sortByNumeric(pathsWithDates, (it) => -it.date.getTime());
-    const toDelete = pathsWithDates.slice(leaveLastN);
+  private async cleanBackups(
+    type: FileType,
+    folderPath: string,
+    leaveLastN: number
+  ) {
+    const res = await this.getProjectFileInfosVersioned(type, folderPath);
+    const pathsOrdered = res.slice();
+    sortByNumeric(pathsOrdered, (it) => -it.version);
+    const toDelete = pathsOrdered.slice(leaveLastN);
     await Promise.all(
       toDelete.map(async (it) => {
-        await fsPromises.rm(it.folderPath, { recursive: true });
+        await fsPromises.rm(it.path);
       })
     );
     if (toDelete.length > 0) {
       globalLogger.info(
-        `Cleaned ${toDelete.length} backup folders in ${folderPath}`
+        `Cleaned ${toDelete.length} temporary backup files in ${folderPath}`
       );
     }
   }
@@ -397,18 +424,20 @@ export class ProjectManager {
     info: ProjectInfo,
     data: Buffer
   ) {
-    const newBackupFolderName = DF.format(
-      new Date(),
-      backupFolderNameDateFormat
+    const versionedAlready = await this.getProjectFileInfosVersioned(
+      info.id.type,
+      folder
     );
-    const backupFolderPath = path.join(folder, newBackupFolderName);
-    await fsPromises.mkdir(backupFolderPath);
-
-    const currentName = info.current.fileName;
-    const backupPath = path.join(backupFolderPath, currentName);
+    const versionNums = versionedAlready.map((it) => it.version);
+    const versionToUse = Math.max(...[0, ...versionNums]) + 1;
+    const backupFilePath = this.mkVersionedFileName(
+      info.current.path,
+      versionToUse
+    );
+    const backupPath = path.join(folder, path.parse(backupFilePath).base);
 
     await this.fileWatcher.writeFileSuspendWatcher(backupPath, data);
 
-    return E.right(`Backup saved to folder "${newBackupFolderName}"`);
+    return E.right(`Backup saved to path "${backupPath}"`);
   }
 }
