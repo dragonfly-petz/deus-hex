@@ -1,11 +1,13 @@
 import { useEffect } from 'react';
 import { pipe } from 'fp-ts/function';
+import { isString } from 'fp-ts/string';
 import style from './Editor.module.scss';
 import {
   useAppContext,
   useAppReactiveNodes,
   useDomIpc,
   useMainIpc,
+  useUserSetting,
 } from '../context/context';
 import { QueryInner, RenderQuery, useMkQueryMemo } from '../framework/Query';
 import {
@@ -42,7 +44,7 @@ import { safeHead, sortByNumeric } from '../../common/array';
 import { renderResult } from '../framework/result';
 import { renderIf, renderNullable } from '../framework/render';
 import { Banner, BannerBody, BannerButtons } from '../layout/Banner';
-import { useModal } from '../framework/Modal';
+import { ModalContentProps, useModal } from '../framework/Modal';
 import { NewProjectForm } from './Projects';
 import { Button } from '../framework/Button';
 import { taggedValue } from '../../common/tagged-value';
@@ -56,6 +58,7 @@ import { useDisposableEffectWithDeps } from '../hooks/disposable-memo';
 import { Disposer } from '../../common/disposable';
 import { formatDateDistance } from '../../common/df';
 import { throwRejectionK } from '../../common/promise';
+import { Panel, PanelBody, PanelButtons, PanelHeader } from '../layout/Panel';
 
 interface NavigationDeps {
   fileInfo: FileInfoAndData & {
@@ -514,12 +517,20 @@ const BackupsInfo = ({
   });
 };
 
+interface OverwriteModalOpts {
+  continue: () => void;
+  filePath: string;
+}
+
 const TabRightBar = ({
   actionsNode,
   fileInfoQuery,
   projectId,
   projectInfoQuery,
 }: TabDefs) => {
+  const petzFolder = useUserSetting('petzFolder');
+  const onContinueNode = useMkReactiveNodeMemo(nullable<OverwriteModalOpts>());
+  const overwriteModalNode = useOverwriteModal(onContinueNode);
   return (
     <>
       <RenderQuery
@@ -586,6 +597,64 @@ const TabRightBar = ({
                   });
                 },
               });
+
+              actions.push({
+                label: 'Export Current To Game',
+                icon: 'faFileExport',
+                key: 'exportCurrent',
+                disable: isNully(petzFolder)
+                  ? 'You must set a Petz folder to use this function'
+                  : undefined,
+                tooltip:
+                  'Copy the current saved version to the game - does not include unsaved changes',
+                action: () => {
+                  return ger.withFlashMessageK(
+                    async () => {
+                      if (isNully(petzFolder))
+                        return E.left('No petz folder set');
+                      const res = await mainIpc.exportCurrentToGame(
+                        petzFolder,
+                        projectId,
+                        false
+                      );
+                      if (E.isRight(res)) {
+                        if (isString(res.right)) {
+                          overwriteModalNode.setValue(false);
+                          return res;
+                        }
+                        if (isString(res.right.alreadyExists)) {
+                          onContinueNode.setValue({
+                            filePath: res.right.alreadyExists,
+                            continue: () => {
+                              ger.withFlashMessageK(async () => {
+                                if (isNully(petzFolder))
+                                  return E.left('No petz folder set');
+                                const res2 = await mainIpc.exportCurrentToGame(
+                                  petzFolder,
+                                  projectId,
+                                  true
+                                );
+                                if (E.isRight(res2)) {
+                                  if (isString(res2.right)) {
+                                    overwriteModalNode.setValue(false);
+                                    onContinueNode.setValue(null);
+                                    return res2;
+                                  }
+                                  return E.left('Failed unexpectedly!');
+                                }
+                                return res2;
+                              });
+                            },
+                          });
+                          overwriteModalNode.setValue(true);
+                        }
+                      }
+                      return res;
+                    },
+                    { successOnlyOnString: true }
+                  );
+                },
+              });
             }
           });
 
@@ -618,4 +687,48 @@ const SectionPage = ({
       </>
     );
   });
+};
+
+const useOverwriteModal = (
+  onContinueNode: ReactiveVal<null | OverwriteModalOpts>
+) => {
+  return useModal({
+    Content: (props) => (
+      <FileExistsModal onContinueNode={onContinueNode} {...props.modalProps} />
+    ),
+    closable: true,
+  });
+};
+
+export const FileExistsModal = ({
+  closeModal,
+  onContinueNode,
+}: ModalContentProps & {
+  onContinueNode: ReactiveVal<null | OverwriteModalOpts>;
+}) => {
+  const mainIpc = useMainIpc();
+  const onContinue = useReactiveVal(onContinueNode);
+  if (isNully(onContinue)) {
+    return null;
+  }
+  return (
+    <Panel>
+      <PanelHeader>File Already Exists</PanelHeader>
+      <PanelBody>
+        The file {onContinue.filePath} already exists, would you like to
+        overwrite it?
+      </PanelBody>
+      <PanelButtons>
+        <Button label="Cancel" onClick={closeModal} />
+        <Button
+          label="Open Folder"
+          onClick={() => {
+            mainIpc.openFileInExplorer(onContinue.filePath);
+          }}
+        />
+
+        <Button label="Continue" onClick={onContinue.continue} />
+      </PanelButtons>
+    </Panel>
+  );
 };

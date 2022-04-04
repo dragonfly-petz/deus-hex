@@ -8,7 +8,7 @@ import {
   objectValues,
 } from '../../../common/object';
 import { fromPromiseProperties } from '../../../common/promise';
-import { directoryExists, getPathsInDir } from '../file/file-util';
+import { directoryExists, fileExists, getPathsInDir } from '../file/file-util';
 import { fsPromises } from '../util/fs-promises';
 import { Result } from '../../../common/result';
 import { A, E, Either } from '../../../common/fp-ts/fp';
@@ -274,12 +274,14 @@ export class ProjectManager {
       projectPaths.currentFolder
     );
     if (E.isLeft(current)) return current;
+    const versionAndNewName = this.getVersionForFileName(filePath);
+    const baseName = E.isRight(versionAndNewName)
+      ? versionAndNewName.right.fileName
+      : path.basename(filePath);
+
     await fsPromises.rm(current.right.path);
-    const backupFileName = path.basename(filePath);
-    const newCurrentFile = path.join(
-      projectPaths.currentFolder,
-      backupFileName
-    );
+    const newCurrentFile = path.join(projectPaths.currentFolder, baseName);
+
     await this.fileWatcher.copyFileSuspendWatch(filePath, newCurrentFile);
     return E.right(await this.fileToEditorParams(newCurrentFile));
   }
@@ -310,7 +312,8 @@ export class ProjectManager {
     if (split.length < 2 || last[0] !== 'v' || Number.isNaN(number)) {
       return E.left("Expected a format like 'name_v1'");
     }
-    return E.right(number);
+    const newName = split.slice(0, split.length - 1).join('_');
+    return E.right({ version: number, fileName: `${newName}${parsed.ext}` });
   }
 
   private async getProjectFileInfosVersioned(
@@ -326,7 +329,7 @@ export class ProjectManager {
       }
       return E.right({
         ...info,
-        version: version.right,
+        version: version.right.version,
       });
     });
     return A.rights(asVersion);
@@ -396,6 +399,37 @@ export class ProjectManager {
       await this.cleanBackups(projectId.type, folder, 3);
     }
     return res;
+  }
+
+  async exportCurrentToGame(
+    petzFolder: string,
+    id: ProjectId,
+    overwrite: boolean
+  ) {
+    const projectPaths = await this.getAndCreateProjectFolders(id);
+    const current = await this.getOneProjectFileInfo(
+      id.type,
+      projectPaths.currentFolder
+    );
+    if (E.isLeft(current)) {
+      return current;
+    }
+    const petzResourceDir = path.join(
+      petzFolder,
+      ...fileTypes[id.type].pathSegments
+    );
+    const petzResourceFilePath = path.join(
+      petzResourceDir,
+      path.parse(current.right.path).base
+    );
+
+    const exists = await fileExists(petzResourceFilePath);
+    if (E.isRight(exists) && exists.right && !overwrite) {
+      return E.right({ alreadyExists: petzResourceFilePath });
+    }
+
+    await fsPromises.copyFile(current.right.path, petzResourceFilePath);
+    return E.right('Successfully copied to game');
   }
 
   private async cleanBackups(
