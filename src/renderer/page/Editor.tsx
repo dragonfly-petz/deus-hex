@@ -1,6 +1,7 @@
 import { ReactNode, useEffect } from 'react';
 import { pipe } from 'fp-ts/function';
 import { isString } from 'fp-ts/string';
+import bmp from '@wokwi/bmp-ts';
 import style from './Editor.module.scss';
 import {
   useAppContext,
@@ -60,6 +61,7 @@ import { formatDateDistance } from '../../common/df';
 import { throwRejectionK } from '../../common/promise';
 import { Panel, PanelBody, PanelButtons, PanelHeader } from '../layout/Panel';
 import { renderId } from '../helper/helper';
+import { isNever } from '../../common/type-assertion';
 
 interface NavigationDeps {
   fileInfo: FileInfoAndData & {
@@ -93,7 +95,7 @@ const SectionName = ({
   const hasChanged = useReactiveVal(hasChangedNode);
   return (
     <div>
-      {name}
+      {resourceDataSections[name].name}
       {hasChanged ? '*' : ''}
     </div>
   );
@@ -157,6 +159,7 @@ const useMkNavigation = (
 
                 <SectionPage
                   entryIdQuery={resourceDataSections[n].idMatcher}
+                  sectionName={n}
                   {...deps}
                 />
               </>
@@ -182,6 +185,7 @@ const useMkNavigation = (
 };
 
 interface SectionAsString {
+  data: Uint8Array;
   original: string;
   editNode: ReactiveNode<string>;
   hasChanged: ReactiveVal<boolean>;
@@ -232,6 +236,7 @@ function useGetDeps() {
         const entries = getAllDataEntriesWithId(resIn.resDirTable);
         const sectionAsStringMap = new Map<string, SectionAsString>(
           entries.map((it) => {
+            const { data } = it.entry;
             const original = normalizeLineEndingsForTextArea(
               bytesToString(it.entry.data)
             );
@@ -240,6 +245,7 @@ function useGetDeps() {
             return [
               resourceEntryIdToStringKey(it.id),
               {
+                data,
                 original,
                 editNode,
                 hasChanged: editNode.fmapStrict((str) => str !== original),
@@ -669,22 +675,78 @@ const TabRightBar = ({
 const SectionPage = ({
   fileInfo,
   entryIdQuery,
-}: NavigationDeps & { entryIdQuery: ResourceEntryIdQuery }) => {
+  sectionName,
+}: NavigationDeps & {
+  entryIdQuery: ResourceEntryIdQuery;
+  sectionName: ResourceDataSectionName;
+}) => {
   const entWithIdM = getResourceEntryById(fileInfo.resDirTable, entryIdQuery);
   const asEither = E.fromNullable('Section not found')(entWithIdM);
 
   return renderResult(asEither, (entWithId) => {
     const stringKey = resourceEntryIdToStringKey(entWithId.id);
-    const node = fileInfo.sectionAsStringMap.get(stringKey)?.editNode;
+    const node = fileInfo.sectionAsStringMap.get(stringKey);
     if (isNully(node)) {
       return <div>Expected to find edit node for section key {stringKey}</div>;
     }
+    const sectionType = resourceDataSections[sectionName].type;
     return (
       <>
         <h2>Editing section {resourceEntryIdToStringKey(entWithId.id)}</h2>
-        <div className={style.editorTextAreaWrapper}>
-          <TextArea valueNode={node} className={style.editorTextArea} />
-        </div>
+        {run(() => {
+          switch (sectionType) {
+            case 'ascii':
+              return (
+                <div className={style.editorTextAreaWrapper}>
+                  <TextArea
+                    valueNode={node.editNode}
+                    className={style.editorTextArea}
+                  />
+                </div>
+              );
+            case 'bitmap': {
+              const bmpData = bmp.decode(node.data);
+              console.log(bmpData);
+              const dataToMod = bmpData.data;
+              for (let row = 0; row < bmpData.height; row++) {
+                for (let col = 0; col < bmpData.width; col++) {
+                  const idx = row * bmpData.width * 4 + col * 4;
+                  dataToMod[idx] = 255;
+                }
+              }
+              const encoded = bmp.encode({
+                data: bmpData.data,
+                bitPP: 8,
+                width: bmpData.width,
+                height: bmpData.height,
+                palette: bmpData.palette,
+                hr: bmpData.hr,
+                vr: bmpData.vr,
+                colors: bmpData.colors,
+                importantColors: bmpData.importantColors,
+              });
+              const bitMapP = createImageBitmap(new Blob([encoded.data]));
+
+              return (
+                <div className={style.previewImageWrapper}>
+                  <img
+                    src={`data:image/bmp;base64,${btoa(
+                      bytesToString(node.data)
+                    )}`}
+                  />
+                  <img
+                    src={`data:image/bmp;base64,${btoa(
+                      bytesToString(encoded.data)
+                    )}`}
+                  />
+                </div>
+              );
+            }
+            default: {
+              return isNever(sectionType);
+            }
+          }
+        })}
       </>
     );
   });

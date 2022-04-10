@@ -37,27 +37,43 @@ export const allFileTypeExtensions = objectEntries(fileTypes).map(
 
 export type FileType = keyof typeof fileTypes;
 
+export type ResourceDataSectionType = 'ascii' | 'bitmap';
+
+function rdsType(v: ResourceDataSectionType) {
+  return v;
+}
+
 const twoCapitalLetters = /^[A-Z]{2}$/;
 export const resourceDataSections = {
   clzClot: {
     idMatcher: mkEntryIdQuery('CLZ'),
     name: 'Clothes Main',
+    type: rdsType('ascii'),
   },
   lnzCat: {
     idMatcher: mkEntryIdQuery('LNZ', twoCapitalLetters),
     name: 'Cat Main',
+    type: rdsType('ascii'),
   },
   lnzKitten: {
     idMatcher: mkEntryIdQuery('LNZ', /^[A-Z]{2}KIT$/),
     name: 'Kitten Main',
+    type: rdsType('ascii'),
   },
   lnzDog: {
     idMatcher: mkEntryIdQuery('LNZ', twoCapitalLetters),
     name: 'Dog Main',
+    type: rdsType('ascii'),
   },
   lnzPuppy: {
     idMatcher: mkEntryIdQuery('LNZ', /^[A-Z]{2}PUP$/),
     name: 'Puppy Main',
+    type: rdsType('ascii'),
+  },
+  breedBmp: {
+    idMatcher: mkEntryIdQuery('BMP'),
+    name: 'Breed BMP',
+    type: rdsType('bitmap'),
   },
 };
 export type ResourceDataSections = typeof resourceDataSections;
@@ -69,6 +85,6 @@ export const fileTypeToExpectedSections: Record<
   Array<ResourceDataSectionName>
 > = {
   clothes: ['clzClot'],
-  catz: ['lnzCat', 'lnzKitten'],
-  dogz: ['lnzDog', 'lnzPuppy'],
+  catz: ['lnzCat', 'lnzKitten', 'breedBmp'],
+  dogz: ['lnzDog', 'lnzPuppy', 'breedBmp'],
 };

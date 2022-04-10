@@ -18,7 +18,7 @@ export type AppReactiveNodesStatic = ReturnType<typeof mkStaticReactiveNodes>;
 
 export function mkStaticReactiveNodes() {
   const currentTabNode = new ReactiveNode<TabName>(
-    isDev() ? 'petzResources' : 'petzResources'
+    isDev() ? 'editor' : 'petzResources'
   );
   const flashMessagesNode = new ReactiveNode(new Map<string, FlashMessage>());
   const modalsNode = new ReactiveNode(new Map<string, ModalDef>());

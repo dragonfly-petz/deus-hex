@@ -1110,6 +1110,11 @@
   resolved "https://registry.yarnpkg.com/@types/node/-/node-17.0.5.tgz#57ca67ec4e57ad9e4ef5a6bab48a15387a1c83e0"
   integrity sha512-w3mrvNXLeDYV1GKTZorGJQivK6XLCoGwpnyJFbJVK/aTBQUxOCaa/GlFAAN3OTDFcb7h5tiFG+YXCO2By+riZw==
 
+"@types/node@^10.11.7":
+  version "10.17.60"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-10.17.60.tgz#35f3d6213daed95da7f0f73e75bcc6980e90597b"
+  integrity sha512-F0KIgDJfy2nA3zMLmWGKxcH2ZVEtCZXHHdOQs2gSaQ27+lNeEfGxzkIw90aXswATX7AZ33tahPbzy6KAfUreVw==
+
 "@types/node@^14.6.2":
   version "14.18.12"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-14.18.12.tgz#0d4557fd3b94497d793efd4e7d92df2f83b4ef24"
@@ -1564,6 +1569,13 @@
   version "1.6.1"
   resolved "https://registry.yarnpkg.com/@webpack-cli/serve/-/serve-1.6.1.tgz#0de2875ac31b46b6c5bb1ae0a7d7f0ba5678dffe"
   integrity sha512-gNGTiTrjEVQ0OcVnzsRSqTxaBSr+dmTfm+qJsCDluky8uhdLWep7Gcr62QsAKHTMxjCS/8nEITsmFAhfIx+QSw==
+
+"@wokwi/bmp-ts@^3.0.0":
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/@wokwi/bmp-ts/-/bmp-ts-3.0.0.tgz#826b635268f32c69784089a1b56843ffc1dfb455"
+  integrity sha512-fBoRZQEd8RHdFq4gaS6eU69fYZjqGIz8myYPLm0gJSosxqHWpge8/3+6yCyc8b8afcb/ptjSlnEVP93t00fWDQ==
+  dependencies:
+    "@types/node" "^10.11.7"
 
 "@xtuc/ieee754@^1.2.0":
   version "1.2.0"
