@@ -49,6 +49,7 @@ import {
   FormWarning,
 } from '../framework/form/form';
 import { TextInput } from '../framework/form/TextInput';
+import { renderId } from '../helper/helper';
 
 const navigationNames = ['overview', 'catz', 'dogz', 'clothes'] as const;
 export type ResourcesPage = typeof navigationNames[number];
@@ -520,7 +521,7 @@ const FileInfo = ({
             const { rcInfo } = inf.value;
             return (
               <>
-                <div className={style.id}>{rcInfo.breedId}</div>
+                <div className={style.id}>{renderId(rcInfo.breedId)}</div>
                 <div className={style.displayName}>{rcInfo.displayName}</div>
                 <div className={style.spriteName}>{rcInfo.spriteName}</div>
                 <div className={style.buttons}>

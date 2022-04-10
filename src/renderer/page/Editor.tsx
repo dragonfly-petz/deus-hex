@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { ReactNode, useEffect } from 'react';
 import { pipe } from 'fp-ts/function';
 import { isString } from 'fp-ts/string';
 import style from './Editor.module.scss';
@@ -59,6 +59,7 @@ import { Disposer } from '../../common/disposable';
 import { formatDateDistance } from '../../common/df';
 import { throwRejectionK } from '../../common/promise';
 import { Panel, PanelBody, PanelButtons, PanelHeader } from '../layout/Panel';
+import { renderId } from '../helper/helper';
 
 interface NavigationDeps {
   fileInfo: FileInfoAndData & {
@@ -425,7 +426,7 @@ const RcDataInfo = ({
       />
       <RcDataRow
         label="Breed Id"
-        value={value.rcDataAndEntry.rcData.breedId.toFixed()}
+        value={renderId(value.rcDataAndEntry.rcData.breedId)}
       />
       <RcDataRow
         label="Tag"
@@ -443,7 +444,7 @@ const RcDataInfo = ({
   );
 };
 
-const RcDataRow = ({ label, value }: { label: string; value: string }) => {
+const RcDataRow = ({ label, value }: { label: string; value: ReactNode }) => {
   return (
     <div className={style.rcDataRow}>
       <div className={style.rcDataLabel}>{label}</div>

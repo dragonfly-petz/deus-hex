@@ -30,6 +30,7 @@ import {
   rcDataId,
 } from '../../../common/petz/codecs/rcdata';
 import { Result } from '../../../common/result';
+import { toHex } from '../../../common/number';
 
 function toHexString(arr: Uint8Array) {
   return Array.from(arr)
@@ -45,10 +46,6 @@ function readChars(buf: Buffer, offset: number, length: number) {
     strings.push(String.fromCharCode(buf[i]));
   }
   return strings.join('');
-}
-
-function toHex(val: number, pad = 8) {
-  return `0x${val.toString(16).padStart(pad, '0')}`;
 }
 
 function removeSymbolsNumber(buf: Buffer) {
