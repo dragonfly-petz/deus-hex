@@ -1,23 +1,35 @@
 import { objectEntries } from '../object';
 import { mkEntryIdQuery } from './codecs/rsrc-utility';
+import {
+  catzVanillaIds,
+  clothesVanillaIds,
+  dogzVanillaIds,
+} from './vanilla-ids';
 
 export const fileTypes = {
   catz: {
     extension: '.cat',
     pathSegments: ['Resource', 'Catz'],
     name: 'Catz',
+    vanillaIds: catzVanillaIds,
   },
   dogz: {
     extension: '.dog',
     pathSegments: ['Resource', 'Dogz'],
     name: 'Dogz',
+    vanillaIds: dogzVanillaIds,
   },
   clothes: {
     extension: '.clo',
     pathSegments: ['Resource', 'Clothes'],
     name: 'Clothes',
+    vanillaIds: clothesVanillaIds,
   },
 } as const;
+
+export const fileTypesValues = objectEntries(fileTypes).map((it) => {
+  return { ...it[1], type: it[0] };
+});
 
 export const allFileTypeExtensions = objectEntries(fileTypes).map(
   (it) => it[1].extension

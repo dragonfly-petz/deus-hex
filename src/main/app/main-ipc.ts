@@ -169,6 +169,19 @@ export class MainIpcBase {
     return this.resourceManager.fixDuplicateIds(petzFolder, type);
   }
 
+  async assignNewId(filePath: string, type: FileType, newIdRaw: number | null) {
+    const { petzFolder } = this.userSettingsRemote.getValue();
+    if (isNully(petzFolder)) {
+      return E.left('No petz folder set');
+    }
+    return this.resourceManager.assignNewId(
+      petzFolder,
+      filePath,
+      type,
+      newIdRaw
+    );
+  }
+
   async openDirInExplorer(directoryPath: string) {
     const errString = await shell.openPath(directoryPath);
     if (errString !== '') {

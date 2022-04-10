@@ -73,7 +73,7 @@ export async function mkAppContext(
   };
   const appHelper = new AppHelper(mainIpc, appReactiveNodes);
 
-  if (appReactiveNodes.editorParams.getValue() !== null) {
+  if (appReactiveNodes.editorParams.getValue() !== null && !isDev) {
     appReactiveNodesStatic.currentTabNode.setValue('editor');
   }
   const windowParams = getContextBridgeWindowParams();

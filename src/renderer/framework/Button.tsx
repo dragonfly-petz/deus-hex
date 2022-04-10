@@ -41,7 +41,7 @@ export const Button = ({
   );
 
   return (
-    <Tooltip content={tooltipContent} disabled={isNully(tooltip)}>
+    <Tooltip content={tooltipContent} disabled={isNully(tooltipContent)}>
       <div className={style.wrapper}>
         <button
           disabled={disabled}
