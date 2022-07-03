@@ -66,6 +66,10 @@ export class Query<A> implements ReactiveVal<QueryState<A>> {
 
   private async runQuery() {
     this.setState({ tag: 'pending' });
+    await this.runQuerySoft();
+  }
+
+  private async runQuerySoft() {
     const res = await this.query();
     if (E.isLeft(res)) {
       this.setState({ tag: 'error', value: res.left });
@@ -86,6 +90,10 @@ export class Query<A> implements ReactiveVal<QueryState<A>> {
 
   async reload() {
     return this.runQuery();
+  }
+
+  async reloadSoft() {
+    await this.runQuerySoft();
   }
 
   fmap<B>(

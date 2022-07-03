@@ -209,6 +209,9 @@
     "webpack-merge": "^5.8.0"
   },
   "dependencies": {
+    "@codemirror/commands": "^6.0.1",
+    "@codemirror/state": "^6.1.0",
+    "@codemirror/view": "^6.0.2",
     "@fortawesome/fontawesome-svg-core": "^6.1.1",
     "@fortawesome/free-regular-svg-icons": "^6.1.1",
     "@fortawesome/free-solid-svg-icons": "^6.1.1",
@@ -216,6 +219,7 @@
     "@tippyjs/react": "^4.2.6",
     "@wokwi/bmp-ts": "^3.0.0",
     "chance": "^1.1.8",
+    "codemirror": "^6.0.1",
     "date-fns": "^2.28.0",
     "debounce": "^1.2.1",
     "electron-debug": "^3.2.0",

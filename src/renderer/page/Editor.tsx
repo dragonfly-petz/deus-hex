@@ -50,7 +50,6 @@ import { NewProjectForm } from './Projects';
 import { Button } from '../framework/Button';
 import { taggedValue } from '../../common/tagged-value';
 import { bytesToString, stringToBytes } from '../../common/buffer';
-import { TextArea } from '../framework/form/TextArea';
 import { ReactiveNode } from '../../common/reactive/reactive-node';
 import { normalizeLineEndingsForTextArea } from '../../common/string';
 import { ReactiveVal } from '../../common/reactive/reactive-interface';
@@ -62,6 +61,7 @@ import { throwRejectionK } from '../../common/promise';
 import { Panel, PanelBody, PanelButtons, PanelHeader } from '../layout/Panel';
 import { renderId } from '../helper/helper';
 import { isNever } from '../../common/type-assertion';
+import { CodeMirror } from '../editor/CodeMirror';
 
 interface NavigationDeps {
   fileInfo: FileInfoAndData & {
@@ -274,47 +274,49 @@ function useGetDeps() {
   useDisposableEffectWithDeps(() => {
     let watchDisposer = nullable<Promise<Disposer>>();
     const listenDispose = fileInfoQuery.listen((change) => {
-      if (isNotNully(watchDisposer)) {
-        // eslint-disable-next-line promise/catch-or-return
-        watchDisposer.then(run);
-        watchDisposer = null;
-      }
-      if (change.tag === 'success' && isNotNully(change.value.projectId)) {
-        watchDisposer = run(async () => {
-          const { value } = change;
-          const fileToWatch = change.value.filePath;
-          const watcherId = await mainIpc.watchFile(change.value.filePath, [
-            windowId,
-          ]);
+      run(async () => {
+        if (isNotNully(watchDisposer)) {
+          // eslint-disable-next-line promise/catch-or-return
+          (await watchDisposer)();
+          watchDisposer = null;
+        }
+        if (change.tag === 'success' && isNotNully(change.value.projectId)) {
+          watchDisposer = run(async () => {
+            const { value } = change;
+            const fileToWatch = change.value.filePath;
+            const watcherId = await mainIpc.watchFile(change.value.filePath, [
+              windowId,
+            ]);
 
-          const fileChangeDispose = domIpc.fileWatchListenable.listen(
-            async (fwChange) => {
-              if (
-                E.isRight(watcherId) &&
-                watcherId.right === fwChange.filePath
-              ) {
-                const res = await ger.withFlashMessage(
-                  mainIpc.saveResourceSections(
-                    value.filePath,
-                    value.getSectsToSave(),
-                    { backup: 'external' }
-                  )
-                );
-                if (E.isRight(res)) {
-                  fileInfoQuery.reload();
-                  projectInfoQuery.reload();
+            const fileChangeDispose = domIpc.fileWatchListenable.listen(
+              async (fwChange) => {
+                if (
+                  E.isRight(watcherId) &&
+                  watcherId.right === fwChange.filePath
+                ) {
+                  const res = await ger.withFlashMessage(
+                    mainIpc.saveResourceSections(
+                      value.filePath,
+                      value.getSectsToSave(),
+                      { backup: 'external' }
+                    )
+                  );
+                  if (E.isRight(res)) {
+                    fileInfoQuery.reloadSoft();
+                    projectInfoQuery.reloadSoft();
+                  }
                 }
               }
-            }
-          );
-          return () => {
-            fileChangeDispose();
-            if (E.isRight(watcherId)) {
-              mainIpc.unwatchFile(fileToWatch, [windowId]);
-            }
-          };
-        });
-      }
+            );
+            return () => {
+              fileChangeDispose();
+              if (E.isRight(watcherId)) {
+                mainIpc.unwatchFile(fileToWatch, [windowId]);
+              }
+            };
+          });
+        }
+      });
     }, true);
     return () => {
       listenDispose();
@@ -576,8 +578,8 @@ const TabRightBar = ({
                     value.getSectsToSave()
                   );
                   if (E.isRight(res)) {
-                    fileInfoQuery.reload();
-                    projectInfoQuery.reload();
+                    fileInfoQuery.reloadSoft();
+                    projectInfoQuery.reloadSoft();
                   }
                   return res;
                 });
@@ -698,10 +700,7 @@ const SectionPage = ({
             case 'ascii':
               return (
                 <div className={style.editorTextAreaWrapper}>
-                  <TextArea
-                    valueNode={node.editNode}
-                    className={style.editorTextArea}
-                  />
+                  <CodeMirror valueNode={node.editNode} />
                 </div>
               );
             case 'bitmap': {
