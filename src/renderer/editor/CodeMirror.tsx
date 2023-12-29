@@ -16,6 +16,7 @@ import {
   useReactiveVal,
 } from '../reactive-state/reactive-hooks';
 import { isNully } from '../../common/null';
+import { parseLnz } from '../../common/petz/parser/main';
 
 export const CodeMirror = ({
   valueNode,
@@ -54,12 +55,15 @@ export const CodeMirror = ({
     });
     return [view, () => {}];
   });
+
   useListenReactiveVal(
     valueNode,
     (val) => {
       const view = resultRef.current;
       // eslint-disable-next-line no-console
       console.log(view, val.substring(0, 50));
+      console.log(parseLnz(val));
+
       if (isNully(view)) return;
       if (view.state.doc.toString() !== val) {
         view.dispatch({

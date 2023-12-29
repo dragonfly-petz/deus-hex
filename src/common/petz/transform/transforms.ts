@@ -5,10 +5,10 @@ import {
   AddBallBreed,
   AddBallClothing,
   clothingCols,
-} from '../parser/addballs';
+} from '../simple-parser/addballs';
 import { unsafeObjectFromEntries } from '../../object';
 import { sortByNumeric, tuple } from '../../array';
-import { allLineCols, LineDef } from '../parser/lines';
+import { allLineCols, LineDef } from '../simple-parser/lines';
 import { isNotNully } from '../../null';
 
 export function transformBreedAddBallsToClothing(
@@ -60,6 +60,9 @@ export function transformBreedLinesToClothing(
 }
 
 // some external tools e.g. pet workshop remove some columns of data - anchoring paint balls and in linez for full outlines
-export function copyMissingColumns(from: string, _to: string) {
-  return from;
+export function applyAntiPetWorkshopReplacements(
+  original: string,
+  externallyModified: string
+) {
+  return original;
 }

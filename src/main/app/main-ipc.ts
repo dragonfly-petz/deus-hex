@@ -4,13 +4,16 @@ import path from 'path';
 import {
   parseAddBallsBreed,
   serializeClothingAddBalls,
-} from '../../common/petz/parser/addballs';
+} from '../../common/petz/simple-parser/addballs';
 import { E } from '../../common/fp-ts/fp';
 import {
   transformBreedAddBallsToClothing,
   transformBreedLinesToClothing,
 } from '../../common/petz/transform/transforms';
-import { parseLines, serializeLines } from '../../common/petz/parser/lines';
+import {
+  parseLines,
+  serializeLines,
+} from '../../common/petz/simple-parser/lines';
 import { isDev } from './util';
 import {
   getFileAndUpdateResourceSections,
