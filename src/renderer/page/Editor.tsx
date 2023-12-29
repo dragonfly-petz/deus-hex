@@ -62,6 +62,7 @@ import { Panel, PanelBody, PanelButtons, PanelHeader } from '../layout/Panel';
 import { renderId } from '../helper/helper';
 import { isNever } from '../../common/type-assertion';
 import { CodeMirror } from '../editor/CodeMirror';
+import { copyMissingColumns } from '../../common/petz/transform/transforms';
 
 interface NavigationDeps {
   fileInfo: FileInfoAndData & {
@@ -302,8 +303,26 @@ function useGetDeps() {
                     )
                   );
                   if (E.isRight(res)) {
-                    fileInfoQuery.reloadSoft();
+                    const reloadFilePromise = fileInfoQuery.reloadSoft();
                     projectInfoQuery.reloadSoft();
+                    const newFileVal = await reloadFilePromise;
+                    if (E.isRight(newFileVal)) {
+                      for (const [
+                        sectKey,
+                        originalSect,
+                      ] of value.sectionAsStringMap.entries()) {
+                        const newSect =
+                          newFileVal.right.sectionAsStringMap.get(sectKey);
+                        if (isNotNully(newSect)) {
+                          newSect.editNode.setValueFn((val) =>
+                            copyMissingColumns(
+                              originalSect.editNode.getValue(),
+                              val
+                            )
+                          );
+                        }
+                      }
+                    }
                   }
                 }
               }
@@ -708,7 +727,7 @@ const SectionPage = ({
               );
             case 'bitmap': {
               const bmpData = bmp.decode(node.data);
-              console.log(bmpData);
+              // console.log(bmpData);
               const dataToMod = bmpData.data;
               for (let row = 0; row < bmpData.height; row++) {
                 for (let col = 0; col < bmpData.width; col++) {
@@ -727,7 +746,7 @@ const SectionPage = ({
                 colors: bmpData.colors,
                 importantColors: bmpData.importantColors,
               });
-              const bitMapP = createImageBitmap(new Blob([encoded.data]));
+              const _bitMapP = createImageBitmap(new Blob([encoded.data]));
 
               return (
                 <div className={style.previewImageWrapper}>

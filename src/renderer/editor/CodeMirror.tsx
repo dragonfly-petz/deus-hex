@@ -1,7 +1,12 @@
 import { EditorState } from '@codemirror/state';
 import { EditorView, keymap } from '@codemirror/view';
 import { basicSetup } from 'codemirror';
-import { defaultKeymap, indentWithTab, insertTab } from '@codemirror/commands';
+import {
+  defaultKeymap,
+  indentWithTab,
+  insertTab,
+  isolateHistory,
+} from '@codemirror/commands';
 import { useRef } from 'react';
 import { useMemoRef } from '../hooks/use-memo-ref';
 import { ReactiveNode } from '../../common/reactive/reactive-node';
@@ -53,10 +58,12 @@ export const CodeMirror = ({
     valueNode,
     (val) => {
       const view = resultRef.current;
+      // eslint-disable-next-line no-console
       console.log(view, val.substring(0, 50));
       if (isNully(view)) return;
       if (view.state.doc.toString() !== val) {
         view.dispatch({
+          annotations: [isolateHistory.of('full')],
           changes: {
             from: 0,
             to: view.state.doc.length,
@@ -64,6 +71,10 @@ export const CodeMirror = ({
           },
         });
       }
+
+      /*
+      this is how to access history obj in case we ever want it
+      window.foo = view.state.field(historyField); */
     },
     true
   );

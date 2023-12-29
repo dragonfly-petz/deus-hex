@@ -58,3 +58,8 @@ export function transformBreedLinesToClothing(
   }
   return out;
 }
+
+// some external tools e.g. pet workshop remove some columns of data - anchoring paint balls and in linez for full outlines
+export function copyMissingColumns(from: string, _to: string) {
+  return from;
+}
