@@ -14,11 +14,11 @@ import { isNotNully, isNully } from '../../common/null';
 
 const _debugEditorFile =
   'C:\\Users\\franc\\Documents\\Petz\\Petz 4\\Resource\\Catz\\Calico.cat';
-const debugProjectFIle =
-  'C:\\Users\\franc\\AppData\\Roaming\\Electron\\Deus Hex Projects\\Catz Projects\\foo\\Current Version\\Alley Cat.cat';
+const debugProjectFile =
+  'C:\\Users\\franc\\AppData\\Roaming\\Electron\\Deus Hex Projects\\Catz Projects\\Foo\\Current Version\\Orange Shorthair.cat';
 const debugParams = isDev()
   ? {
-      editorTarget: debugProjectFIle,
+      editorTarget: debugProjectFile,
     }
   : null;
 

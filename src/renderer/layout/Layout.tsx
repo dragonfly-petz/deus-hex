@@ -13,6 +13,7 @@ import { Header } from './Header';
 import { emptyComponent } from '../framework/render';
 import { GlobalModals } from '../framework/Modal';
 import { GlobalDropFile } from '../framework/GlobalDropFile';
+import { classNames } from '../../common/react';
 
 export const Layout = () => {
   const { currentTabNode, userSettingsRemote } = useAppReactiveNodes();
@@ -22,6 +23,7 @@ export const Layout = () => {
     TabContent,
     TabLeftBar = emptyComponent,
     TabRightBar = emptyComponent,
+    tabSettings,
   } = tabs[currentTab];
   useEffect(() => {
     const setStyle = () => {
@@ -52,7 +54,12 @@ export const Layout = () => {
         <div className={style.leftBar}>
           <TabLeftBar {...deps} />
         </div>
-        <div className={style.centerContent}>
+        <div
+          className={classNames(
+            style.centerContent,
+            tabSettings?.centerContentClass
+          )}
+        >
           <TabContent {...deps} />
         </div>
         <div className={style.rightBar}>

@@ -353,6 +353,9 @@ export function mkEditorTab(): TabDef<TabDefs> {
     TabContent: EditorC,
     TabRightBar,
     TabLeftBar,
+    tabSettings: {
+      centerContentClass: style.centerContentClass,
+    },
   };
 }
 

@@ -1,7 +1,7 @@
 import { EditorState } from '@codemirror/state';
 import { EditorView, keymap } from '@codemirror/view';
 import { basicSetup } from 'codemirror';
-import { defaultKeymap } from '@codemirror/commands';
+import { defaultKeymap, indentWithTab, insertTab } from '@codemirror/commands';
 import { useRef } from 'react';
 import { useMemoRef } from '../hooks/use-memo-ref';
 import { ReactiveNode } from '../../common/reactive/reactive-node';
@@ -21,16 +21,24 @@ export const CodeMirror = ({
   const valueNodeRef = useRef(valueNode);
   valueNodeRef.current = valueNode;
 
+  const indentWithTabCustom = { ...indentWithTab, run: insertTab };
+
   const { refSetter, resultRef } = useMemoRef((div: HTMLDivElement) => {
     const startState = EditorState.create({
       doc: initialValue,
       extensions: [
         basicSetup,
         keymap.of(defaultKeymap),
+        keymap.of([indentWithTabCustom]),
+        EditorState.tabSize.of(8),
         EditorView.updateListener.of((v) => {
           if (v.docChanged) {
             valueNodeRef.current.setValue(v.state.doc.toString());
           }
+        }),
+        EditorView.theme({
+          '&': { height: '100%' },
+          '.cm-scroller': { overflow: 'auto' },
         }),
       ],
     });

@@ -127,6 +127,9 @@ export async function createWindow(
   const menuBuilder = new MenuBuilder(window);
   menuBuilder.buildMenu();
 
+  // for now we are hiding the menu permanently because it interferes with alt and we don't have much use for it
+  window.removeMenu();
+
   // Open urls in the user's browser
   window.webContents.setWindowOpenHandler((edata) => {
     shell.openExternal(edata.url);
