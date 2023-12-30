@@ -62,8 +62,10 @@ export const CodeMirror = ({
       const view = resultRef.current;
       // eslint-disable-next-line no-console
       console.log(view, val.substring(0, 50));
-      console.log(parseLnz(val));
-
+      const parsed = parseLnz(val);
+      console.log(parsed);
+      console.log(parsed?.right[1].lines);
+      console.log(parsed?.right[1].lines[0]?.lineContent);
       if (isNully(view)) return;
       if (view.state.doc.toString() !== val) {
         view.dispatch({

@@ -4,10 +4,9 @@ import * as S from 'parser-ts/string';
 import * as C from 'parser-ts/char';
 import { bimap, Either } from 'fp-ts/Either';
 import { stream } from 'parser-ts/Stream';
-import { and, not } from 'fp-ts/Predicate';
-import { eitherW, hSpace, isLineBreak, lineBreak, lookAheadW, notLineBreak } from './util';
-import { voidFn } from '../../function';
-import { Option } from 'fp-ts/Option';
+import { eitherW } from './util';
+import { lineContentChar, lineParser, sectionContentLineParser } from './section';
+import { PaintBallzLine, paintBallzLineParser } from './paint-ballz';
 
 export const runParser: <A>(
   p: P.Parser<string, A>,
@@ -31,42 +30,6 @@ const lnzParser = () =>
     P.eof()
   );
 
-const lineBreakOrEof = P.either(
-  P.map(voidFn)(lineBreak),
-  P.eof as () => P.Parser<string, void>
-);
-
-type LineBase<Tag, A> = {
-  initialSpaces: string;
-  lineContent: A;
-  inlineComment: Option<string>;
-  tag: Tag
-}
-
-function lineParser<Tag, A>(p: P.Parser<string, readonly [Tag, A]>) {
-  return pipe(
-    S.many(hSpace),
-    P.bindTo('initialSpaces'),
-    P.bind('lineContent', () => eitherW(
-      pipe(lookAheadW(lineBreak), P.map(() => ['raw', ''] as const)),
-      () => p
-    )),
-    P.bind('inlineComment', () => P.optional(inlineCommentParser)),
-    P.chainFirst(() => lineBreakOrEof),
-    P.map((it) => ({ ...it, tag: it.lineContent[0], lineContent: it.lineContent[1] }))
-  ) as P.Parser<string, LineBase<Tag, A> | LineBase<'raw', string>>;
-}
-
-const isCommentChar = (c: C.Char) => c === ';';
-
-const inlineCommentParser = pipe(
-  S.fold([P.expected(P.sat(isCommentChar), 'a ;'), S.many(notLineBreak)])
-);
-const lineContentChar: P.Parser<C.Char, C.Char> = P.expected(
-  P.sat(and(not(isLineBreak))(not(isCommentChar))),
-  'not a line break and not a comment char'
-);
-
 const rawLineParser = lineParser(
   pipe(
     S.many(lineContentChar),
@@ -86,39 +49,12 @@ const sectionHeaderParser = lineParser(pipe(
 type SectionHeader = typeof sectionHeaderParser extends P.Parser<any, infer A> ? A : never;
 
 
-function sectionContentLineParser<Tag, A>(p: P.Parser<string, readonly [Tag, A]>) {
-  return lineParser(
-    pipe(
-      P.lookAhead(C.notChar('[')),
-      P.chain(() => p)
-    )
-  );
-}
-
-const sectionContentCommentLineParser = sectionContentLineParser(
-  pipe(
-    S.fold([C.char(';'), C.many(notLineBreak)]),
-    P.map(it => ['comment', it] as const)
-  )
-);
-
 const sectionContentRawLineParser = sectionContentLineParser(
   pipe(
     S.many(lineContentChar),
     P.map(it => ['raw', it] as const)
   )
 );
-
-
-const paintBallzLineParser = sectionContentLineParser(
-  pipe(
-    S.many(lineContentChar),
-    P.map(it => ['paintBall', it] as const)
-  )
-);
-type PaintBallzLine = typeof paintBallzLineParser extends P.Parser<any, infer A>
-  ? A
-  : never;
 
 const linezLineParser = sectionContentLineParser(
   pipe(
@@ -163,7 +99,6 @@ function runSection<Tag, A>(
 function mkSection<Tag, A>(line: SectionHeader,
                            sectionType: Tag,
                            lines: A[]) {
-
   return {
     ...line,
     sectionType,
