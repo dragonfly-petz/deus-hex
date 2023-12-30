@@ -1,10 +1,13 @@
 import * as P from 'parser-ts/Parser';
 import { flow, pipe } from 'fp-ts/function';
 import * as S from 'parser-ts/string';
-import * as String from 'fp-ts/string';
+import * as StringFP from 'fp-ts/string';
+import { isString } from 'fp-ts/string';
+import * as O from 'fp-ts/Option';
 
 import { push, pushWithKey, startArray } from './util';
 import { petzSepParser, sectionContentLineParser } from './section';
+import { isObjectWithKey } from '../../type-assertion';
 /*
  * ;Base ball,diameter(% of baseball),direction (x,y,z),colour,outline colour,fuzz,outline,group,texture
  * */
@@ -38,9 +41,9 @@ export const paintBallzLineParser = sectionContentLineParser(
       pushWithKey('group', S.int),
       push(petzSepParser),
       pushWithKey('texture', S.int),
-      push(P.maybe(String.Monoid)(petzSepParser)),
+      push(P.maybe(StringFP.Monoid)(petzSepParser)),
       pushWithKey('optionalColumn', P.optional(S.int)),
-      push(P.maybe(String.Monoid)(petzSepParser))
+      push(P.maybe(StringFP.Monoid)(petzSepParser))
     ),
 
     P.map((it) => ['paintBall', it] as const)
@@ -53,3 +56,25 @@ export type PaintBallzLine = typeof paintBallzLineParser extends P.Parser<
 >
   ? A
   : never;
+
+export function paintBallzLineSerialize(line: PaintBallzLine) {
+  const parts = new Array<string>();
+  parts.push(line.initialWhitespace);
+  for (const sec of line.lineContent) {
+    if (isString(sec)) {
+      parts.push(sec);
+    } else if (sec.length === 2) {
+      const val = sec[1];
+      if (isObjectWithKey(val, 'value')) {
+        parts.push(String(val.value));
+      } else {
+        parts.push(String(sec[1]));
+      }
+    }
+  }
+  parts.push(line.remainingLineChars);
+  if (O.isSome(line.inlineComment)) {
+    parts.push(line.inlineComment.value);
+  }
+  return parts.join('');
+}

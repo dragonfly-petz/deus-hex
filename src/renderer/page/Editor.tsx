@@ -37,6 +37,7 @@ import { unsafeObjectFromEntries } from '../../common/object';
 import {
   getAllDataEntriesWithId,
   getResourceEntryById,
+  resDataEntryToString,
   ResourceEntryId,
   ResourceEntryIdQuery,
   resourceEntryIdToStringKey,
@@ -51,7 +52,6 @@ import { Button } from '../framework/Button';
 import { taggedValue } from '../../common/tagged-value';
 import { bytesToString, stringToBytes } from '../../common/buffer';
 import { ReactiveNode } from '../../common/reactive/reactive-node';
-import { normalizeLineEndingsForTextArea } from '../../common/string';
 import { ReactiveVal } from '../../common/reactive/reactive-interface';
 import { ger } from '../../common/error';
 import { useDisposableEffectWithDeps } from '../hooks/disposable-memo';
@@ -238,9 +238,7 @@ function useGetDeps() {
         const sectionAsStringMap = new Map<string, SectionAsString>(
           entries.map((it) => {
             const { data } = it.entry;
-            const original = normalizeLineEndingsForTextArea(
-              bytesToString(it.entry.data)
-            );
+            const original = resDataEntryToString(it.entry);
             const editNode = new ReactiveNode(original);
 
             return [
@@ -704,6 +702,7 @@ const SectionPage = ({
   entryIdQuery: ResourceEntryIdQuery;
   sectionName: ResourceDataSectionName;
 }) => {
+  console.log(entryIdQuery);
   const entWithIdM = getResourceEntryById(fileInfo.resDirTable, entryIdQuery);
   const asEither = E.fromNullable('Section not found')(entWithIdM);
 
