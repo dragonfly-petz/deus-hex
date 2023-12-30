@@ -27,3 +27,6 @@ export const eitherW: <I, A, B>(
   p: Parser<I, A>,
   f: () => Parser<I, B>
 ) => Parser<I, A | B> = P.either as any;
+
+export const lookAheadW: <I, A>(p: Parser<I, A>) => Parser<I, any> =
+  P.lookAhead as any;

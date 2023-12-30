@@ -62,7 +62,7 @@ import { Panel, PanelBody, PanelButtons, PanelHeader } from '../layout/Panel';
 import { renderId } from '../helper/helper';
 import { isNever } from '../../common/type-assertion';
 import { CodeMirror } from '../editor/CodeMirror';
-import { copyMissingColumns } from '../../common/petz/transform/transforms';
+import { applyAntiPetWorkshopReplacements } from '../../common/petz/transform/transforms';
 
 interface NavigationDeps {
   fileInfo: FileInfoAndData & {
@@ -315,7 +315,7 @@ function useGetDeps() {
                           newFileVal.right.sectionAsStringMap.get(sectKey);
                         if (isNotNully(newSect)) {
                           newSect.editNode.setValueFn((val) =>
-                            copyMissingColumns(
+                            applyAntiPetWorkshopReplacements(
                               originalSect.editNode.getValue(),
                               val
                             )

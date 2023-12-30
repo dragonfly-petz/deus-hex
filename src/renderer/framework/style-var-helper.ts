@@ -49,7 +49,7 @@ export class StyleVarHelper<A extends Record<string, StyleType>> {
   toStyle(style: Partial<A>): CSSProperties {
     return unsafeObjectFromEntries(
       unsafeObjectEntries(style).map(([key, val]) => {
-        return [`--${key}`, val];
+        return [`--${String(key)}`, val];
       })
     );
   }
