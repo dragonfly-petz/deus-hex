@@ -1,11 +1,11 @@
 import { pipe } from 'fp-ts/function';
 import * as S from 'parser-ts/string';
 import * as P from 'parser-ts/Parser';
+import * as O from 'fp-ts/Option';
 import { Option } from 'fp-ts/Option';
 import * as C from 'parser-ts/char';
 import * as String from 'fp-ts/string';
 import { and, not } from 'fp-ts/Predicate';
-import { voidFn } from '../../function';
 import {
   COMMA,
   eitherW,
@@ -17,17 +17,56 @@ import {
   SEMICOLON,
 } from './util';
 
-const lineBreakOrEof = P.either(
-  P.map(voidFn)(lineBreak),
-  P.eof as () => P.Parser<string, void>
+export const isCommentChar = (c: C.Char) => c === SEMICOLON;
+export const lineContentChar: P.Parser<C.Char, C.Char> = P.expected(
+  P.sat(and(not(isLineBreak))(not(isCommentChar))),
+  'not a line break and not a comment char'
 );
-type LineBase<Tag, A> = {
+const lineBreakOrEof = P.either(lineBreak, () =>
+  pipe(
+    P.eof() as P.Parser<string, void>,
+    P.chain(() => P.of(''))
+  )
+);
+
+export type LineBase<Tag, A> = {
   initialWhitespace: string;
   lineContent: A;
   remainingLineChars: string;
   inlineComment: Option<string>;
+  endLineBreak: string;
   tag: Tag;
 };
+
+export function baseLineSerializer<Tag, A>(
+  line: LineBase<Tag, A>,
+  lnContent: (a: A) => string
+) {
+  const parts = new Array<string>();
+  parts.push(line.initialWhitespace);
+  parts.push(lnContent(line.lineContent));
+  parts.push(line.remainingLineChars);
+  if (O.isSome(line.inlineComment)) {
+    parts.push(line.inlineComment.value);
+  }
+  parts.push(line.endLineBreak);
+  return parts.join('');
+}
+
+export const rawLineParser = lineParser(
+  pipe(
+    S.many(lineContentChar),
+    P.map((it) => ['raw' as const, it])
+  )
+);
+
+export type RawParsedLine = typeof rawLineParser extends P.Parser<any, infer A>
+  ? A
+  : never;
+
+export function rawLineSerializer(line: RawParsedLine) {
+  return baseLineSerializer(line, (it) => it);
+}
 
 export function lineParser<Tag, A>(p: P.Parser<string, readonly [Tag, A]>) {
   return pipe(
@@ -51,7 +90,7 @@ export function lineParser<Tag, A>(p: P.Parser<string, readonly [Tag, A]>) {
     ),
     P.bind('remainingLineChars', () => S.many(lineContentChar)),
     P.bind('inlineComment', () => P.optional(commentParser)),
-    P.chainFirst(() => lineBreakOrEof),
+    P.bind('endLineBreak', () => lineBreakOrEof),
     P.map((it) => ({
       ...it,
       tag: it.lineContent[0],
@@ -60,7 +99,6 @@ export function lineParser<Tag, A>(p: P.Parser<string, readonly [Tag, A]>) {
   ) as P.Parser<string, LineBase<Tag, A> | LineBase<'raw', string>>;
 }
 
-export const isCommentChar = (c: C.Char) => c === SEMICOLON;
 const commentParser = pipe(
   S.fold([P.expected(P.sat(isCommentChar), 'a ;'), S.many(notLineBreak)])
 );
@@ -86,8 +124,4 @@ export const petzSepParser = pipe(
       S.many(hSpace),
     ])
   )
-);
-export const lineContentChar: P.Parser<C.Char, C.Char> = P.expected(
-  P.sat(and(not(isLineBreak))(not(isCommentChar))),
-  'not a line break and not a comment char'
 );

@@ -9,7 +9,7 @@ import {
 } from '../common/petz/codecs/rsrc-utility';
 import { resourceDataSections } from '../common/petz/file-types';
 import { isNully } from '../common/null';
-import { parseLnz } from '../common/petz/parser/main';
+import { parseLnz, serializeLnz } from '../common/petz/parser/main';
 
 initGlobalLogger('test');
 describe('paint ballz', () => {
@@ -40,5 +40,9 @@ describe('paint ballz', () => {
 
     const firstLine = paintBallzSection.lines[0];
     expect(firstLine.lineContent[0]).toEqual(['baseBall', 2]);
+
+    const ser = serializeLnz(parsed.right);
+
+    expect(ser).toEqual(original);
   });
 });

@@ -5,8 +5,18 @@ import * as C from 'parser-ts/char';
 import { bimap, Either } from 'fp-ts/Either';
 import { stream } from 'parser-ts/Stream';
 import { eitherW } from './util';
-import { lineContentChar, lineParser, sectionContentLineParser } from './section';
-import { PaintBallzLine, paintBallzLineParser } from './paint-ballz';
+import {
+  baseLineSerializer,
+  lineContentChar,
+  lineParser,
+  rawLineParser,
+  rawLineSerializer,
+  RawParsedLine,
+  sectionContentLineParser
+} from './section';
+import { PaintBallzLine, paintBallzLineParser, paintBallzLineSerialize } from './paint-ballz';
+import { LinezLine, linezLineParser, linezLineSerialize } from './linez';
+import { isNever } from '../../type-assertion';
 
 export const runParser: <A>(
   p: P.Parser<string, A>,
@@ -24,19 +34,51 @@ export function parseLnz(str: string) {
   return runParser(lnzParser(), str);
 }
 
+type ParsedLnz = ReturnType<typeof parseLnz> extends Either<any, infer A> ? A : never
 const lnzParser = () =>
   P.manyTill(
     eitherW(sectionParser, () => rawLineParser),
     P.eof()
   );
 
-const rawLineParser = lineParser(
-  pipe(
-    S.many(lineContentChar),
-    P.map(it => ['raw' as const, it])
-  )
-);
-type RawLine = typeof rawLineParser extends P.Parser<any, infer A> ? A : never;
+
+export function serializeLnz(lnz: ParsedLnz) {
+  const parts = new Array<string>();
+  for (const line of lnz) {
+    switch (line.tag) {
+      case 'raw':
+        parts.push(rawLineSerializer(line));
+        break;
+      case 'section':
+        parts.push(sectionLineSerializer(line));
+        switch (line.sectionType) {
+          case 'raw':
+            for (const sLine of line.lines) {
+              parts.push(rawLineSerializer(sLine));
+            }
+            break;
+          case 'paintBallz':
+            for (const sLine of line.lines) {
+              parts.push(paintBallzLineSerialize(sLine));
+            }
+            break;
+          case 'linez':
+            for (const sLine of line.lines) {
+              parts.push(linezLineSerialize(sLine));
+            }
+            break;
+          default:
+            isNever(line);
+        }
+        break;
+      default:
+        isNever(line);
+
+    }
+  }
+  return parts.join('');
+}
+
 
 const sectionHeaderParser = lineParser(pipe(
   C.char('['),
@@ -56,16 +98,6 @@ const sectionContentRawLineParser = sectionContentLineParser(
   )
 );
 
-const linezLineParser = sectionContentLineParser(
-  pipe(
-    S.many(lineContentChar),
-    P.map(it => ['linez', it] as const)
-  )
-);
-type LinezLine = typeof linezLineParser extends P.Parser<any, infer A>
-  ? A
-  : never;
-
 const sectionParser = pipe(
   sectionHeaderParser,
   P.chain((line: SectionHeader): P.Parser<string, SectionTypes> => {
@@ -83,7 +115,7 @@ const sectionParser = pipe(
 type SectionTypes =
   ReturnType<typeof mkSection<'paintBallz', PaintBallzLine>>
   | ReturnType<typeof mkSection<'linez', LinezLine>>
-  | ReturnType<typeof mkSection<'raw', RawLine>>;
+  | ReturnType<typeof mkSection<'raw', RawParsedLine>>;
 
 function runSection<Tag, A>(
   line: SectionHeader,
@@ -105,4 +137,10 @@ function mkSection<Tag, A>(line: SectionHeader,
     sectionName: line.lineContent,
     lines
   };
+}
+
+export function sectionLineSerializer(line: SectionTypes) {
+  return baseLineSerializer(line, (content) => {
+    return `[${content}]`;
+  });
 }
