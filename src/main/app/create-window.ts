@@ -11,6 +11,7 @@ import type { FlashMessageProps } from '../../renderer/framework/FlashMessage';
 import { RemoteObject } from '../../common/reactive/remote-object';
 import { UserSettings } from './persisted/user-settings';
 import type { MainIpcBase } from './main-ipc';
+import Input = Electron.Input;
 
 export interface CreateWindowParams {
   editorTarget?: string;
@@ -107,6 +108,14 @@ export async function createWindow(
       preload: getPreloadPath(),
     },
   });
+  window.webContents.on(
+    'console-message',
+    (_e, level, message, line, sourceId) => {
+      globalLogger.info(
+        `FromBrowser: ${level}\n${message}\n(${sourceId}:${line}`
+      );
+    }
+  );
   const path = resolveHtmlPath('index.html');
   const finalParams: WindowParams = {
     ...params,
@@ -129,6 +138,16 @@ export async function createWindow(
 
   // for now we are hiding the menu permanently because it interferes with alt and we don't have much use for it
   window.removeMenu();
+
+  window.webContents.on('before-input-event', (event: Event, input: Input) => {
+    if (input.key === 'F11') {
+      window.setFullScreen(window.isFullScreen());
+      event.preventDefault();
+    } else if (input.key === 'F12') {
+      window.webContents.openDevTools();
+      event.preventDefault();
+    }
+  });
 
   // Open urls in the user's browser
   window.webContents.setWindowOpenHandler((edata) => {
