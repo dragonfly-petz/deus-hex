@@ -1,6 +1,19 @@
 import { useEffect, useRef } from 'react';
 import { equalElements, EqualityCheck } from '../../common/equality';
 import { isNully } from '../../common/null';
+import { voidFn } from '../../common/function';
+
+export function useMemoWithDeps<A, Deps extends ReadonlyArray<any>>(
+  setup: (setupDeps: Deps) => A,
+  deps: Deps,
+  equalityCheck: EqualityCheck<Deps> = equalElements
+) {
+  return useDisposableMemoWithDeps(
+    (it) => [setup(it), voidFn],
+    deps,
+    equalityCheck
+  );
+}
 
 export function useDisposableMemoWithDeps<A, Deps extends ReadonlyArray<any>>(
   setup: (setupDeps: Deps) => readonly [A, () => void],

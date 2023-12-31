@@ -14,6 +14,7 @@ import { emptyComponent, FunctionalComponent } from '../framework/render';
 import { GlobalModals } from '../framework/Modal';
 import { GlobalDropFile } from '../framework/GlobalDropFile';
 import { classNames } from '../../common/react';
+import { useMemoWithDeps } from '../hooks/disposable-memo';
 
 export function Layout() {
   const { currentTabNode, userSettingsRemote } = useAppReactiveNodes();
@@ -46,18 +47,28 @@ export function Layout() {
       }),
     true
   );
-
+  // we are doing this because we want to reuse the component where possible, but not when the getdeps function changes as it can contain different hook calls
+  const TabCToUse = useMemoWithDeps(
+    () =>
+      // eslint-disable-next-line func-names
+      function () {
+        return (
+          <TabC
+            TabContent={TabContent}
+            tabSettings={tabSettings}
+            TabLeftBar={TabLeftBar}
+            TabRightBar={TabRightBar}
+            useGetDeps={useGetDeps}
+          />
+        );
+      },
+    [useGetDeps]
+  );
   return (
     <div className={style.main}>
       <Header />
       <div className={style.mainContent}>
-        <TabC
-          TabContent={TabContent}
-          tabSettings={tabSettings}
-          TabLeftBar={TabLeftBar}
-          TabRightBar={TabRightBar}
-          useGetDeps={useGetDeps}
-        />
+        <TabCToUse />
       </div>
       <FlashMessages />
       <GlobalDropFile />
