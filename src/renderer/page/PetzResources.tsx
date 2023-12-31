@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import style from './PetzResources.module.scss';
 import {
   useAppHelper,
@@ -18,16 +19,20 @@ import {
 } from '../../main/app/resource/resource-manager';
 import { DropFile } from '../framework/form/DropFile';
 import { Button } from '../framework/Button';
-import { isNully, nullable } from '../../common/null';
+import { isNotNully, isNully, nullable } from '../../common/null';
 import type { TabDef } from '../layout/Tabs';
 import { ActionBar, ActionsNode, useAddActions } from '../layout/ActionBar';
 import { throwRejection, throwRejectionK } from '../../common/promise';
 import { Panel, PanelBody, PanelButtons, PanelHeader } from '../layout/Panel';
 import { ger } from '../../common/error';
-import { ModalableProps, useModal } from '../framework/Modal';
+import {
+  ModalableProps,
+  ModalContentProps,
+  useModal,
+} from '../framework/Modal';
 import { E } from '../../common/fp-ts/fp';
 import { unsafeObjectEntries } from '../../common/object';
-import { FileType } from '../../common/petz/file-types';
+import { FileType, fileTypesValues } from '../../common/petz/file-types';
 import { renderResult } from '../framework/result';
 import { Icon, IconDef } from '../framework/Icon';
 import { globalSh, GlobalStyleVarName } from '../framework/global-style-var';
@@ -36,18 +41,29 @@ import { getAndModifyOrPut } from '../../common/map';
 import { Navigation, NavigationDef } from '../layout/NavgationBar';
 import { renderEither, renderNullable } from '../framework/render';
 import { eitherToNullable } from '../../common/fp-ts/either';
+import {
+  FormError,
+  FormInput,
+  FormItem,
+  FormLabel,
+  FormWarning,
+} from '../framework/form/form';
+import { TextInput } from '../framework/form/TextInput';
+import { renderId } from '../helper/helper';
 
 const navigationNames = ['overview', 'catz', 'dogz', 'clothes'] as const;
-export type ResourcesPage = typeof navigationNames[number];
+export type ResourcesPage = (typeof navigationNames)[number];
 
 interface NavigationDeps {
   resourcesInfo: ResourcesInfo;
   actionsNode: ActionsNode;
   // eslint-disable-next-line react/no-unused-prop-types
   resourcesOverviewQuery: TabDeps['resourcesOverviewQuery'];
+  navigation: NavigationDef<ResourcesPage, NavigationDeps>;
 }
 
-const useMkNavigation = (): NavigationDef<ResourcesPage, NavigationDeps> => {
+type NavigationDefResources = NavigationDef<ResourcesPage, NavigationDeps>;
+const useMkNavigation = (): NavigationDefResources => {
   const node = useAppReactiveNodes().currentResourcesPage;
   return {
     names: navigationNames,
@@ -96,11 +112,11 @@ export function mkPetzResourcesTab(): TabDef<TabDeps> {
   };
 }
 
-export const PetzResources = ({
+export function PetzResources({
   resourcesOverviewQuery,
   navigation,
   actionsNode,
-}: TabDeps) => {
+}: TabDeps) {
   const { userSettingsRemote } = useAppReactiveNodes();
 
   useListenReactiveVal(
@@ -123,6 +139,7 @@ export const PetzResources = ({
               resourcesInfo={value}
               actionsNode={actionsNode}
               resourcesOverviewQuery={resourcesOverviewQuery}
+              navigation={navigation}
             />
           );
         }}
@@ -130,8 +147,9 @@ export const PetzResources = ({
       />
     </div>
   );
-};
-const TabLeftBar = ({ navigation }: TabDeps) => {
+}
+
+function TabLeftBar({ navigation }: TabDeps) {
   return (
     <Navigation
       navigationNames={navigation.names}
@@ -140,9 +158,9 @@ const TabLeftBar = ({ navigation }: TabDeps) => {
       labelDeps={{}}
     />
   );
-};
+}
 
-const TabRightBar = ({ actionsNode, resourcesOverviewQuery }: TabDeps) => {
+function TabRightBar({ actionsNode, resourcesOverviewQuery }: TabDeps) {
   useAddActions(actionsNode, (actions) => {
     actions.push({
       label: 'Refresh',
@@ -155,8 +173,9 @@ const TabRightBar = ({ actionsNode, resourcesOverviewQuery }: TabDeps) => {
     });
   });
   return <ActionBar actions={actionsNode} />;
-};
-const PetzFolderForm = ({ modalProps }: ModalableProps) => {
+}
+
+function PetzFolderForm({ modalProps }: ModalableProps) {
   const { userSettingsRemote } = useAppReactiveNodes();
   const pickedPathNode = useMkReactiveNodeMemo(nullable<string>());
 
@@ -183,8 +202,13 @@ const PetzFolderForm = ({ modalProps }: ModalableProps) => {
       </PanelButtons>
     </Panel>
   );
-};
-const OverviewPage = ({ resourcesInfo, actionsNode }: NavigationDeps) => {
+}
+
+function OverviewPage({
+  resourcesInfo,
+  actionsNode,
+  navigation,
+}: NavigationDeps) {
   const { userSettingsRemote } = useAppReactiveNodes();
   const changePetzFolderModal = useModal({ Content: PetzFolderForm });
   useAddActions(actionsNode, (actions) => {
@@ -215,12 +239,19 @@ const OverviewPage = ({ resourcesInfo, actionsNode }: NavigationDeps) => {
       <h2>Folder: {petzFolder}</h2>
       <div className={style.foldersOverview}>
         {unsafeObjectEntries(resourcesInfo).map(([k, finfo]) => (
-          <FolderOverview key={k} folderInfo={finfo} type={k} />
+          <FolderOverview
+            key={k}
+            folderInfo={finfo}
+            type={k}
+            navigation={navigation}
+          />
         ))}
       </div>
     </>
   );
-};
+}
+
+type DuplicatesMap = ReturnType<typeof getDuplicatesMap>;
 
 function getDuplicatesMap(arr: ResourceInfoWithPath[]) {
   const map = new Map<number, Array<ResourceInfoWithPath>>();
@@ -240,13 +271,15 @@ function getDuplicatesMap(arr: ResourceInfoWithPath[]) {
   return map;
 }
 
-const FolderOverview = ({
+function FolderOverview({
   folderInfo,
   type,
+  navigation,
 }: {
   folderInfo: ResourceFolderInfo;
   type: FileType;
-}) => {
+  navigation: NavigationDefResources;
+}) {
   return (
     <div className={style.folderOverview}>
       <div className={style.folderTypeAndSummary}>
@@ -303,11 +336,17 @@ const FolderOverview = ({
       {renderNullable(eitherToNullable(folderInfo), (info) => (
         <div className={style.folderOverviewPath}>{info.path}</div>
       ))}
+      <Button
+        onClick={() => {
+          navigation.node.setValue(type);
+        }}
+        label="Go to section"
+      />
     </div>
   );
-};
+}
 
-const SummaryRow = ({
+function SummaryRow({
   label,
   number,
   icon,
@@ -317,7 +356,7 @@ const SummaryRow = ({
   number: number;
   icon: IconDef;
   color: GlobalStyleVarName;
-}) => {
+}) {
   return (
     <div
       style={globalSh.toProxyStyle({
@@ -335,7 +374,7 @@ const SummaryRow = ({
       <div className={style.summaryCount}>{number}</div>
     </div>
   );
-};
+}
 
 const SpecificPage = ({
   resourcesInfo,
@@ -376,45 +415,102 @@ const SpecificPage = ({
     return (
       <>
         <h2>Folder: {path}</h2>
-        <FilesList infos={invalidFiles} title="Error files" />
+        <FilesList
+          infos={invalidFiles}
+          title="Error files"
+          resourcesOverviewQuery={resourcesOverviewQuery}
+          type={type}
+        />
         {duplicates.map(([id, infos]) => {
           return (
             <FilesList
               key={id}
               infos={infos}
               title={`Duplicates with id ${id}`}
+              resourcesOverviewQuery={resourcesOverviewQuery}
+              duplicates={duplicatesMap}
+              type={type}
             />
           );
         })}
-        <FilesList infos={validFiles} title="Valid files" />
-        <FilesList infos={invalidPaths} title="Other files" />
+        <FilesList
+          infos={validFiles}
+          title="Valid files"
+          resourcesOverviewQuery={resourcesOverviewQuery}
+          duplicates={duplicatesMap}
+          type={type}
+        />
+        <FilesList
+          infos={invalidPaths}
+          title="Other files"
+          resourcesOverviewQuery={resourcesOverviewQuery}
+          type={type}
+        />
       </>
     );
   });
 };
 
-const FilesList = ({
+function FilesList({
   infos,
   title,
+  resourcesOverviewQuery,
+  duplicates,
+  type,
 }: {
   infos: ResourceInfoWithPath[];
   title: string;
-}) => {
+  resourcesOverviewQuery: TabDeps['resourcesOverviewQuery'];
+  duplicates?: DuplicatesMap;
+  type: FileType;
+}) {
   if (infos.length < 1) return null;
   return (
     <div className={style.filesList}>
       <h2>{title}</h2>
       <div className={style.list}>
         {infos.map((it) => (
-          <FileInfo key={it.path} info={it} />
+          <FileInfo
+            key={it.path}
+            info={it}
+            resourcesOverviewQuery={resourcesOverviewQuery}
+            duplicates={duplicates}
+            type={type}
+          />
         ))}
       </div>
     </div>
   );
-};
+}
 
-const FileInfo = ({ info }: { info: ResourceInfoWithPath }) => {
+function FileInfo({
+  info,
+  duplicates,
+  resourcesOverviewQuery,
+  type,
+}: {
+  info: ResourceInfoWithPath;
+  resourcesOverviewQuery: TabDeps['resourcesOverviewQuery'];
+  duplicates?: DuplicatesMap;
+  type: FileType;
+}) {
   const appHelper = useAppHelper();
+  const changePetzFolderModalNode = useModal({
+    Content: ({ modalProps }) => {
+      return renderNullable(duplicates, (dups) => {
+        return (
+          <NewIdForm
+            resourcesOverviewQuery={resourcesOverviewQuery}
+            info={info}
+            type={type}
+            duplicates={dups}
+            {...modalProps}
+          />
+        );
+      });
+    },
+  });
+
   return (
     <div className={style.fileInfo}>
       <div className={style.infoRow}>
@@ -428,7 +524,7 @@ const FileInfo = ({ info }: { info: ResourceInfoWithPath }) => {
             const { rcInfo } = inf.value;
             return (
               <>
-                <div className={style.id}>{rcInfo.breedId}</div>
+                <div className={style.id}>{renderId(rcInfo.breedId)}</div>
                 <div className={style.displayName}>{rcInfo.displayName}</div>
                 <div className={style.spriteName}>{rcInfo.spriteName}</div>
                 <div className={style.buttons}>
@@ -440,6 +536,16 @@ const FileInfo = ({ info }: { info: ResourceInfoWithPath }) => {
                     }}
                     label="Open Editor"
                   />
+                  {renderNullable(duplicates, () => {
+                    return (
+                      <Button
+                        onClick={() => {
+                          changePetzFolderModalNode.setValue(true);
+                        }}
+                        label="Assign New Id"
+                      />
+                    );
+                  })}
                 </div>
               </>
             );
@@ -448,4 +554,100 @@ const FileInfo = ({ info }: { info: ResourceInfoWithPath }) => {
       </div>
     </div>
   );
-};
+}
+
+export function NewIdForm({
+  closeModal,
+  info,
+  resourcesOverviewQuery,
+  duplicates,
+  type,
+}: ModalContentProps & {
+  info: ResourceInfoWithPath;
+  duplicates: DuplicatesMap;
+  resourcesOverviewQuery: TabDeps['resourcesOverviewQuery'];
+  type: FileType;
+}) {
+  const newIdNode = useMkReactiveNodeMemo('');
+  const validNewId = useMemo(
+    () =>
+      newIdNode.fmapStrict((it) => {
+        const val = parseInt(it, 10);
+        if (Number.isNaN(val)) {
+          return E.left(`"${it}" could not be parsed to an integer`);
+        }
+        return E.right(val);
+      }),
+    [newIdNode]
+  );
+  const idWarning = validNewId.fmapStrict((it) => {
+    if (E.isLeft(it)) return null;
+    const existing = duplicates.get(it.right);
+    if (isNotNully(existing))
+      return `This id overlaps with ${existing
+        .map((inf) => inf.fileName)
+        .join(', ')}`;
+    const overlapVanilla = fileTypesValues.find((ft) => {
+      return ft.vanillaIds.includes(it.right);
+    });
+    if (isNotNully(overlapVanilla)) {
+      return `This id overlaps with a vanilla id for ${overlapVanilla.name}`;
+    }
+    return null;
+  });
+  const validId = useReactiveVal(validNewId);
+  const mainIpc = useMainIpc();
+  return (
+    <Panel>
+      <PanelHeader>Assign New Id</PanelHeader>
+      <PanelBody>
+        <FormItem>
+          <>
+            <FormLabel>New Id</FormLabel>
+            <FormInput>
+              <TextInput valueNode={newIdNode} />
+            </FormInput>
+            <FormError message={validNewId} />
+            <FormWarning message={idWarning} />
+          </>
+        </FormItem>
+      </PanelBody>
+      <PanelButtons>
+        <Button
+          label="Assign Any Unused Id"
+          onClick={() => {
+            throwRejectionK(async () => {
+              const res = await ger.withFlashMessage(
+                mainIpc.assignNewId(info.path, type, null)
+              );
+              if (E.isRight(res)) {
+                closeModal();
+                resourcesOverviewQuery.reload();
+              }
+            });
+          }}
+        />
+        <Button
+          label={
+            E.isRight(validId)
+              ? `Assign ${validId.right}`
+              : `New Id is not valid`
+          }
+          disable={E.isLeft(validId) ? 'New id is not valid' : undefined}
+          onClick={() => {
+            if (E.isLeft(validId)) return;
+            throwRejectionK(async () => {
+              const res = await ger.withFlashMessage(
+                mainIpc.assignNewId(info.path, type, validId.right)
+              );
+              if (E.isRight(res)) {
+                closeModal();
+                resourcesOverviewQuery.reload();
+              }
+            });
+          }}
+        />
+      </PanelButtons>
+    </Panel>
+  );
+}

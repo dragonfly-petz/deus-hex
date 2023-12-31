@@ -48,7 +48,7 @@ export function useAddActions(
   }, [actionsNode, getActions]);
 }
 
-export const ActionBar = ({ actions }: { actions: ActionsNode }) => {
+export function ActionBar({ actions }: { actions: ActionsNode }) {
   const acts = Array.from(useReactiveVal(actions).values());
   return (
     <div className={style.actions}>
@@ -66,4 +66,4 @@ export const ActionBar = ({ actions }: { actions: ActionsNode }) => {
       })}
     </div>
   );
-};
+}

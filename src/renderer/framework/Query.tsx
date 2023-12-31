@@ -66,12 +66,17 @@ export class Query<A> implements ReactiveVal<QueryState<A>> {
 
   private async runQuery() {
     this.setState({ tag: 'pending' });
+    return this.runQuerySoft();
+  }
+
+  private async runQuerySoft() {
     const res = await this.query();
     if (E.isLeft(res)) {
       this.setState({ tag: 'error', value: res.left });
     } else {
       this.setState({ tag: 'success', value: res.right });
     }
+    return res;
   }
 
   private setState(st: QueryState<A>) {
@@ -86,6 +91,10 @@ export class Query<A> implements ReactiveVal<QueryState<A>> {
 
   async reload() {
     return this.runQuery();
+  }
+
+  async reloadSoft() {
+    return this.runQuerySoft();
   }
 
   fmap<B>(
@@ -113,7 +122,7 @@ export function useMkQueryMemo<A>(
   return useMemo(() => new Query(query), deps);
 }
 
-export const RenderQuery = <A,>({
+export function RenderQuery<A>({
   query,
   OnSuccess,
   AdditionalOnError = emptyComponent,
@@ -121,7 +130,7 @@ export const RenderQuery = <A,>({
   query: Query<A>;
   OnSuccess: FunctionalComponent<{ value: A }>;
   AdditionalOnError?: FunctionalComponent;
-}) => {
+}) {
   const queryState = useReactiveVal(query);
   switch (queryState.tag) {
     case 'pending':
@@ -152,4 +161,4 @@ export const RenderQuery = <A,>({
     default:
       return isNever(queryState);
   }
-};
+}

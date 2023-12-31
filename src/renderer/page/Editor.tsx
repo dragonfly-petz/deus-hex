@@ -1,6 +1,7 @@
-import { useEffect } from 'react';
+import { ReactNode, useEffect } from 'react';
 import { pipe } from 'fp-ts/function';
 import { isString } from 'fp-ts/string';
+import bmp from '@wokwi/bmp-ts';
 import style from './Editor.module.scss';
 import {
   useAppContext,
@@ -36,6 +37,7 @@ import { unsafeObjectFromEntries } from '../../common/object';
 import {
   getAllDataEntriesWithId,
   getResourceEntryById,
+  resDataEntryToString,
   ResourceEntryId,
   ResourceEntryIdQuery,
   resourceEntryIdToStringKey,
@@ -49,9 +51,7 @@ import { NewProjectForm } from './Projects';
 import { Button } from '../framework/Button';
 import { taggedValue } from '../../common/tagged-value';
 import { bytesToString, stringToBytes } from '../../common/buffer';
-import { TextArea } from '../framework/form/TextArea';
 import { ReactiveNode } from '../../common/reactive/reactive-node';
-import { normalizeLineEndingsForTextArea } from '../../common/string';
 import { ReactiveVal } from '../../common/reactive/reactive-interface';
 import { ger } from '../../common/error';
 import { useDisposableEffectWithDeps } from '../hooks/disposable-memo';
@@ -59,6 +59,10 @@ import { Disposer } from '../../common/disposable';
 import { formatDateDistance } from '../../common/df';
 import { throwRejectionK } from '../../common/promise';
 import { Panel, PanelBody, PanelButtons, PanelHeader } from '../layout/Panel';
+import { renderId } from '../helper/helper';
+import { isNever } from '../../common/type-assertion';
+import { CodeMirror } from '../editor/CodeMirror';
+import { applyAntiPetWorkshopReplacements } from '../../common/petz/transform/transforms';
 
 interface NavigationDeps {
   fileInfo: FileInfoAndData & {
@@ -71,12 +75,13 @@ interface NavigationDeps {
 }
 
 type FileInfoQueryResult = QueryInner<TabDefs['fileInfoQuery']>;
-const SectionName = ({
+
+function SectionName({
   name,
   fileInfo,
 }: NavigationDeps & {
   name: ResourceDataSectionName;
-}) => {
+}) {
   const hasChangedNode = run(() => {
     const entWithIdM = getResourceEntryById(
       fileInfo.resDirTable,
@@ -92,11 +97,12 @@ const SectionName = ({
   const hasChanged = useReactiveVal(hasChangedNode);
   return (
     <div>
-      {name}
+      {resourceDataSections[name].name}
       {hasChanged ? '*' : ''}
     </div>
   );
-};
+}
+
 const useMkNavigation = (
   params: Result<EditorParams> | null
 ): NavigationDef<string, NavigationDeps, NavigationDeps> => {
@@ -118,6 +124,7 @@ const useMkNavigation = (
           Content: (deps: NavigationDeps) => {
             const editorParamsNode = useAppReactiveNodes().editorParams;
             const newProjectModalNode = useModal({
+              // eslint-disable-next-line react/no-unstable-nested-components
               Content: (rest) => (
                 <NewProjectForm
                   // eslint-disable-next-line react/destructuring-assignment
@@ -156,6 +163,7 @@ const useMkNavigation = (
 
                 <SectionPage
                   entryIdQuery={resourceDataSections[n].idMatcher}
+                  sectionName={n}
                   {...deps}
                 />
               </>
@@ -181,6 +189,7 @@ const useMkNavigation = (
 };
 
 interface SectionAsString {
+  data: Uint8Array;
   original: string;
   editNode: ReactiveNode<string>;
   hasChanged: ReactiveVal<boolean>;
@@ -231,14 +240,14 @@ function useGetDeps() {
         const entries = getAllDataEntriesWithId(resIn.resDirTable);
         const sectionAsStringMap = new Map<string, SectionAsString>(
           entries.map((it) => {
-            const original = normalizeLineEndingsForTextArea(
-              bytesToString(it.entry.data)
-            );
+            const { data } = it.entry;
+            const original = resDataEntryToString(it.entry);
             const editNode = new ReactiveNode(original);
 
             return [
               resourceEntryIdToStringKey(it.id),
               {
+                data,
                 original,
                 editNode,
                 hasChanged: editNode.fmapStrict((str) => str !== original),
@@ -267,47 +276,85 @@ function useGetDeps() {
   useDisposableEffectWithDeps(() => {
     let watchDisposer = nullable<Promise<Disposer>>();
     const listenDispose = fileInfoQuery.listen((change) => {
-      if (isNotNully(watchDisposer)) {
-        // eslint-disable-next-line promise/catch-or-return
-        watchDisposer.then(run);
-        watchDisposer = null;
-      }
-      if (change.tag === 'success' && isNotNully(change.value.projectId)) {
-        watchDisposer = run(async () => {
-          const { value } = change;
-          const fileToWatch = change.value.filePath;
-          const watcherId = await mainIpc.watchFile(change.value.filePath, [
-            windowId,
-          ]);
+      run(async () => {
+        if (isNotNully(watchDisposer)) {
+          // eslint-disable-next-line promise/catch-or-return
+          (await watchDisposer)();
+          watchDisposer = null;
+        }
+        if (change.tag === 'success' && isNotNully(change.value.projectId)) {
+          watchDisposer = run(async () => {
+            const { value } = change;
+            const fileToWatch = change.value.filePath;
+            const watcherId = await mainIpc.watchFile(change.value.filePath, [
+              windowId,
+            ]);
 
-          const fileChangeDispose = domIpc.fileWatchListenable.listen(
-            async (fwChange) => {
-              if (
-                E.isRight(watcherId) &&
-                watcherId.right === fwChange.filePath
-              ) {
-                const res = await ger.withFlashMessage(
-                  mainIpc.saveResourceSections(
-                    value.filePath,
-                    value.getSectsToSave(),
-                    { backup: 'external' }
-                  )
-                );
-                if (E.isRight(res)) {
-                  fileInfoQuery.reload();
-                  projectInfoQuery.reload();
+            const fileChangeDispose = domIpc.fileWatchListenable.listen(
+              async (fwChange) => {
+                if (
+                  E.isRight(watcherId) &&
+                  watcherId.right === fwChange.filePath
+                ) {
+                  const res = await ger.withFlashMessage(
+                    mainIpc.saveResourceSections(
+                      value.filePath,
+                      value.getSectsToSave(),
+                      { backup: 'external' }
+                    )
+                  );
+                  if (E.isRight(res)) {
+                    const reloadFilePromise = fileInfoQuery.reloadSoft();
+                    projectInfoQuery.reloadSoft();
+                    const newFileVal = await reloadFilePromise;
+                    if (E.isRight(newFileVal)) {
+                      for (const [
+                        sectKey,
+                        originalSect,
+                      ] of value.sectionAsStringMap.entries()) {
+                        if (sectKey.slice(0, 3) !== 'LNZ') {
+                          continue;
+                        }
+                        const newSect =
+                          newFileVal.right.sectionAsStringMap.get(sectKey);
+                        if (isNotNully(newSect)) {
+                          const applyRes = applyAntiPetWorkshopReplacements(
+                            originalSect.editNode.getValue(),
+                            newSect.editNode.getValue()
+                          );
+                          if (isNotNully(applyRes)) {
+                            if (E.isRight(applyRes)) {
+                              ger.addFm({
+                                kind: 'info',
+                                title: `Changes reapplied to optional columns in ${sectKey}`,
+                                message: `${applyRes.right[0]}\nNote: changes have been applied in the editor and haven't been saved yet`,
+                              });
+                              newSect.editNode.setValue(applyRes.right[1]);
+                            } else {
+                              ger.addFm({
+                                kind: 'error',
+                                title:
+                                  'Attempt to reapply optional columns failed',
+                                message: applyRes.left,
+                              });
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
                 }
               }
-            }
-          );
-          return () => {
-            fileChangeDispose();
-            if (E.isRight(watcherId)) {
-              mainIpc.unwatchFile(fileToWatch, [windowId]);
-            }
-          };
-        });
-      }
+            );
+            return () => {
+              fileChangeDispose();
+              if (E.isRight(watcherId)) {
+                mainIpc.unwatchFile(fileToWatch, [windowId]);
+              }
+            };
+          });
+        }
+      });
     }, true);
     return () => {
       listenDispose();
@@ -344,16 +391,19 @@ export function mkEditorTab(): TabDef<TabDefs> {
     TabContent: EditorC,
     TabRightBar,
     TabLeftBar,
+    tabSettings: {
+      centerContentClass: style.centerContentClass,
+    },
   };
 }
 
-export const EditorC = ({
+export function EditorC({
   fileInfoQuery,
   navigation,
   actionsNode,
   projectId,
   projectInfoQuery,
-}: TabDefs) => {
+}: TabDefs) {
   return (
     <div className={style.main}>
       <RenderQuery
@@ -375,42 +425,41 @@ export const EditorC = ({
       />
     </div>
   );
-};
-const TabLeftBar = (deps: TabDefs) => {
+}
+
+function TabLeftBar(deps: TabDefs) {
   const { navigation, fileInfoQuery, projectId, projectInfoQuery } = deps;
   return (
-    <>
-      <RenderQuery
-        query={fileInfoQuery}
-        OnSuccess={({ value }) => {
-          return (
-            <>
-              <Navigation
-                navigationNames={navigation.names}
-                items={navigation.items}
-                node={navigation.node}
-                labelDeps={{ ...deps, fileInfo: value }}
-              />
-              <RcDataInfo value={value} projectId={projectId} />
-              <BackupsInfo
-                projectInfoQuery={projectInfoQuery}
-                projectId={projectId}
-              />
-            </>
-          );
-        }}
-      />
-    </>
+    <RenderQuery
+      query={fileInfoQuery}
+      OnSuccess={({ value }) => {
+        return (
+          <>
+            <Navigation
+              navigationNames={navigation.names}
+              items={navigation.items}
+              node={navigation.node}
+              labelDeps={{ ...deps, fileInfo: value }}
+            />
+            <RcDataInfo value={value} projectId={projectId} />
+            <BackupsInfo
+              projectInfoQuery={projectInfoQuery}
+              projectId={projectId}
+            />
+          </>
+        );
+      }}
+    />
   );
-};
+}
 
-const RcDataInfo = ({
+function RcDataInfo({
   value,
   projectId,
 }: {
   value: FileInfoQueryResult;
   projectId: ProjectId | null;
-}) => {
+}) {
   return (
     <div className={style.rcData}>
       <RcDataRow label="Path" value={value.filePath} />
@@ -425,7 +474,7 @@ const RcDataInfo = ({
       />
       <RcDataRow
         label="Breed Id"
-        value={value.rcDataAndEntry.rcData.breedId.toFixed()}
+        value={renderId(value.rcDataAndEntry.rcData.breedId)}
       />
       <RcDataRow
         label="Tag"
@@ -441,24 +490,24 @@ const RcDataInfo = ({
       />
     </div>
   );
-};
+}
 
-const RcDataRow = ({ label, value }: { label: string; value: string }) => {
+function RcDataRow({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className={style.rcDataRow}>
       <div className={style.rcDataLabel}>{label}</div>
       <div className={style.rcDataValue}>{value}</div>
     </div>
   );
-};
+}
 
-const BackupsInfo = ({
+function BackupsInfo({
   projectInfoQuery,
   projectId,
 }: {
   projectInfoQuery: NavigationDeps['projectInfoQuery'];
   projectId: ProjectId | null;
-}) => {
+}) {
   const editorParamsNode = useAppReactiveNodes().editorParams;
   const mainIpc = useMainIpc();
   if (isNully(projectId)) {
@@ -515,175 +564,227 @@ const BackupsInfo = ({
       </div>
     );
   });
-};
+}
 
 interface OverwriteModalOpts {
   continue: () => void;
   filePath: string;
 }
 
-const TabRightBar = ({
+function TabRightBar({
   actionsNode,
   fileInfoQuery,
   projectId,
   projectInfoQuery,
-}: TabDefs) => {
+}: TabDefs) {
   const petzFolder = useUserSetting('petzFolder');
   const onContinueNode = useMkReactiveNodeMemo(nullable<OverwriteModalOpts>());
   const overwriteModalNode = useOverwriteModal(onContinueNode);
   return (
-    <>
-      <RenderQuery
-        query={fileInfoQuery}
-        OnSuccess={({ value }) => {
-          const mainIpc = useMainIpc();
-          const sections = Array.from(value.sectionAsStringMap.values()).map(
-            (it) => it.hasChanged
-          );
-          const anyChangedNode = sequenceReactiveArray(sections).fmapStrict(
-            (it) => it.some(identity)
-          );
-          useAddActions(actionsNode, (actions) => {
-            actions.push({
-              label: 'Open Containing Folder',
-              icon: 'faFolderOpen',
-              key: 'openFolder',
-              tooltip: 'Open folder that contains this file',
-              action: () => {
-                return mainIpc.openDirInExplorer(value.pathParsed.dir);
-              },
-            });
+    <RenderQuery
+      query={fileInfoQuery}
+      OnSuccess={({ value }) => {
+        const mainIpc = useMainIpc();
+        const sections = Array.from(value.sectionAsStringMap.values()).map(
+          (it) => it.hasChanged
+        );
+        const anyChangedNode = sequenceReactiveArray(sections).fmapStrict(
+          (it) => it.some(identity)
+        );
+        useAddActions(actionsNode, (actions) => {
+          actions.push({
+            label: 'Open Containing Folder',
+            icon: 'faFolderOpen',
+            key: 'openFolder',
+            tooltip: 'Open folder that contains this file',
+            action: () => {
+              return mainIpc.openDirInExplorer(value.pathParsed.dir);
+            },
+          });
 
+          actions.push({
+            label: 'Save',
+            icon: 'faSave',
+            key: 'save',
+            tooltip: 'Save this file',
+            disable: anyChangedNode.fmapStrict((it) =>
+              it ? O.none : O.of('No changes made')
+            ),
+            action: () => {
+              return ger.withFlashMessageK(async () => {
+                const res = await mainIpc.saveResourceSections(
+                  value.filePath,
+                  value.getSectsToSave()
+                );
+                if (E.isRight(res)) {
+                  fileInfoQuery.reloadSoft();
+                  projectInfoQuery.reloadSoft();
+                }
+                return res;
+              });
+            },
+          });
+
+          if (isNotNully(projectId)) {
             actions.push({
-              label: 'Save',
+              label: 'Save Backup',
               icon: 'faSave',
-              key: 'save',
-              tooltip: 'Save this file',
-              disable: anyChangedNode.fmapStrict((it) =>
-                it ? O.none : O.of('No changes made')
-              ),
+              key: 'saveBackup',
+              tooltip:
+                "Save the current changes as a backup file but don't save them to the current file'",
               action: () => {
                 return ger.withFlashMessageK(async () => {
                   const res = await mainIpc.saveResourceSections(
                     value.filePath,
-                    value.getSectsToSave()
+                    value.getSectsToSave(),
+                    { backup: 'explicit' }
                   );
                   if (E.isRight(res)) {
-                    fileInfoQuery.reload();
                     projectInfoQuery.reload();
                   }
                   return res;
                 });
               },
             });
-            if (isNotNully(projectId)) {
-              actions.push({
-                label: 'Save Backup',
-                icon: 'faSave',
-                key: 'saveBackup',
-                tooltip:
-                  "Save the current changes as a backup file but don't save them to the current file",
-                action: () => {
-                  return ger.withFlashMessageK(async () => {
-                    const res = await mainIpc.saveResourceSections(
-                      value.filePath,
-                      value.getSectsToSave(),
-                      { backup: 'explicit' }
+
+            actions.push({
+              label: 'Export Current To Game',
+              icon: 'faFileExport',
+              key: 'exportCurrent',
+              disable: isNully(petzFolder)
+                ? 'You must set a Petz folder to use this function'
+                : undefined,
+              tooltip:
+                'Copy the current saved version to the game - does not include unsaved changes',
+              action: () => {
+                return ger.withFlashMessageK(
+                  async () => {
+                    if (isNully(petzFolder))
+                      return E.left('No petz folder set');
+                    const res = await mainIpc.exportCurrentToGame(
+                      petzFolder,
+                      projectId,
+                      false
                     );
                     if (E.isRight(res)) {
-                      projectInfoQuery.reload();
+                      if (isString(res.right)) {
+                        overwriteModalNode.setValue(false);
+                        return res;
+                      }
+                      if (isString(res.right.alreadyExists)) {
+                        onContinueNode.setValue({
+                          filePath: res.right.alreadyExists,
+                          continue: () => {
+                            ger.withFlashMessageK(async () => {
+                              if (isNully(petzFolder))
+                                return E.left('No petz folder set');
+                              const res2 = await mainIpc.exportCurrentToGame(
+                                petzFolder,
+                                projectId,
+                                true
+                              );
+                              if (E.isRight(res2)) {
+                                if (isString(res2.right)) {
+                                  overwriteModalNode.setValue(false);
+                                  onContinueNode.setValue(null);
+                                  return res2;
+                                }
+                                return E.left('Failed unexpectedly!');
+                              }
+                              return res2;
+                            });
+                          },
+                        });
+                        overwriteModalNode.setValue(true);
+                      }
                     }
                     return res;
-                  });
-                },
-              });
+                  },
+                  { successOnlyOnString: true }
+                );
+              },
+            });
+          }
+        });
 
-              actions.push({
-                label: 'Export Current To Game',
-                icon: 'faFileExport',
-                key: 'exportCurrent',
-                disable: isNully(petzFolder)
-                  ? 'You must set a Petz folder to use this function'
-                  : undefined,
-                tooltip:
-                  'Copy the current saved version to the game - does not include unsaved changes',
-                action: () => {
-                  return ger.withFlashMessageK(
-                    async () => {
-                      if (isNully(petzFolder))
-                        return E.left('No petz folder set');
-                      const res = await mainIpc.exportCurrentToGame(
-                        petzFolder,
-                        projectId,
-                        false
-                      );
-                      if (E.isRight(res)) {
-                        if (isString(res.right)) {
-                          overwriteModalNode.setValue(false);
-                          return res;
-                        }
-                        if (isString(res.right.alreadyExists)) {
-                          onContinueNode.setValue({
-                            filePath: res.right.alreadyExists,
-                            continue: () => {
-                              ger.withFlashMessageK(async () => {
-                                if (isNully(petzFolder))
-                                  return E.left('No petz folder set');
-                                const res2 = await mainIpc.exportCurrentToGame(
-                                  petzFolder,
-                                  projectId,
-                                  true
-                                );
-                                if (E.isRight(res2)) {
-                                  if (isString(res2.right)) {
-                                    overwriteModalNode.setValue(false);
-                                    onContinueNode.setValue(null);
-                                    return res2;
-                                  }
-                                  return E.left('Failed unexpectedly!');
-                                }
-                                return res2;
-                              });
-                            },
-                          });
-                          overwriteModalNode.setValue(true);
-                        }
-                      }
-                      return res;
-                    },
-                    { successOnlyOnString: true }
-                  );
-                },
-              });
-            }
-          });
-
-          return <ActionBar actions={actionsNode} />;
-        }}
-      />
-    </>
+        return <ActionBar actions={actionsNode} />;
+      }}
+    />
   );
-};
+}
 
 const SectionPage = ({
   fileInfo,
   entryIdQuery,
-}: NavigationDeps & { entryIdQuery: ResourceEntryIdQuery }) => {
+  sectionName,
+}: NavigationDeps & {
+  entryIdQuery: ResourceEntryIdQuery;
+  sectionName: ResourceDataSectionName;
+}) => {
   const entWithIdM = getResourceEntryById(fileInfo.resDirTable, entryIdQuery);
   const asEither = E.fromNullable('Section not found')(entWithIdM);
 
   return renderResult(asEither, (entWithId) => {
     const stringKey = resourceEntryIdToStringKey(entWithId.id);
-    const node = fileInfo.sectionAsStringMap.get(stringKey)?.editNode;
+    const node = fileInfo.sectionAsStringMap.get(stringKey);
     if (isNully(node)) {
       return <div>Expected to find edit node for section key {stringKey}</div>;
     }
+    const sectionType = resourceDataSections[sectionName].type;
     return (
       <>
         <h2>Editing section {resourceEntryIdToStringKey(entWithId.id)}</h2>
-        <div className={style.editorTextAreaWrapper}>
-          <TextArea valueNode={node} className={style.editorTextArea} />
-        </div>
+        {run(() => {
+          switch (sectionType) {
+            case 'ascii':
+              return (
+                <div className={style.editorTextAreaWrapper}>
+                  <CodeMirror valueNode={node.editNode} />
+                </div>
+              );
+            case 'bitmap': {
+              const bmpData = bmp.decode(node.data);
+              // console.log(bmpData);
+              const dataToMod = bmpData.data;
+              for (let row = 0; row < bmpData.height; row++) {
+                for (let col = 0; col < bmpData.width; col++) {
+                  const idx = row * bmpData.width * 4 + col * 4;
+                  dataToMod[idx] = 255;
+                }
+              }
+              const encoded = bmp.encode({
+                data: bmpData.data,
+                bitPP: 8,
+                width: bmpData.width,
+                height: bmpData.height,
+                palette: bmpData.palette,
+                hr: bmpData.hr,
+                vr: bmpData.vr,
+                colors: bmpData.colors,
+                importantColors: bmpData.importantColors,
+              });
+              const _bitMapP = createImageBitmap(new Blob([encoded.data]));
+
+              return (
+                <div className={style.previewImageWrapper}>
+                  <img
+                    src={`data:image/bmp;base64,${btoa(
+                      bytesToString(node.data)
+                    )}`}
+                  />
+                  <img
+                    src={`data:image/bmp;base64,${btoa(
+                      bytesToString(encoded.data)
+                    )}`}
+                  />
+                </div>
+              );
+            }
+            default: {
+              return isNever(sectionType);
+            }
+          }
+        })}
       </>
     );
   });
@@ -700,12 +801,12 @@ const useOverwriteModal = (
   });
 };
 
-export const FileExistsModal = ({
+export function FileExistsModal({
   closeModal,
   onContinueNode,
 }: ModalContentProps & {
   onContinueNode: ReactiveVal<null | OverwriteModalOpts>;
-}) => {
+}) {
   const mainIpc = useMainIpc();
   const onContinue = useReactiveVal(onContinueNode);
   if (isNully(onContinue)) {
@@ -731,4 +832,4 @@ export const FileExistsModal = ({
       </PanelButtons>
     </Panel>
   );
-};
+}

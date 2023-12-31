@@ -5,7 +5,7 @@ import { useAppContext, useAppReactiveNodes } from '../context/context';
 import { Heading } from './text';
 import logoImg from '../../../assets/logoImage.png';
 
-export const Header = () => {
+export function Header() {
   const { appVersion } = useAppContext();
   const { localFontSizeAdjust } = useAppReactiveNodes();
 
@@ -48,4 +48,4 @@ export const Header = () => {
       </div>
     </div>
   );
-};
+}

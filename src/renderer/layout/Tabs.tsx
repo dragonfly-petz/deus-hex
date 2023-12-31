@@ -17,6 +17,11 @@ export interface TabDef<A extends object> {
   TabContent: FunctionalComponent<A>;
   TabLeftBar?: FunctionalComponent<A>;
   TabRightBar?: FunctionalComponent<A>;
+  tabSettings?: TabSettings;
+}
+
+export interface TabSettings {
+  centerContentClass?: string;
 }
 
 export const tabs: Record<TabName, TabDef<any>> = {
@@ -46,7 +51,7 @@ export const tabs: Record<TabName, TabDef<any>> = {
   },
 };
 
-export const Tabs = () => {
+export function Tabs() {
   const { currentTabNode } = useAppReactiveNodes();
   const currentTab = useReactiveVal(currentTabNode);
 
@@ -68,4 +73,4 @@ export const Tabs = () => {
       })}
     </div>
   );
-};
+}

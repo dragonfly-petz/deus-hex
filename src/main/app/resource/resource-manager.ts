@@ -1,7 +1,7 @@
 import path from 'path';
 import { identity, pipe } from 'fp-ts/function';
 import { fromPromiseProperties, PromiseInner } from '../../../common/promise';
-import { isNully } from '../../../common/null';
+import { isNotNully, isNully } from '../../../common/null';
 import { A, E, Either } from '../../../common/fp-ts/fp';
 import {
   mapObjectValues,
@@ -9,7 +9,11 @@ import {
   unsafeObjectEntries,
 } from '../../../common/object';
 import { directoryExists, fileStat, getPathsInDir } from '../file/file-util';
-import { FileType, fileTypes } from '../../../common/petz/file-types';
+import {
+  FileType,
+  fileTypes,
+  fileTypesValues,
+} from '../../../common/petz/file-types';
 import {
   FileInfo,
   getFileInfo,
@@ -17,11 +21,15 @@ import {
   setBreedId,
 } from '../pe-files/pe-files-util';
 import { TaggedValue, taggedValue } from '../../../common/tagged-value';
-import { snd, sortByNumeric } from '../../../common/array';
+import { safeHead, snd, sortByNumeric } from '../../../common/array';
 import { fsPromises } from '../util/fs-promises';
 import { Result } from '../../../common/result';
 import { isNever } from '../../../common/type-assertion';
 import { FileWatcher } from '../file/file-watcher';
+import { run } from '../../../common/function';
+
+// should probably be int 16 or similar but this should be good enough
+const highestId = 30000;
 
 export type ResourceFolderInfo = PromiseInner<
   ReturnType<typeof getResourcesInDirImpl>
@@ -87,6 +95,50 @@ export class ResourceManager {
       );
     }
     return E.right(`Saved and backed up original at ${backupFile}`);
+  }
+
+  async assignNewId(
+    petzFolder: string,
+    filePath: string,
+    type: FileType,
+    newIdRaw: number | null
+  ) {
+    const newId = await run(async () => {
+      if (isNotNully(newIdRaw)) return E.right(newIdRaw);
+      const sequenced = await getExistingInfos(petzFolder, type);
+      if (E.isLeft(sequenced)) return sequenced;
+      const idsAssigned = [
+        ...A.flatten(fileTypesValues.map((it) => it.vanillaIds)),
+        ...sequenced.right.map((it) => it.info.rcInfo.breedId),
+      ];
+      sortByNumeric(idsAssigned, identity);
+      const smallest = safeHead(idsAssigned);
+      if (isNully(smallest)) {
+        return E.left(`No ids in folder, could not get a min value.`);
+      }
+      let tryId = smallest + 1;
+      while (tryId < highestId) {
+        if (!idsAssigned.includes(tryId)) {
+          return E.right(tryId);
+        }
+        tryId++;
+      }
+      return E.left(
+        `Exhausted ids without finding a spare one (highest: ${tryId})`
+      );
+    });
+
+    if (E.isLeft(newId)) {
+      return newId;
+    }
+    const buf = await fsPromises.readFile(filePath);
+    const pe = await parsePE(buf);
+    await setBreedId(pe, newId.right);
+    await this.fileWatcher.writeFileSuspendWatcher(
+      filePath,
+      Buffer.from(pe.generate())
+    );
+    return E.right(`Assigned id ${newId.right} to ${filePath}`);
   }
 }
 
@@ -175,11 +227,7 @@ async function getResourceInfoImpl(
   return E.right(taggedValue('success', fileInfo.right));
 }
 
-async function fixDuplicateIds(
-  petzFolder: string,
-  type: FileType,
-  fileWatcher: FileWatcher
-) {
+async function getExistingInfos(petzFolder: string, type: FileType) {
   const dir = path.join(petzFolder, ...fileTypes[type].pathSegments);
   const existingInfos = await getResourcesInDirImpl(dir, type);
   if (E.isLeft(existingInfos)) return existingInfos;
@@ -200,7 +248,19 @@ async function fixDuplicateIds(
   if (E.isLeft(sequenced)) {
     return E.left('Some files were not valid');
   }
-  const idsAssigned = new Set<number>();
+  return sequenced;
+}
+
+async function fixDuplicateIds(
+  petzFolder: string,
+  type: FileType,
+  fileWatcher: FileWatcher
+) {
+  const sequenced = await getExistingInfos(petzFolder, type);
+  if (E.isLeft(sequenced)) return sequenced;
+  const idsAssigned = new Set<number>(
+    A.flatten(fileTypesValues.map((it) => it.vanillaIds))
+  );
   const toReassign = new Array<{ info: FileInfo; path: string }>();
   for (const file of sequenced.right) {
     if (idsAssigned.has(file.info.rcInfo.breedId)) {
@@ -209,8 +269,7 @@ async function fixDuplicateIds(
       idsAssigned.add(file.info.rcInfo.breedId);
     }
   }
-  // should probably be int 16 or similar but this should be good enough
-  const highestId = 30000;
+
   const pickNewId = () => {
     const asArr = Array.from(idsAssigned);
     sortByNumeric(asArr, identity);

@@ -13,13 +13,13 @@ export const lineCols = [
   'startThickness',
   'endThickness',
 ] as const;
-type LineCol = typeof lineCols[number];
+type LineCol = (typeof lineCols)[number];
 export const lineColsOptional = [
   'lineAdditionalOne',
   'lineAdditionalTwo',
 ] as const;
 export const allLineCols = flatten([lineCols, lineColsOptional]);
-type LineColOptional = typeof lineColsOptional[number];
+type LineColOptional = (typeof lineColsOptional)[number];
 
 export type LineDef = RecordFromCols<LineCol, LineColOptional>;
 

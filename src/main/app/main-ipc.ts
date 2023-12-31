@@ -4,13 +4,16 @@ import path from 'path';
 import {
   parseAddBallsBreed,
   serializeClothingAddBalls,
-} from '../../common/petz/parser/addballs';
+} from '../../common/petz/simple-parser/addballs';
 import { E } from '../../common/fp-ts/fp';
 import {
   transformBreedAddBallsToClothing,
   transformBreedLinesToClothing,
 } from '../../common/petz/transform/transforms';
-import { parseLines, serializeLines } from '../../common/petz/parser/lines';
+import {
+  parseLines,
+  serializeLines,
+} from '../../common/petz/simple-parser/lines';
 import { isDev } from './util';
 import {
   getFileAndUpdateResourceSections,
@@ -167,6 +170,19 @@ export class MainIpcBase {
       return E.left('No petz folder set');
     }
     return this.resourceManager.fixDuplicateIds(petzFolder, type);
+  }
+
+  async assignNewId(filePath: string, type: FileType, newIdRaw: number | null) {
+    const { petzFolder } = this.userSettingsRemote.getValue();
+    if (isNully(petzFolder)) {
+      return E.left('No petz folder set');
+    }
+    return this.resourceManager.assignNewId(
+      petzFolder,
+      filePath,
+      type,
+      newIdRaw
+    );
   }
 
   async openDirInExplorer(directoryPath: string) {

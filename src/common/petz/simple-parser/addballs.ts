@@ -26,7 +26,7 @@ export const clothingCols = [
   'ballsize',
   'texture',
 ] as const;
-type ClothingCol = typeof clothingCols[number];
+type ClothingCol = (typeof clothingCols)[number];
 export type AddBallClothing = RecordFromCols<ClothingCol>;
 
 export const breedCols = [
@@ -45,7 +45,7 @@ export const breedCols = [
   'addGroup',
   'texture',
 ] as const;
-type BreedCol = typeof breedCols[number];
+type BreedCol = (typeof breedCols)[number];
 export type AddBallBreed = RecordFromCols<BreedCol>;
 
 export function parseAddBallsBreed(
@@ -84,14 +84,16 @@ export function parseCols<Col extends PropertyKey, OptCol extends PropertyKey>(
     const val = safeGet(split, idx);
     if (isNully(val)) {
       return E.left(
-        `Expected to find a value at column ${idx} (${colName}) in line "${line}"`
+        `Expected to find a value at column ${idx} (${String(
+          colName
+        )}) in line "${line}"`
       );
     }
     const num = pInt(val);
     if (E.isLeft(num)) {
       return nestErr(
         num,
-        `Failed parsing ${idx} (${colName}) in line "${line}"`
+        `Failed parsing ${idx} (${String(colName)}) in line "${line}"`
       );
     }
     entries.push([colName, num.right]);
@@ -104,7 +106,7 @@ export function parseCols<Col extends PropertyKey, OptCol extends PropertyKey>(
     if (E.isLeft(num)) {
       return nestErr(
         num,
-        `Failed parsing ${idx} (${colName}) in line "${line}"`
+        `Failed parsing ${idx} (${String(colName)}) in line "${line}"`
       );
     }
     entries.push([colName, num.right]);

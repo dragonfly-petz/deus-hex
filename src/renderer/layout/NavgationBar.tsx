@@ -23,7 +23,7 @@ interface NavigationItem<
   Content: FunctionalComponent<Deps>;
 }
 
-export const Navigation = <
+export function Navigation<
   A extends string,
   Deps extends object,
   LabelDeps extends object = Record<string, never>
@@ -37,7 +37,7 @@ export const Navigation = <
   items: Record<A, NavigationItem<Deps, LabelDeps>>;
   node: ReactiveNode<A>;
   labelDeps: LabelDeps;
-}) => {
+}) {
   const currentName = useReactiveVal(node);
 
   return (
@@ -60,4 +60,4 @@ export const Navigation = <
       })}
     </div>
   );
-};
+}

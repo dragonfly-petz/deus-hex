@@ -5,6 +5,8 @@ import { deepEqual } from '../../equality';
 import { isNully } from '../../null';
 import { mapObjectValues, objectEntries } from '../../object';
 import { A } from '../../fp-ts/fp';
+import { normalizeLineEndingsForTextArea } from '../../string';
+import { bytesToString } from '../../buffer';
 
 export interface ResourceEntryId {
   // these are just what these are called in pe files apparently
@@ -137,6 +139,10 @@ export function getAllDataEntriesWithId(
   table: ResDirTable
 ): Array<ResDataEntryWithId> {
   return doGetAllDataEntriesWithId(table, []);
+}
+
+export function resDataEntryToString(entry: ResDataEntry) {
+  return normalizeLineEndingsForTextArea(bytesToString(entry.data));
 }
 
 function doGetAllDataEntriesWithId(

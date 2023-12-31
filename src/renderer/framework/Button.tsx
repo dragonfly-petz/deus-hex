@@ -16,7 +16,8 @@ const sizeClasses = {
   large: style.large,
 } as const;
 export type ButtonSize = keyof typeof sizeClasses;
-export const Button = ({
+
+export function Button({
   label,
   onClick,
   active = false,
@@ -32,7 +33,7 @@ export const Button = ({
   icon?: IconDef | IconProps;
   tooltip?: ReactNode;
   disable?: ReactiveVal<Option<string>> | string;
-}) => {
+}) {
   const disableVal = useReactiveOrConstantOption(disable);
   const disabled = O.isSome(disableVal);
   const tooltipContent = pipe(
@@ -41,7 +42,7 @@ export const Button = ({
   );
 
   return (
-    <Tooltip content={tooltipContent} disabled={isNully(tooltip)}>
+    <Tooltip content={tooltipContent} disabled={isNully(tooltipContent)}>
       <div className={style.wrapper}>
         <button
           disabled={disabled}
@@ -73,4 +74,4 @@ export const Button = ({
       </div>
     </Tooltip>
   );
-};
+}

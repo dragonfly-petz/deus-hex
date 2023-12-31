@@ -17,13 +17,13 @@ import { ReactiveNode } from '../../../common/reactive/reactive-node';
 import { useAppReactiveNodes } from '../../context/context';
 import { Disposer, sequenceDisposers } from '../../../common/disposable';
 
-export const DropFile = ({
+export function DropFile({
   validExtensions,
   valueNode,
 }: {
   validExtensions: Set<string>;
   valueNode: ReactiveNode<string | null>;
-}) => {
+}) {
   const dropFileHasDragNode = useAppReactiveNodes().dropFileHasDrag;
 
   const dragEnterCounterNode = useMkReactiveNodeMemo(0);
@@ -127,4 +127,4 @@ export const DropFile = ({
       </div>
     </div>
   );
-};
+}

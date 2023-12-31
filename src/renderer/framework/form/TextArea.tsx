@@ -3,13 +3,13 @@ import style from './TextArea.module.scss';
 import { useReactiveVal } from '../../reactive-state/reactive-hooks';
 import { classNames } from '../../../common/react';
 
-export const TextArea = ({
+export function TextArea({
   valueNode,
   className,
 }: {
   valueNode: ReactiveNode<string>;
   className?: string;
-}) => {
+}) {
   const currentVal = useReactiveVal(valueNode);
 
   return (
@@ -21,4 +21,4 @@ export const TextArea = ({
       }}
     />
   );
-};
+}

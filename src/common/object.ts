@@ -53,3 +53,17 @@ type NumericValueKey<A, Key extends keyof A> = A[Key] extends number
 export type NumericValueKeys<A extends object> = {
   [K in keyof A]: NumericValueKey<A, K>;
 }[keyof A];
+
+export function getValue<A extends object, K extends PropertyKey>(
+  a: A,
+  key: K
+) {
+  if (hasKey(key, a)) {
+    return a[key];
+  }
+  return null;
+}
+
+function hasKey<T>(key: PropertyKey, obj: T): key is keyof T {
+  return key in obj;
+}

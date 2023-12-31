@@ -18,12 +18,12 @@ export type AppReactiveNodesStatic = ReturnType<typeof mkStaticReactiveNodes>;
 
 export function mkStaticReactiveNodes() {
   const currentTabNode = new ReactiveNode<TabName>(
-    isDev() ? 'projects' : 'petzResources'
+    isDev() ? 'editor' : 'petzResources'
   );
   const flashMessagesNode = new ReactiveNode(new Map<string, FlashMessage>());
   const modalsNode = new ReactiveNode(new Map<string, ModalDef>());
   const currentResourcesPage = new ReactiveNode<ResourcesPage>(
-    isDev() ? 'catz' : 'overview'
+    isDev() ? 'clothes' : 'overview'
   );
   const currentProjectsPage = new ReactiveNode<ProjectsPage>('overview');
   const currentEditorSection = new ReactiveNode<string>('overview');
