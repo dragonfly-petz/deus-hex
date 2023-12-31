@@ -16,7 +16,11 @@ import {
   RawParsedLine,
   sectionContentLineParser,
 } from './section';
-import { PaintBallzLine, paintBallzLineParser } from './paint-ballz';
+import {
+  PaintBallzLine,
+  paintBallzLineParser,
+  paintBallzLineSerialize,
+} from './paint-ballz';
 import { LinezLine, linezLineParser, linezLineSerialize } from './linez';
 import { isNever } from '../../type-assertion';
 
