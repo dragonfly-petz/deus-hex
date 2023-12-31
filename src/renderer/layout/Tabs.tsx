@@ -51,7 +51,7 @@ export const tabs: Record<TabName, TabDef<any>> = {
   },
 };
 
-export const Tabs = () => {
+export function Tabs() {
   const { currentTabNode } = useAppReactiveNodes();
   const currentTab = useReactiveVal(currentTabNode);
 
@@ -73,4 +73,4 @@ export const Tabs = () => {
       })}
     </div>
   );
-};
+}

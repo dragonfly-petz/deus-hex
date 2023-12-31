@@ -122,7 +122,7 @@ export function useMkQueryMemo<A>(
   return useMemo(() => new Query(query), deps);
 }
 
-export const RenderQuery = <A,>({
+export function RenderQuery<A>({
   query,
   OnSuccess,
   AdditionalOnError = emptyComponent,
@@ -130,7 +130,7 @@ export const RenderQuery = <A,>({
   query: Query<A>;
   OnSuccess: FunctionalComponent<{ value: A }>;
   AdditionalOnError?: FunctionalComponent;
-}) => {
+}) {
   const queryState = useReactiveVal(query);
   switch (queryState.tag) {
     case 'pending':
@@ -161,4 +161,4 @@ export const RenderQuery = <A,>({
     default:
       return isNever(queryState);
   }
-};
+}

@@ -71,7 +71,7 @@ export function useDisposableMemo<A>(setup: () => [A, () => void]) {
 }
 
 export function useDisposableEffectWithDeps<Deps extends ReadonlyArray<any>>(
-  setup: (deps: Deps) => () => void,
+  setup: (deps1: Deps) => () => void,
   deps: Deps
 ) {
   return useDisposableMemoWithDeps((depsInner) => {

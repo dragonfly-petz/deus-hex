@@ -9,23 +9,24 @@ const kindStyles = globalSh.toRecordProxy({
   success: { localVar1: 'successBgColor' },
 });
 
-export const Banner = ({
+export function Banner({
   children,
   kind,
 }: {
   children: ReactNode;
   kind: keyof typeof kindStyles;
-}) => {
+}) {
   return (
     <div style={kindStyles[kind]} className={style.banner}>
       {children}
     </div>
   );
-};
-export const BannerBody = ({ children }: { children: ReactNode }) => {
-  return <div className={style.body}>{children}</div>;
-};
+}
 
-export const BannerButtons = ({ children }: { children: ReactNode }) => {
+export function BannerBody({ children }: { children: ReactNode }) {
+  return <div className={style.body}>{children}</div>;
+}
+
+export function BannerButtons({ children }: { children: ReactNode }) {
   return <div className={style.buttons}>{children}</div>;
-};
+}

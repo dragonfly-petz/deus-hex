@@ -1,5 +1,7 @@
 module.exports = {
-  extends: 'erb',
+  root: true,
+  extends: ['erb', 'plugin:@typescript-eslint/recommended'],
+  ignorePatterns: ['.erb/**/*'],
   rules: {
     // A temporary hack related to IDE not resolving correct package.json
     'import/no-extraneous-dependencies': 'off',
@@ -19,6 +21,11 @@ module.exports = {
     'react/destructuring-assignment': 'off',
     'react-hooks/rules-of-hooks': 'off',
     'react/no-unused-prop-types': 'off',
+    'no-useless-constructor': 'off',
+    'react/jsx-no-useless-fragment': 'off',
+    'no-continue': 'off',
+    'react/jsx-filename-extension': ['error', { extensions: ['.jsx', '.tsx'] }],
+    'react/no-unstable-nested-components': 'off',
     'no-implicit-coercion': [
       'warn',
       {
@@ -30,7 +37,14 @@ module.exports = {
       },
     ],
     '@typescript-eslint/strict-boolean-expressions': 'error',
-
+    'no-use-before-define': [
+      'off',
+      {
+        functions: true,
+        classes: true,
+        variables: true,
+      },
+    ],
     '@typescript-eslint/no-use-before-define': [
       'off',
       {
@@ -60,6 +74,16 @@ module.exports = {
     'jsx-a11y/click-events-have-key-events': 'off',
     'jsx-a11y/no-static-element-interactions': 'off',
     'jsx-a11y/alt-text': 'off',
+    'import/extensions': [
+      'error',
+      'ignorePackages',
+      {
+        js: 'never',
+        jsx: 'never',
+        ts: 'never',
+        tsx: 'neve',
+      },
+    ],
   },
   parserOptions: {
     ecmaVersion: 2020,

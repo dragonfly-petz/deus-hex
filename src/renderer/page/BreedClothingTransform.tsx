@@ -13,7 +13,7 @@ import { E } from '../../common/fp-ts/fp';
 import { TextArea } from '../framework/form/TextArea';
 import { renderResult } from '../framework/result';
 
-export const BreedClothingTransform = () => {
+export function BreedClothingTransform() {
   const mainIpc = useMainIpc();
   return (
     <div className={style.main}>
@@ -33,15 +33,15 @@ export const BreedClothingTransform = () => {
       </div>
     </div>
   );
-};
+}
 
-const TransformText = ({
+function TransformText({
   doTransform,
   defaultVal,
 }: {
   doTransform: (val: string) => Promise<E.Either<string, string>>;
   defaultVal?: string;
-}) => {
+}) {
   const textNode = useMkReactiveNodeMemo(defaultVal ?? '');
   const resultNode = useMkReactiveNodeMemo(nullable<Either<string, string>>());
   const result = useReactiveVal(resultNode);
@@ -74,7 +74,7 @@ const TransformText = ({
       })}
     </>
   );
-};
+}
 const debugAddballz =
   '37,\t0,\t-5,\t-14,\t39,\t244,\t244,\t4,\t-1,\t-1,\t12,\t0,\t0,\t2\n' +
   '37,\t0,\t-1,\t-19,\t54,\t244,\t244,\t0,\t-1,\t-1,\t8,\t0,\t0,\t7\n' +

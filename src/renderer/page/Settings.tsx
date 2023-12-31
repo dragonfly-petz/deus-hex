@@ -5,7 +5,7 @@ import { userSettingsDefault } from '../../main/app/persisted/user-settings';
 import { useAppReactiveNodes } from '../context/context';
 import { useReactiveVal } from '../reactive-state/reactive-hooks';
 
-export const Settings = () => {
+export function Settings() {
   const { userSettingsRemote } = useAppReactiveNodes();
   const current = useReactiveVal(
     userSettingsRemote.fmapStrict((it) => it.fontSize)
@@ -49,4 +49,4 @@ export const Settings = () => {
       </FormItem>
     </div>
   );
-};
+}

@@ -5,6 +5,6 @@ import * as A from 'fp-ts/lib/Array';
 export type Either<L, R> = E.Either<L, R>;
 export { E };
 
-export type Option<A> = O.Option<A>;
+export type Option<At> = O.Option<At>;
 export { O };
 export { A };

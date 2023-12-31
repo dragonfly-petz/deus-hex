@@ -27,7 +27,8 @@ const debugTooltipProps = debugTooltips
       hideOnClick: false,
     }
   : {};
-export const Tooltip = ({ children, content, ...rest }: TooltipProps) => {
+
+export function Tooltip({ children, content, ...rest }: TooltipProps) {
   const wrappedContent = <div className={style.main}>{content}</div>;
   return (
     <Tippy
@@ -39,4 +40,4 @@ export const Tooltip = ({ children, content, ...rest }: TooltipProps) => {
       {children}
     </Tippy>
   );
-};
+}

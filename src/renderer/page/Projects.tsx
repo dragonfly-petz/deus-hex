@@ -39,7 +39,7 @@ import { renderResult } from '../framework/result';
 import { renderIf } from '../framework/render';
 
 const navigationNames = ['overview', 'catz', 'dogz', 'clothes'] as const;
-export type ProjectsPage = typeof navigationNames[number];
+export type ProjectsPage = (typeof navigationNames)[number];
 
 interface NavigationDeps {
   projectsByType: ProjectsByType;
@@ -96,11 +96,7 @@ export function mkProjectsTab(): TabDef<TabDefs> {
   };
 }
 
-export const ProjectsC = ({
-  projectsQuery,
-  navigation,
-  actionsNode,
-}: TabDefs) => {
+export function ProjectsC({ projectsQuery, navigation, actionsNode }: TabDefs) {
   return (
     <div className={style.main}>
       <RenderQuery
@@ -120,8 +116,9 @@ export const ProjectsC = ({
       />
     </div>
   );
-};
-const TabLeftBar = ({ navigation }: TabDefs) => {
+}
+
+function TabLeftBar({ navigation }: TabDefs) {
   return (
     <Navigation
       navigationNames={navigation.names}
@@ -130,9 +127,9 @@ const TabLeftBar = ({ navigation }: TabDefs) => {
       labelDeps={{}}
     />
   );
-};
+}
 
-const TabRightBar = ({ actionsNode, projectsQuery }: TabDefs) => {
+function TabRightBar({ actionsNode, projectsQuery }: TabDefs) {
   const newProjectModalNode = useModal({
     Content: (rest) => (
       <NewProjectForm
@@ -170,16 +167,16 @@ const TabRightBar = ({ actionsNode, projectsQuery }: TabDefs) => {
     );
   });
   return <ActionBar actions={actionsNode} />;
-};
+}
 
-export const NewProjectForm = ({
+export function NewProjectForm({
   closeModal,
   fixedPath,
   onProjectCreated,
 }: ModalContentProps & {
   fixedPath?: string;
   onProjectCreated?: (res: CreateProjectResult) => void;
-}) => {
+}) {
   const mainIpc = useMainIpc();
   const pickedPathNode = useMkReactiveNodeMemo(nullable<string>(fixedPath));
   const projectNameNode = useMkReactiveNodeMemo('');
@@ -226,7 +223,7 @@ export const NewProjectForm = ({
       </PanelButtons>
     </Panel>
   );
-};
+}
 
 function useOpenFolderAction(filePath: string): ActionDef {
   const mainIpc = useMainIpc();
@@ -241,7 +238,7 @@ function useOpenFolderAction(filePath: string): ActionDef {
   };
 }
 
-const OverviewPage = ({ projectsByType, actionsNode }: NavigationDeps) => {
+function OverviewPage({ projectsByType, actionsNode }: NavigationDeps) {
   const totalProjects = sumBy(objectEntries(projectsByType), ([, it]) =>
     E.isLeft(it) ? 0 : it.right.length
   );
@@ -251,18 +248,14 @@ const OverviewPage = ({ projectsByType, actionsNode }: NavigationDeps) => {
     actions.push(openFolderAction);
   });
 
-  return (
-    <>
-      <h2>Total projects: {totalProjects}</h2>
-    </>
-  );
-};
+  return <h2>Total projects: {totalProjects}</h2>;
+}
 
-const SpecificPage = ({
+function SpecificPage({
   projectsByType,
   type,
   actionsNode,
-}: NavigationDeps & { type: FileType }) => {
+}: NavigationDeps & { type: FileType }) {
   const { projectManagerFolders } = useAppReactiveNodes();
   const openFolderAction = useOpenFolderAction(
     projectManagerFolders.byType[type]
@@ -284,9 +277,9 @@ const SpecificPage = ({
       })}
     </>
   );
-};
+}
 
-const ProjectResultC = ({ result }: { result: ProjectResult }) => {
+function ProjectResultC({ result }: { result: ProjectResult }) {
   const appHelper = useAppHelper();
   return (
     <div className={style.fileInfo}>
@@ -313,4 +306,4 @@ const ProjectResultC = ({ result }: { result: ProjectResult }) => {
       </div>
     </div>
   );
-};
+}

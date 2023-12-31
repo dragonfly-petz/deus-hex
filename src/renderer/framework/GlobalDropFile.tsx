@@ -15,7 +15,7 @@ import { allFileTypeExtensions } from '../../common/petz/file-types';
 import { Disposer, sequenceDisposers } from '../../common/disposable';
 import { addEventListenerDocument } from '../../common/react';
 
-export const GlobalDropFile = () => {
+export function GlobalDropFile() {
   const dragEnterCounterNode = useMkReactiveNodeMemo(0);
   const isOver = useReactiveVal(
     dragEnterCounterNode.fmapStrict((it) => it > 0)
@@ -84,4 +84,4 @@ export const GlobalDropFile = () => {
       <div className={style.info}>Drop file anywhere to open</div>
     </div>
   );
-};
+}

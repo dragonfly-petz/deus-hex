@@ -72,7 +72,7 @@ export class DomIpcHolder {
 }
 
 const installExtensions = async () => {
-  // eslint-disable-next-line global-require
+  // eslint-disable-next-line global-require,@typescript-eslint/no-var-requires
   const installer = require('electron-devtools-installer');
   const forceDownload = Boolean(process.env.UPGRADE_EXTENSIONS);
   const extensions = ['REACT_DEVELOPER_TOOLS'];

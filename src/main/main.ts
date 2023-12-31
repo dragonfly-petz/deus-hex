@@ -36,13 +36,13 @@ initGlobalLogger('main');
 initElectronLogger();
 
 if (process.env.NODE_ENV === 'production') {
-  // eslint-disable-next-line global-require
+  // eslint-disable-next-line global-require,@typescript-eslint/no-var-requires
   const sourceMapSupport = require('source-map-support');
   sourceMapSupport.install();
 }
 
 if (isDev()) {
-  // eslint-disable-next-line global-require
+  // eslint-disable-next-line global-require,@typescript-eslint/no-var-requires
   require('electron-debug')();
 }
 

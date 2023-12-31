@@ -31,7 +31,7 @@ export type CodecType<A extends Codec<any, any>> = A extends Codec<infer B, any>
 export function decode<A, Context>(
   buffer: Buffer,
   codec: Codec<A, Context>,
-  offset = 0,
+  offset: number,
   context: Context
 ) {
   return codec.decode(buffer, offset, context);

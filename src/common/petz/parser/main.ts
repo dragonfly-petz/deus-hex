@@ -14,9 +14,9 @@ import {
   rawLineParser,
   rawLineSerializer,
   RawParsedLine,
-  sectionContentLineParser
+  sectionContentLineParser,
 } from './section';
-import { PaintBallzLine, paintBallzLineParser, paintBallzLineSerialize } from './paint-ballz';
+import { PaintBallzLine, paintBallzLineParser } from './paint-ballz';
 import { LinezLine, linezLineParser, linezLineSerialize } from './linez';
 import { isNever } from '../../type-assertion';
 
@@ -36,13 +36,14 @@ export function parseLnz(str: string) {
   return runParser(lnzParser(), str);
 }
 
-type ParsedLnz = ReturnType<typeof parseLnz> extends Either<any, infer A> ? A : never
+type ParsedLnz = ReturnType<typeof parseLnz> extends Either<any, infer A>
+  ? A
+  : never;
 const lnzParser = () =>
   P.manyTill(
     eitherW(sectionParser, () => rawLineParser),
     P.eof()
   );
-
 
 export function serializeLnz(lnz: ParsedLnz) {
   const parts = new Array<string>();
@@ -75,31 +76,33 @@ export function serializeLnz(lnz: ParsedLnz) {
         break;
       default:
         isNever(line);
-
     }
   }
   return parts.join('');
 }
 
 export function findSectionByName(lnz: ParsedLnz, sectionName: string) {
-  return lnz.find(it => it.tag === 'section' && it.lineContent == sectionName);
+  return lnz.find(
+    (it) => it.tag === 'section' && it.lineContent === sectionName
+  );
 }
 
-const sectionHeaderParser = lineParser(pipe(
-  C.char('['),
-  P.chain(() => C.many(C.notChar(']'))),
-  P.chainFirst(() => C.char(']')),
-  P.map(it => [
-    'section', it
-  ] as const)
-));
-type SectionHeader = typeof sectionHeaderParser extends P.Parser<any, infer A> ? A : never;
-
+const sectionHeaderParser = lineParser(
+  pipe(
+    C.char('['),
+    P.chain(() => C.many(C.notChar(']'))),
+    P.chainFirst(() => C.char(']')),
+    P.map((it) => ['section', it] as const)
+  )
+);
+type SectionHeader = typeof sectionHeaderParser extends P.Parser<any, infer A>
+  ? A
+  : never;
 
 const sectionContentRawLineParser = sectionContentLineParser(
   pipe(
     S.many(lineContentChar),
-    P.map(it => ['raw', it] as const)
+    P.map((it) => ['raw', it] as const)
   )
 );
 
@@ -118,7 +121,7 @@ const sectionParser = pipe(
 );
 
 type SectionTypes =
-  ReturnType<typeof mkSection<'paintBallz', PaintBallzLine>>
+  | ReturnType<typeof mkSection<'paintBallz', PaintBallzLine>>
   | ReturnType<typeof mkSection<'linez', LinezLine>>
   | ReturnType<typeof mkSection<'raw', RawParsedLine>>;
 
@@ -133,14 +136,12 @@ function runSection<Tag, A>(
   );
 }
 
-function mkSection<Tag, A>(line: SectionHeader,
-                           sectionType: Tag,
-                           lines: A[]) {
+function mkSection<Tag, A>(line: SectionHeader, sectionType: Tag, lines: A[]) {
   return {
     ...line,
     sectionType,
     sectionName: line.lineContent,
-    lines
+    lines,
   };
 }
 

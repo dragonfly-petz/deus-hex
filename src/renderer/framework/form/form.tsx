@@ -6,13 +6,13 @@ import { renderEither, renderNullable } from '../render';
 import { Either } from '../../../common/fp-ts/fp';
 import { useReactiveVal } from '../../reactive-state/reactive-hooks';
 
-export const FormItem = ({ children }: HasChildren) => {
+export function FormItem({ children }: HasChildren) {
   return <div className={style.item}>{children}</div>;
-};
+}
 
-export const FormInput = ({ children }: HasChildren) => {
+export function FormInput({ children }: HasChildren) {
   return <div className={style.input}>{children}</div>;
-};
+}
 export const FormError = ({
   message,
 }: {
@@ -36,6 +36,7 @@ export const FormWarning = ({
     <div className={style.warn}>{mess}</div>
   ));
 };
-export const FormLabel = ({ children }: HasChildren) => {
+
+export function FormLabel({ children }: HasChildren) {
   return <div className={style.label}>{children}</div>;
-};
+}

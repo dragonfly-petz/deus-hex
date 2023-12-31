@@ -6,16 +6,16 @@ import {
   useListenReactiveVal,
   useReactiveVal,
 } from '../reactive-state/reactive-hooks';
-import { tabs } from './Tabs';
+import { tabs, TabSettings } from './Tabs';
 import { FlashMessages } from '../framework/FlashMessage';
 import { globalSh } from '../framework/global-style-var';
 import { Header } from './Header';
-import { emptyComponent } from '../framework/render';
+import { emptyComponent, FunctionalComponent } from '../framework/render';
 import { GlobalModals } from '../framework/Modal';
 import { GlobalDropFile } from '../framework/GlobalDropFile';
 import { classNames } from '../../common/react';
 
-export const Layout = () => {
+export function Layout() {
   const { currentTabNode, userSettingsRemote } = useAppReactiveNodes();
   const currentTab = useReactiveVal(currentTabNode);
   const {
@@ -47,36 +47,55 @@ export const Layout = () => {
     true
   );
 
-  const TabC = () => {
-    const deps = useGetDeps();
-    return (
-      <>
-        <div className={style.leftBar}>
-          <TabLeftBar {...deps} />
-        </div>
-        <div
-          className={classNames(
-            style.centerContent,
-            tabSettings?.centerContentClass
-          )}
-        >
-          <TabContent {...deps} />
-        </div>
-        <div className={style.rightBar}>
-          <TabRightBar {...deps} />
-        </div>
-      </>
-    );
-  };
   return (
     <div className={style.main}>
       <Header />
       <div className={style.mainContent}>
-        <TabC />
+        <TabC
+          TabContent={TabContent}
+          tabSettings={tabSettings}
+          TabLeftBar={TabLeftBar}
+          TabRightBar={TabRightBar}
+          useGetDeps={useGetDeps}
+        />
       </div>
       <FlashMessages />
       <GlobalDropFile />
       <GlobalModals />
     </div>
   );
-};
+}
+
+function TabC({
+  TabLeftBar,
+  TabRightBar,
+  TabContent,
+  useGetDeps,
+  tabSettings,
+}: {
+  TabLeftBar: FunctionalComponent<any>;
+  TabContent: FunctionalComponent<any>;
+  TabRightBar: FunctionalComponent<any>;
+  useGetDeps: () => any;
+  tabSettings: TabSettings | undefined;
+}) {
+  const deps = useGetDeps();
+  return (
+    <>
+      <div className={style.leftBar}>
+        <TabLeftBar {...deps} />
+      </div>
+      <div
+        className={classNames(
+          style.centerContent,
+          tabSettings?.centerContentClass
+        )}
+      >
+        <TabContent {...deps} />
+      </div>
+      <div className={style.rightBar}>
+        <TabRightBar {...deps} />
+      </div>
+    </>
+  );
+}

@@ -2,7 +2,7 @@ import { partialCall } from './function';
 import { DF } from './df';
 
 const logLevels = ['info', 'status', 'warn', 'error'] as const;
-export type LogLevel = typeof logLevels[number];
+export type LogLevel = (typeof logLevels)[number];
 
 export interface Log {
   level: LogLevel;
@@ -15,6 +15,7 @@ export interface Log {
 export type LogHandler = (log: Log) => void;
 type LogFn = typeof console.log;
 
+// eslint-disable-next-line @typescript-eslint/no-empty-function
 const voidLogFn: LogFn = () => {};
 
 export class Logger {

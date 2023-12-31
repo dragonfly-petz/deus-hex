@@ -1,3 +1,4 @@
+// eslint-disable-next-line global-require,@typescript-eslint/no-var-requires
 const { contextBridge, ipcRenderer } = require('electron');
 
 const queryString = window.location.search;

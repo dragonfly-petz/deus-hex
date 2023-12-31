@@ -26,7 +26,7 @@ export const clothingCols = [
   'ballsize',
   'texture',
 ] as const;
-type ClothingCol = typeof clothingCols[number];
+type ClothingCol = (typeof clothingCols)[number];
 export type AddBallClothing = RecordFromCols<ClothingCol>;
 
 export const breedCols = [
@@ -45,7 +45,7 @@ export const breedCols = [
   'addGroup',
   'texture',
 ] as const;
-type BreedCol = typeof breedCols[number];
+type BreedCol = (typeof breedCols)[number];
 export type AddBallBreed = RecordFromCols<BreedCol>;
 
 export function parseAddBallsBreed(

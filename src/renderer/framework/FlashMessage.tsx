@@ -10,7 +10,7 @@ import { globalSh } from './global-style-var';
 import { Button } from './Button';
 
 const flashMessageKinds = ['info', 'warn', 'error', 'success'] as const;
-export type FlashMessageKind = typeof flashMessageKinds[number];
+export type FlashMessageKind = (typeof flashMessageKinds)[number];
 
 export interface FlashMessageProps {
   kind: FlashMessageKind;
@@ -43,7 +43,7 @@ const kindStyles = globalSh.toRecordProxy({
   success: { localVar1: 'successBgColor' },
 });
 
-export const FlashMessages = () => {
+export function FlashMessages() {
   const { flashMessagesNode } = useAppReactiveNodes();
   const messages = Array.from(useReactiveVal(flashMessagesNode).values());
   sortByNumeric(messages, (it) => it.created.getTime());
@@ -55,9 +55,9 @@ export const FlashMessages = () => {
       ))}
     </div>
   );
-};
+}
 
-const FlashMessageC = ({ message }: { message: FlashMessage }) => {
+function FlashMessageC({ message }: { message: FlashMessage }) {
   const { flashMessagesNode } = useAppReactiveNodes();
   const clearMessage = useCallback(() => {
     flashMessagesNode.setValueFn((it) => {
@@ -79,4 +79,4 @@ const FlashMessageC = ({ message }: { message: FlashMessage }) => {
       <div className={style.body}>{renderLineBreaks(message.message)}</div>
     </div>
   );
-};
+}

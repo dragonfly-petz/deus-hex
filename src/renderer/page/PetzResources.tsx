@@ -52,7 +52,7 @@ import { TextInput } from '../framework/form/TextInput';
 import { renderId } from '../helper/helper';
 
 const navigationNames = ['overview', 'catz', 'dogz', 'clothes'] as const;
-export type ResourcesPage = typeof navigationNames[number];
+export type ResourcesPage = (typeof navigationNames)[number];
 
 interface NavigationDeps {
   resourcesInfo: ResourcesInfo;
@@ -112,11 +112,11 @@ export function mkPetzResourcesTab(): TabDef<TabDeps> {
   };
 }
 
-export const PetzResources = ({
+export function PetzResources({
   resourcesOverviewQuery,
   navigation,
   actionsNode,
-}: TabDeps) => {
+}: TabDeps) {
   const { userSettingsRemote } = useAppReactiveNodes();
 
   useListenReactiveVal(
@@ -147,8 +147,9 @@ export const PetzResources = ({
       />
     </div>
   );
-};
-const TabLeftBar = ({ navigation }: TabDeps) => {
+}
+
+function TabLeftBar({ navigation }: TabDeps) {
   return (
     <Navigation
       navigationNames={navigation.names}
@@ -157,9 +158,9 @@ const TabLeftBar = ({ navigation }: TabDeps) => {
       labelDeps={{}}
     />
   );
-};
+}
 
-const TabRightBar = ({ actionsNode, resourcesOverviewQuery }: TabDeps) => {
+function TabRightBar({ actionsNode, resourcesOverviewQuery }: TabDeps) {
   useAddActions(actionsNode, (actions) => {
     actions.push({
       label: 'Refresh',
@@ -172,8 +173,9 @@ const TabRightBar = ({ actionsNode, resourcesOverviewQuery }: TabDeps) => {
     });
   });
   return <ActionBar actions={actionsNode} />;
-};
-const PetzFolderForm = ({ modalProps }: ModalableProps) => {
+}
+
+function PetzFolderForm({ modalProps }: ModalableProps) {
   const { userSettingsRemote } = useAppReactiveNodes();
   const pickedPathNode = useMkReactiveNodeMemo(nullable<string>());
 
@@ -200,12 +202,13 @@ const PetzFolderForm = ({ modalProps }: ModalableProps) => {
       </PanelButtons>
     </Panel>
   );
-};
-const OverviewPage = ({
+}
+
+function OverviewPage({
   resourcesInfo,
   actionsNode,
   navigation,
-}: NavigationDeps) => {
+}: NavigationDeps) {
   const { userSettingsRemote } = useAppReactiveNodes();
   const changePetzFolderModal = useModal({ Content: PetzFolderForm });
   useAddActions(actionsNode, (actions) => {
@@ -246,7 +249,7 @@ const OverviewPage = ({
       </div>
     </>
   );
-};
+}
 
 type DuplicatesMap = ReturnType<typeof getDuplicatesMap>;
 
@@ -268,7 +271,7 @@ function getDuplicatesMap(arr: ResourceInfoWithPath[]) {
   return map;
 }
 
-const FolderOverview = ({
+function FolderOverview({
   folderInfo,
   type,
   navigation,
@@ -276,7 +279,7 @@ const FolderOverview = ({
   folderInfo: ResourceFolderInfo;
   type: FileType;
   navigation: NavigationDefResources;
-}) => {
+}) {
   return (
     <div className={style.folderOverview}>
       <div className={style.folderTypeAndSummary}>
@@ -341,9 +344,9 @@ const FolderOverview = ({
       />
     </div>
   );
-};
+}
 
-const SummaryRow = ({
+function SummaryRow({
   label,
   number,
   icon,
@@ -353,7 +356,7 @@ const SummaryRow = ({
   number: number;
   icon: IconDef;
   color: GlobalStyleVarName;
-}) => {
+}) {
   return (
     <div
       style={globalSh.toProxyStyle({
@@ -371,7 +374,7 @@ const SummaryRow = ({
       <div className={style.summaryCount}>{number}</div>
     </div>
   );
-};
+}
 
 const SpecificPage = ({
   resourcesInfo,
@@ -448,7 +451,7 @@ const SpecificPage = ({
   });
 };
 
-const FilesList = ({
+function FilesList({
   infos,
   title,
   resourcesOverviewQuery,
@@ -460,7 +463,7 @@ const FilesList = ({
   resourcesOverviewQuery: TabDeps['resourcesOverviewQuery'];
   duplicates?: DuplicatesMap;
   type: FileType;
-}) => {
+}) {
   if (infos.length < 1) return null;
   return (
     <div className={style.filesList}>
@@ -478,9 +481,9 @@ const FilesList = ({
       </div>
     </div>
   );
-};
+}
 
-const FileInfo = ({
+function FileInfo({
   info,
   duplicates,
   resourcesOverviewQuery,
@@ -490,7 +493,7 @@ const FileInfo = ({
   resourcesOverviewQuery: TabDeps['resourcesOverviewQuery'];
   duplicates?: DuplicatesMap;
   type: FileType;
-}) => {
+}) {
   const appHelper = useAppHelper();
   const changePetzFolderModalNode = useModal({
     Content: ({ modalProps }) => {
@@ -551,9 +554,9 @@ const FileInfo = ({
       </div>
     </div>
   );
-};
+}
 
-export const NewIdForm = ({
+export function NewIdForm({
   closeModal,
   info,
   resourcesOverviewQuery,
@@ -564,7 +567,7 @@ export const NewIdForm = ({
   duplicates: DuplicatesMap;
   resourcesOverviewQuery: TabDeps['resourcesOverviewQuery'];
   type: FileType;
-}) => {
+}) {
   const newIdNode = useMkReactiveNodeMemo('');
   const validNewId = useMemo(
     () =>
@@ -647,4 +650,4 @@ export const NewIdForm = ({
       </PanelButtons>
     </Panel>
   );
-};
+}

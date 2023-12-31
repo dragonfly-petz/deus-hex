@@ -11,6 +11,7 @@ export function run<A>(block: () => A) {
   return block();
 }
 
+// eslint-disable-next-line @typescript-eslint/no-empty-function
 export function voidFn() {}
 
 export function identity<A>(a: A): A {

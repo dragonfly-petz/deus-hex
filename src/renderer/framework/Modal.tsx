@@ -32,7 +32,7 @@ export interface ModalDef {
   config: ModalConfig;
 }
 
-export const GlobalModals = () => {
+export function GlobalModals() {
   const modalsMap = useReactiveVal(useAppReactiveNodes().modalsNode);
   const modals = Array.from(modalsMap.values());
   return (
@@ -48,14 +48,15 @@ export const GlobalModals = () => {
       })}
     </>
   );
-};
-const ModalC = ({
+}
+
+function ModalC({
   Content,
   closable = true,
   modalStateNode,
 }: {
   modalStateNode: ReactiveNode<boolean>;
-} & ModalConfig) => {
+} & ModalConfig) {
   const show = useReactiveVal(modalStateNode);
   if (!show) {
     return null;
@@ -84,7 +85,7 @@ const ModalC = ({
       </div>
     </div>
   );
-};
+}
 
 export function useModal(config: ModalConfig) {
   const { modalsNode } = useAppReactiveNodes();

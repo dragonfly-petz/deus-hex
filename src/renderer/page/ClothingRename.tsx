@@ -27,7 +27,8 @@ import { Result } from '../../common/result';
 
 const debugNewFileName = isDev() ? 'Zragonl ffffff' : '';
 const debugNewItemName = isDev() ? 'Zrangonlierfs' : '';
-export const ClothingRename = () => {
+
+export function ClothingRename() {
   const pickedPathNode = useMkReactiveNodeMemo(nullable<string>());
   const newFileNameNode = useMkReactiveNodeMemo(debugNewFileName);
   const newItemNameNode = useMkReactiveNodeMemo(debugNewItemName);
@@ -222,4 +223,4 @@ export const ClothingRename = () => {
       })}
     </div>
   );
-};
+}

@@ -16,13 +16,9 @@ import {
   useReactiveVal,
 } from '../reactive-state/reactive-hooks';
 import { isNully } from '../../common/null';
-import { parseLnz } from '../../common/petz/parser/main';
+import { voidFn } from '../../common/function';
 
-export const CodeMirror = ({
-  valueNode,
-}: {
-  valueNode: ReactiveNode<string>;
-}) => {
+export function CodeMirror({ valueNode }: { valueNode: ReactiveNode<string> }) {
   const initialValue = useReactiveVal(valueNode);
   const valueNodeRef = useRef(valueNode);
   valueNodeRef.current = valueNode;
@@ -53,7 +49,7 @@ export const CodeMirror = ({
       state: startState,
       parent: div,
     });
-    return [view, () => {}];
+    return [view, voidFn];
   });
 
   useListenReactiveVal(
@@ -62,8 +58,6 @@ export const CodeMirror = ({
       const view = resultRef.current;
       // eslint-disable-next-line no-console
       console.log(view, val.substring(0, 50));
-      const parsed = parseLnz(val);
-      console.log(parsed);
       if (isNully(view)) return;
       if (view.state.doc.toString() !== val) {
         view.dispatch({
@@ -84,4 +78,4 @@ export const CodeMirror = ({
   );
 
   return <div className={style.main} ref={refSetter} />;
-};
+}

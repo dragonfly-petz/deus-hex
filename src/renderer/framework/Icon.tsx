@@ -13,10 +13,10 @@ export interface IconProps {
   icon: IconDef;
 }
 
-export const Icon = ({ icon }: IconProps) => {
+export function Icon({ icon }: IconProps) {
   return (
     <div className={style.icon}>
       <FontAwesomeIcon icon={fas[icon]} />
     </div>
   );
-};
+}
