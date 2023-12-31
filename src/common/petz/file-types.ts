@@ -1,3 +1,4 @@
+import { toUpperCase } from 'fp-ts/string';
 import { objectEntries } from '../object';
 import { mkEntryIdQuery } from './codecs/rsrc-utility';
 import {
@@ -5,6 +6,7 @@ import {
   clothesVanillaIds,
   dogzVanillaIds,
 } from './vanilla-ids';
+import { RcData } from './codecs/rcdata';
 
 export const fileTypes = {
   catz: {
@@ -44,7 +46,7 @@ function rdsType(v: ResourceDataSectionType) {
 }
 
 const twoCapitalLetters = /^[A-Z]{2}$/;
-export const resourceDataSections = {
+export const mkResourceDataSections = (data: RcData) => ({
   clzClot: {
     idMatcher: mkEntryIdQuery('CLZ'),
     name: 'Clothes Main',
@@ -71,15 +73,14 @@ export const resourceDataSections = {
     type: rdsType('ascii'),
   },
   breedBmp: {
-    idMatcher: mkEntryIdQuery('BMP'),
+    idMatcher: mkEntryIdQuery('BMP', toUpperCase(data.displayName)),
     name: 'Breed BMP',
     type: rdsType('bitmap'),
   },
-};
-export type ResourceDataSections = typeof resourceDataSections;
+});
+export type ResourceDataSections = ReturnType<typeof mkResourceDataSections>;
 export type ResourceDataSectionName = keyof ResourceDataSections;
 export type ResourceDataSectionDef = ResourceDataSections['clzClot'];
-
 export const fileTypeToExpectedSections: Record<
   FileType,
   Array<ResourceDataSectionName>

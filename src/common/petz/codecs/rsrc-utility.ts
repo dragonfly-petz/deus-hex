@@ -63,22 +63,29 @@ export function resourceEntryIdEqual(a1: ResourceEntryId, a2: ResourceEntryId) {
   return deepEqual(a1, a2);
 }
 
-export function getResourceEntryById(
+export function getSingleResourceEntryById(
   table: ResDirTable,
   id: ResourceEntryIdQuery
 ) {
-  const asRegex = mapObjectValues(id, toRegex);
-  const entries = doGetResourceEntriesById(
-    table,
-    [asRegex.type, asRegex.level, asRegex.language],
-    []
-  );
+  const entries = getResourceEntriesById(table, id);
   if (entries.length === 0) return null;
   if (entries.length === 1) return entries[0];
   throw new Error(
     `Expected one entry to match query ${JSON.stringify(id)} but got ${
       entries.length
     }`
+  );
+}
+
+export function getResourceEntriesById(
+  table: ResDirTable,
+  id: ResourceEntryIdQuery
+) {
+  const asRegex = mapObjectValues(id, toRegex);
+  return doGetResourceEntriesById(
+    table,
+    [asRegex.type, asRegex.level, asRegex.language],
+    []
   );
 }
 

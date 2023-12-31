@@ -4,28 +4,30 @@ import { getTestResourcesPath } from '../common/asset-path';
 import { throwFromEither } from '../common/fp-ts/either';
 import { getFileInfoAndData } from '../main/app/pe-files/pe-files-util';
 import {
-  getResourceEntryById,
+  getSingleResourceEntryById,
   resDataEntryToString,
-  ResourceEntryIdQuery,
 } from '../common/petz/codecs/rsrc-utility';
-import { resourceDataSections } from '../common/petz/file-types';
 import { isNully } from '../common/null';
 import { parseLnz, serializeLnz } from '../common/petz/parser/main';
+import {
+  mkResourceDataSections,
+  ResourceDataSectionName,
+} from '../common/petz/file-types';
 
 initGlobalLogger('test');
 describe('lnz parsing', () => {
   // eslint-disable-next-line jest/expect-expect
   test('parse and serialize cat', async () => {
-    await testSection(resourceDataSections.lnzCat.idMatcher, 28, 1);
+    await testSection('lnzCat', 28, 1);
   });
   // eslint-disable-next-line jest/expect-expect
   test('parse and serialize kitten', async () => {
-    await testSection(resourceDataSections.lnzKitten.idMatcher, 13, 8);
+    await testSection('lnzKitten', 13, 8);
   });
 });
 
 async function testSection(
-  idQuery: ResourceEntryIdQuery,
+  idQueryKey: ResourceDataSectionName,
   sectionsExpected: number,
   paintBallzIndex: number
 ) {
@@ -33,7 +35,10 @@ async function testSection(
   globalLogger.info(`opening file at ${filePath}`);
 
   const fileInfo = throwFromEither(await getFileInfoAndData(filePath));
-  const entry = getResourceEntryById(fileInfo.resDirTable, idQuery);
+  const idQuery = mkResourceDataSections(fileInfo.rcDataAndEntry.rcData)[
+    idQueryKey
+  ].idMatcher;
+  const entry = getSingleResourceEntryById(fileInfo.resDirTable, idQuery);
   expect(entry).not.toEqual(null);
   if (isNully(entry)) {
     return;
