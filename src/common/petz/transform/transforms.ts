@@ -1,7 +1,8 @@
-import { flatten, lefts } from 'fp-ts/Array';
+import { flatten, lefts, rights } from 'fp-ts/Array';
 import { identity } from 'fp-ts/function';
 import * as E from 'fp-ts/Either';
 import * as O from 'fp-ts/Option';
+import { isSome } from 'fp-ts/Option';
 import { isRawLine, LinezArray } from '../common-types';
 import {
   AddBallBreed,
@@ -76,7 +77,7 @@ export function transformBreedLinesToClothing(
 export function applyAntiPetWorkshopReplacements(
   original: string,
   externallyModified: string
-): E.Either<string, string> | null {
+): E.Either<string, [string, string]> | null {
   const originalLnz = parseLnz(original);
   if (E.isLeft(originalLnz)) {
     return E.left('Could not parse original lnz');
@@ -94,7 +95,20 @@ export function applyAntiPetWorkshopReplacements(
   if (errorMessages.length > 0) {
     return E.left(errorMessages.join('\n'));
   }
-  return E.of(serializeLnz(modifiedLnz.right));
+  const paintBallsFixed = rights(lineMessages1.filter(isNotNully)).length;
+  const linezFixed = rights(lineMessages2.filter(isNotNully)).length;
+  const succMessage = [
+    paintBallsFixed > 0
+      ? `anchoring reapplied to ${paintBallsFixed} "[Paint Ballz]" lines`
+      : null,
+    linezFixed > 0
+      ? `additional line characteristics reapplied to ${linezFixed} "[Linez]" lines`
+      : null,
+  ].filter(isNotNully);
+  if (succMessage.length > 0) {
+    return E.of([succMessage.join('\n'), serializeLnz(modifiedLnz.right)]);
+  }
+  return null;
 }
 
 function findSections(
@@ -159,8 +173,18 @@ function fixPaintBallz(originalLnz: ParsedLnz, modifiedLnz: ParsedLnz) {
 
     if (isNully(originalLine) || originalLine.tag !== 'paintBall') return null;
 
-    // at this point we have established that we are identical in first items so we may as well just replace because either original is also none or there are some values there
-    modifiedLine.lineContent = [...originalLine.lineContent];
+    const originalOptionalColumn = findInData(
+      originalLine.lineContent,
+      'optionalColumn'
+    );
+
+    if (
+      Array.isArray(originalOptionalColumn) &&
+      isSome(originalOptionalColumn[1] as any)
+    ) {
+      modifiedLine.lineContent = [...originalLine.lineContent];
+      return E.right(true);
+    }
     return null;
   });
 }
@@ -205,8 +229,23 @@ function fixLinez(originalLnz: ParsedLnz, modifiedLnz: ParsedLnz) {
 
     if (isNully(originalLine) || originalLine.tag !== 'linez') return null;
 
-    // at this point we have established that we are identical in first items so we may as well just replace because either original is also none or there are some values there
-    modifiedLine.lineContent = [...originalLine.lineContent];
+    const originalOptionalColumn1 = findInData(
+      originalLine.lineContent,
+      'optionalColumn1'
+    );
+    const originalOptionalColumn2 = findInData(
+      originalLine.lineContent,
+      'optionalColumn2'
+    );
+    if (
+      (Array.isArray(originalOptionalColumn1) &&
+        isSome(originalOptionalColumn1[1] as any)) ||
+      (Array.isArray(originalOptionalColumn2) &&
+        isSome(originalOptionalColumn2[1] as any))
+    ) {
+      modifiedLine.lineContent = [...originalLine.lineContent];
+      return E.right(true);
+    }
     return null;
   });
 }

@@ -17,7 +17,6 @@ import {
 } from '../reactive-state/reactive-hooks';
 import { isNully } from '../../common/null';
 import { voidFn } from '../../common/function';
-import { parseLnz } from '../../common/petz/parser/main';
 
 export function CodeMirror({ valueNode }: { valueNode: ReactiveNode<string> }) {
   const initialValue = useReactiveVal(valueNode);
@@ -58,10 +57,9 @@ export function CodeMirror({ valueNode }: { valueNode: ReactiveNode<string> }) {
     (val) => {
       const view = resultRef.current;
       // eslint-disable-next-line no-console
-      console.log(view, val.substring(0, 50));
-      // eslint-disable-next-line no-console
-      console.log(parseLnz(val));
+      // console.log(view, val.substring(0, 50));
       if (isNully(view)) return;
+      // we do this to account for changes made externally but it would be better to have a different way to react to this because this code does a full comp every time the editor changes a char
       if (view.state.doc.toString() !== val) {
         view.dispatch({
           annotations: [isolateHistory.of('full')],

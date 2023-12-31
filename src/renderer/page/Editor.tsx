@@ -324,11 +324,17 @@ function useGetDeps() {
                           );
                           if (isNotNully(applyRes)) {
                             if (E.isRight(applyRes)) {
-                              newSect.editNode.setValue(applyRes.right);
+                              ger.addFm({
+                                kind: 'info',
+                                title: `Changes reapplied to optional columns in ${sectKey}`,
+                                message: `${applyRes.right[0]}\nNote: changes have been applied in the editor and haven't been saved yet`,
+                              });
+                              newSect.editNode.setValue(applyRes.right[1]);
                             } else {
                               ger.addFm({
                                 kind: 'error',
-                                title: 'Pet Workshop replacements failed',
+                                title:
+                                  'Attempt to reapply optional columns failed',
                                 message: applyRes.left,
                               });
                             }

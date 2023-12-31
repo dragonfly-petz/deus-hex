@@ -6,45 +6,56 @@ import { getFileInfoAndData } from '../main/app/pe-files/pe-files-util';
 import {
   getResourceEntryById,
   resDataEntryToString,
+  ResourceEntryIdQuery,
 } from '../common/petz/codecs/rsrc-utility';
 import { resourceDataSections } from '../common/petz/file-types';
 import { isNully } from '../common/null';
 import { parseLnz, serializeLnz } from '../common/petz/parser/main';
 
 initGlobalLogger('test');
-describe('paint ballz', () => {
-  test('parse and serialize', async () => {
-    const filePath = getTestResourcesPath('OrangeShorthairTest.cat');
-    globalLogger.info(`opening file at ${filePath}`);
-
-    const fileInfo = throwFromEither(await getFileInfoAndData(filePath));
-    const entry = getResourceEntryById(
-      fileInfo.resDirTable,
-      resourceDataSections.lnzCat.idMatcher
-    );
-    expect(entry).not.toEqual(null);
-    if (isNully(entry)) {
-      return;
-    }
-    const original = resDataEntryToString(entry.entry);
-    const parsed = parseLnz(original);
-    expect(E.isRight(parsed)).toEqual(true);
-    if (E.isLeft(parsed)) return;
-    expect(parsed.right.length).toEqual(28);
-    const paintBallzSection = parsed.right[1];
-    expect(paintBallzSection.lineContent).toEqual('Paint Ballz');
-    if (paintBallzSection.tag !== 'section') {
-      throw new Error('Expected section');
-    }
-    if (paintBallzSection.sectionType !== 'paintBallz') {
-      throw new Error('Expected paintBallz');
-    }
-
-    const firstLine = paintBallzSection.lines[0];
-    expect(firstLine.lineContent[0]).toEqual(['baseBall', 2]);
-
-    const ser = serializeLnz(parsed.right);
-
-    expect(ser).toEqual(original);
+describe('lnz parsing', () => {
+  // eslint-disable-next-line jest/expect-expect
+  test('parse and serialize cat', async () => {
+    await testSection(resourceDataSections.lnzCat.idMatcher, 28, 1);
+  });
+  // eslint-disable-next-line jest/expect-expect
+  test('parse and serialize kitten', async () => {
+    await testSection(resourceDataSections.lnzKitten.idMatcher, 13, 8);
   });
 });
+
+async function testSection(
+  idQuery: ResourceEntryIdQuery,
+  sectionsExpected: number,
+  paintBallzIndex: number
+) {
+  const filePath = getTestResourcesPath('Orange Shorthair.cat');
+  globalLogger.info(`opening file at ${filePath}`);
+
+  const fileInfo = throwFromEither(await getFileInfoAndData(filePath));
+  const entry = getResourceEntryById(fileInfo.resDirTable, idQuery);
+  expect(entry).not.toEqual(null);
+  if (isNully(entry)) {
+    return;
+  }
+  const original = resDataEntryToString(entry.entry);
+  const parsed = parseLnz(original);
+  expect(E.isRight(parsed)).toEqual(true);
+  if (E.isLeft(parsed)) return;
+  expect(parsed.right.length).toEqual(sectionsExpected);
+  const paintBallzSection = parsed.right[paintBallzIndex];
+  expect(paintBallzSection.lineContent).toEqual('Paint Ballz');
+  if (paintBallzSection.tag !== 'section') {
+    throw new Error('Expected section');
+  }
+  if (paintBallzSection.sectionType !== 'paintBallz') {
+    throw new Error('Expected paintBallz');
+  }
+
+  const firstLine = paintBallzSection.lines[0];
+  expect(firstLine.lineContent[0]).toEqual(['baseBall', 2]);
+
+  const ser = serializeLnz(parsed.right);
+
+  expect(ser).toEqual(original);
+}
