@@ -3,22 +3,33 @@ import { pipe } from 'fp-ts/function';
 import { isString } from 'fp-ts/string';
 import bmp from '@wokwi/bmp-ts';
 import style from './Editor.module.scss';
-import { useAppContext, useAppReactiveNodes, useDomIpc, useMainIpc, useUserSetting } from '../context/context';
+import {
+  useAppContext,
+  useAppReactiveNodes,
+  useDomIpc,
+  useMainIpc,
+  useUserSetting,
+} from '../context/context';
 import { QueryInner, RenderQuery, useMkQueryMemo } from '../framework/Query';
-import { sequenceReactiveArray, useMkReactiveNodeMemo, useReactiveVal } from '../reactive-state/reactive-hooks';
+import {
+  sequenceReactiveArray,
+  useMkReactiveNodeMemo,
+} from '../reactive-state/reactive-hooks';
 import { isNotNully, isNully, nullable } from '../../common/null';
 import type { TabDef } from '../layout/Tabs';
 import { ActionBar, ActionsNode, useAddActions } from '../layout/ActionBar';
 import { E, O } from '../../common/fp-ts/fp';
 import { Navigation, NavigationDef } from '../layout/NavgationBar';
 import { FileInfoAndData } from '../../main/app/pe-files/pe-files-util';
-import { EditorParams, ProjectId } from '../../main/app/resource/project-manager';
+import {
+  EditorParams,
+  ProjectId,
+} from '../../main/app/resource/project-manager';
 import { Result } from '../../common/result';
 import { identity, run } from '../../common/function';
 import {
   fileTypeToExpectedSections,
   ResourceDataSectionName,
-  resourceDataSections
 } from '../../common/petz/file-types';
 import { unsafeObjectFromEntries } from '../../common/object';
 import {
@@ -26,7 +37,8 @@ import {
   getResourceEntryById,
   resDataEntryToString,
   ResourceEntryId,
-  resourceEntryIdToStringKey
+  ResourceEntryIdQuery,
+  resourceEntryIdToStringKey,
 } from '../../common/petz/codecs/rsrc-utility';
 import { safeHead, sortByNumeric } from '../../common/array';
 import { renderResult } from '../framework/result';
@@ -602,15 +614,16 @@ function TabRightBar({
                 }
                 return res;
               });
-            ,
+            },
           });
+
           if (isNotNully(projectId)) {
             actions.push({
               label: 'Save Backup',
               icon: 'faSave',
               key: 'saveBackup',
               tooltip:
-               'Save the current changes as a backup file but don\'t save them to the current file'",
+                "Save the current changes as a backup file but don't save them to the current file'",
               action: () => {
                 return ger.withFlashMessageK(async () => {
                   const res = await mainIpc.saveResourceSections(
@@ -623,7 +636,7 @@ function TabRightBar({
                   }
                   return res;
                 });
-              ,
+              },
             });
 
             actions.push({
@@ -672,7 +685,7 @@ function TabRightBar({
                               }
                               return res2;
                             });
-                          }
+                          },
                         });
                         overwriteModalNode.setValue(true);
                       }
@@ -681,14 +694,14 @@ function TabRightBar({
                   },
                   { successOnlyOnString: true }
                 );
-              }
+              },
             });
           }
         });
 
         return <ActionBar actions={actionsNode} />;
       }}
-    />;
+    />
   );
 }
 

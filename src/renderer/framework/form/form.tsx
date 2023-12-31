@@ -13,6 +13,7 @@ export function FormItem({ children }: HasChildren) {
 export function FormInput({ children }: HasChildren) {
   return <div className={style.input}>{children}</div>;
 }
+
 export const FormError = ({
   message,
 }: {
