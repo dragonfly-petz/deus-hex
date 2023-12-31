@@ -69,7 +69,7 @@ export type PaintBallzLine = typeof paintBallzLineParser extends P.Parser<
   : never;
 
 export function paintBallzLineSerialize(line: PaintBallzLine) {
-  if (line.tag === 'raw') {
+  if (line.tag !== 'paintBall') {
     return rawLineSerializer(line);
   }
   return colDataSerializer(line);

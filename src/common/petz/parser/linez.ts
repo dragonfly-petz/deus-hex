@@ -49,7 +49,7 @@ export type LinezLine = typeof linezLineParser extends P.Parser<any, infer A>
   : never;
 
 export function linezLineSerialize(line: LinezLine) {
-  if (line.tag === 'raw') {
+  if (line.tag !== 'linez') {
     return rawLineSerializer(line);
   }
   return colDataSerializer(line);
