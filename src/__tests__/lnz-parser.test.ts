@@ -14,7 +14,7 @@ import { parseLnz, serializeLnz } from '../common/petz/parser/main';
 initGlobalLogger('test');
 describe('paint ballz', () => {
   test('parse and serialize', async () => {
-    const filePath = getTestResourcesPath('OrangeShorthair.cat');
+    const filePath = getTestResourcesPath('OrangeShorthairTest.cat');
     globalLogger.info(`opening file at ${filePath}`);
 
     const fileInfo = throwFromEither(await getFileInfoAndData(filePath));
