@@ -30,16 +30,15 @@ import { Result } from '../../common/result';
 import { identity, run } from '../../common/function';
 import {
   fileTypeToExpectedSections,
+  mkResourceDataSections,
   ResourceDataSectionName,
-  resourceDataSections,
 } from '../../common/petz/file-types';
 import { unsafeObjectFromEntries } from '../../common/object';
 import {
   getAllDataEntriesWithId,
-  getResourceEntryById,
+  getSingleResourceEntryById,
   resDataEntryToString,
   ResourceEntryId,
-  ResourceEntryIdQuery,
   resourceEntryIdToStringKey,
 } from '../../common/petz/codecs/rsrc-utility';
 import { safeHead, sortByNumeric } from '../../common/array';
@@ -82,8 +81,11 @@ function SectionName({
 }: NavigationDeps & {
   name: ResourceDataSectionName;
 }) {
+  const resourceDataSections = mkResourceDataSections(
+    fileInfo.rcDataAndEntry.rcData
+  );
   const hasChangedNode = run(() => {
-    const entWithIdM = getResourceEntryById(
+    const entWithIdM = getSingleResourceEntryById(
       fileInfo.resDirTable,
       resourceDataSections[name].idMatcher
     );
@@ -123,6 +125,7 @@ const useMkNavigation = (
           name: (props: NavigationDeps) => <SectionName {...props} name={n} />,
           Content: (deps: NavigationDeps) => {
             const editorParamsNode = useAppReactiveNodes().editorParams;
+
             const newProjectModalNode = useModal({
               // eslint-disable-next-line react/no-unstable-nested-components
               Content: (rest) => (
@@ -161,11 +164,7 @@ const useMkNavigation = (
                   </Banner>
                 ))}
 
-                <SectionPage
-                  entryIdQuery={resourceDataSections[n].idMatcher}
-                  sectionName={n}
-                  {...deps}
-                />
+                <SectionPage sectionName={n} {...deps} />
               </>
             );
           },
@@ -715,13 +714,19 @@ function TabRightBar({
 
 const SectionPage = ({
   fileInfo,
-  entryIdQuery,
   sectionName,
 }: NavigationDeps & {
-  entryIdQuery: ResourceEntryIdQuery;
   sectionName: ResourceDataSectionName;
 }) => {
-  const entWithIdM = getResourceEntryById(fileInfo.resDirTable, entryIdQuery);
+  const resourceDataSections = mkResourceDataSections(
+    fileInfo.rcDataAndEntry.rcData
+  );
+  const entryIdQuery = resourceDataSections[sectionName].idMatcher;
+
+  const entWithIdM = getSingleResourceEntryById(
+    fileInfo.resDirTable,
+    entryIdQuery
+  );
   const asEither = E.fromNullable('Section not found')(entWithIdM);
 
   return renderResult(asEither, (entWithId) => {

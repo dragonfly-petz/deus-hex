@@ -21,7 +21,7 @@ import {
 import { bytesToString, bytesToStringForDiff } from '../../../common/buffer';
 import { withTempFile } from '../file/temp-file';
 import {
-  getResourceEntryById,
+  getSingleResourceEntryById,
   ResourceEntryId,
 } from '../../../common/petz/codecs/rsrc-utility';
 import {
@@ -215,7 +215,7 @@ export interface ResourceDataAndEntry {
 
 function getRcDataAndEntry(table: ResDirTable): Result<ResourceDataAndEntry> {
   return pipe(
-    getResourceEntryById(table, rcDataId),
+    getSingleResourceEntryById(table, rcDataId),
     E.fromNullable('No rcData found'),
     E.chain((res) => {
       return pipe(
@@ -404,7 +404,7 @@ export async function getFileAndUpdateResourceSections(
     })
   );
   for (const section of sections) {
-    const dataEntry = getResourceEntryById(codecRes, section.id);
+    const dataEntry = getSingleResourceEntryById(codecRes, section.id);
     if (isNully(dataEntry)) {
       throw new Error(
         `No data entry found for id ${JSON.stringify(section.id)}`
