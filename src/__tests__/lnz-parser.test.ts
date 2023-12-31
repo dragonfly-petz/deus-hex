@@ -1,5 +1,5 @@
 import * as E from 'fp-ts/Either';
-import { initGlobalLogger } from '../common/logger';
+import { globalLogger, initGlobalLogger } from '../common/logger';
 import { getTestResourcesPath } from '../common/asset-path';
 import { throwFromEither } from '../common/fp-ts/either';
 import { getFileInfoAndData } from '../main/app/pe-files/pe-files-util';
@@ -15,6 +15,8 @@ initGlobalLogger('test');
 describe('paint ballz', () => {
   test('parse and serialize', async () => {
     const filePath = getTestResourcesPath('OrangeShorthair.cat');
+    globalLogger.info(`opening file at ${filePath}`);
+
     const fileInfo = throwFromEither(await getFileInfoAndData(filePath));
     const entry = getResourceEntryById(
       fileInfo.resDirTable,

@@ -51,7 +51,11 @@ function readChars(buf: Buffer, offset: number, length: number) {
 function removeSymbolsNumber(buf: Buffer) {
   const elfanewOffset = 0x3c;
   const peOffset = buf.readUInt32LE(elfanewOffset);
+  globalLogger.info(`peOffset: ${peOffset}`);
+
   const peCheck = readChars(buf, peOffset, 4);
+  globalLogger.info(`peCheck: ${peOffset}`);
+
   assertEqual(peCheck, 'PE\0\0');
   const symbolNumberOffset = peOffset + 4 + 12;
   const num = buf.readUInt32LE(symbolNumberOffset);
