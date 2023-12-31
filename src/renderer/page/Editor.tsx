@@ -309,15 +309,27 @@ function useGetDeps() {
                         sectKey,
                         originalSect,
                       ] of value.sectionAsStringMap.entries()) {
+                        if (sectKey.slice(0, 3) !== 'LNZ') {
+                          continue;
+                        }
                         const newSect =
                           newFileVal.right.sectionAsStringMap.get(sectKey);
                         if (isNotNully(newSect)) {
-                          newSect.editNode.setValueFn((val) =>
-                            applyAntiPetWorkshopReplacements(
-                              originalSect.editNode.getValue(),
-                              val
-                            )
+                          const applyRes = applyAntiPetWorkshopReplacements(
+                            originalSect.editNode.getValue(),
+                            newSect.editNode.getValue()
                           );
+                          console.log(sectKey, applyRes);
+                          if (isNully(applyRes)) {
+                          } else if (E.isRight(applyRes)) {
+                            newSect.editNode.setValue(applyRes.right);
+                          } else {
+                            ger.addFm({
+                              kind: 'error',
+                              title: 'Pet Workshop replacements failed',
+                              message: applyRes.left,
+                            });
+                          }
                         }
                       }
                     }

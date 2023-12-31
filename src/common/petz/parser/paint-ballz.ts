@@ -17,11 +17,15 @@ import { isObjectWithKey } from '../../type-assertion';
  * */
 export const paintBallzLineParser = sectionContentLineParser(
   pipe(
-    startArray<string, []>(),
+    startArray<string, string>(),
+
     // we have to break these because fp-ts doesn't support this many args to pipe haha
     flow(
       pushWithKey('baseBall', S.int),
+
       push(petzSepParser),
+      P.map((it) => it),
+
       pushWithKey('diameter', S.int),
       push(petzSepParser),
       pushWithKey('dirX', S.float),
@@ -53,6 +57,10 @@ export const paintBallzLineParser = sectionContentLineParser(
     P.map((it) => ['paintBall', it] as const)
   )
 );
+
+export function findInData(data: (string | [string, unknown])[], key: string) {
+  return data.find((it) => Array.isArray(it) && it[0] === key);
+}
 
 export type PaintBallzLine = typeof paintBallzLineParser extends P.Parser<
   any,

@@ -17,6 +17,9 @@ import {
   SEMICOLON,
 } from './util';
 
+export const PaintBallzName = 'Paint Ballz';
+export const LinezName = 'Paint Ballz';
+
 export const isCommentChar = (c: C.Char) => c === SEMICOLON;
 export const lineContentChar: P.Parser<C.Char, C.Char> = P.expected(
   P.sat(and(not(isLineBreak))(not(isCommentChar))),

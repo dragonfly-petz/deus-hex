@@ -16,8 +16,7 @@ import {
   useReactiveVal,
 } from '../reactive-state/reactive-hooks';
 import { isNully } from '../../common/null';
-import { parseLnz, serializeLnz } from '../../common/petz/parser/main';
-import { paintBallzLineSerialize } from '../../common/petz/parser/paint-ballz';
+import { parseLnz } from '../../common/petz/parser/main';
 
 export const CodeMirror = ({
   valueNode,
@@ -65,10 +64,6 @@ export const CodeMirror = ({
       console.log(view, val.substring(0, 50));
       const parsed = parseLnz(val);
       console.log(parsed);
-      console.log(parsed?.right[1].lines);
-      console.log(parsed?.right[1].lines[0]?.lineContent);
-      console.log(paintBallzLineSerialize(parsed?.right[1].lines[0]));
-      console.log(serializeLnz(parsed.right));
       if (isNully(view)) return;
       if (view.state.doc.toString() !== val) {
         view.dispatch({

@@ -9,6 +9,8 @@ import {
   baseLineSerializer,
   lineContentChar,
   lineParser,
+  LinezName,
+  PaintBallzName,
   rawLineParser,
   rawLineSerializer,
   RawParsedLine,
@@ -79,6 +81,9 @@ export function serializeLnz(lnz: ParsedLnz) {
   return parts.join('');
 }
 
+export function findSectionByName(lnz: ParsedLnz, sectionName: string) {
+  return lnz.find(it => it.tag === 'section' && it.lineContent == sectionName);
+}
 
 const sectionHeaderParser = lineParser(pipe(
   C.char('['),
@@ -102,9 +107,9 @@ const sectionParser = pipe(
   sectionHeaderParser,
   P.chain((line: SectionHeader): P.Parser<string, SectionTypes> => {
     switch (line.lineContent) {
-      case 'Paint Ballz':
+      case PaintBallzName:
         return runSection(line, 'paintBallz' as const, paintBallzLineParser);
-      case 'Linez':
+      case LinezName:
         return runSection(line, 'linez' as const, linezLineParser);
       default:
         return runSection(line, 'raw' as const, sectionContentRawLineParser);
