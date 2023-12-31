@@ -56,6 +56,9 @@ export function serializeLnz(lnz: ParsedLnz) {
       case 'raw':
         parts.push(rawLineSerializer(line));
         break;
+      case 'comment':
+        parts.push(rawLineSerializer(line));
+        break;
       case 'section':
         parts.push(sectionLineSerializer(line));
         switch (line.sectionType) {

@@ -99,7 +99,10 @@ export function lineParser<Tag, A>(p: P.Parser<string, readonly [Tag, A]>) {
       tag: it.lineContent[0],
       lineContent: it.lineContent[1],
     }))
-  ) as P.Parser<string, LineBase<Tag, A> | LineBase<'raw', string>>;
+  ) as P.Parser<
+    string,
+    LineBase<Tag, A> | LineBase<'raw', string> | LineBase<'comment', string>
+  >;
 }
 
 const commentParser = pipe(

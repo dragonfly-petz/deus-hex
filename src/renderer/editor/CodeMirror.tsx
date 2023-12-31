@@ -59,6 +59,7 @@ export function CodeMirror({ valueNode }: { valueNode: ReactiveNode<string> }) {
       const view = resultRef.current;
       // eslint-disable-next-line no-console
       console.log(view, val.substring(0, 50));
+      // eslint-disable-next-line no-console
       console.log(parseLnz(val));
       if (isNully(view)) return;
       if (view.state.doc.toString() !== val) {
