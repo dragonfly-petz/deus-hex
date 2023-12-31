@@ -14,6 +14,7 @@ import { QueryInner, RenderQuery, useMkQueryMemo } from '../framework/Query';
 import {
   sequenceReactiveArray,
   useMkReactiveNodeMemo,
+  useReactiveVal,
 } from '../reactive-state/reactive-hooks';
 import { isNotNully, isNully, nullable } from '../../common/null';
 import type { TabDef } from '../layout/Tabs';
@@ -30,6 +31,7 @@ import { identity, run } from '../../common/function';
 import {
   fileTypeToExpectedSections,
   ResourceDataSectionName,
+  resourceDataSections,
 } from '../../common/petz/file-types';
 import { unsafeObjectFromEntries } from '../../common/object';
 import {
