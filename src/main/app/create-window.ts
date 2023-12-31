@@ -140,8 +140,6 @@ export async function createWindow(
   window.removeMenu();
 
   window.webContents.on('before-input-event', (event: Event, input: Input) => {
-    console.dir(event);
-    console.dir(input);
     if (input.key === 'F11') {
       window.setFullScreen(window.isFullScreen());
       event.preventDefault();
