@@ -100,7 +100,8 @@ const sectionHeaderParser = lineParser(
     P.chain(() => C.many(C.notChar(']'))),
     P.chainFirst(() => C.char(']')),
     P.map((it) => ['section', it] as const)
-  )
+  ),
+  true
 );
 type SectionHeader = typeof sectionHeaderParser extends P.Parser<any, infer A>
   ? A

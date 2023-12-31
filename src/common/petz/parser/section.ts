@@ -71,26 +71,34 @@ export function rawLineSerializer(line: RawParsedLine) {
   return baseLineSerializer(line, (it) => it);
 }
 
-export function lineParser<Tag, A>(p: P.Parser<string, readonly [Tag, A]>) {
+// forceContent means that this will only match if the provided parser does
+export function lineParser<Tag, A>(
+  p: P.Parser<string, readonly [Tag, A]>,
+  forceContent = false
+) {
   return pipe(
     S.many(hSpace),
     P.bindTo('initialWhitespace'),
-    P.bind('lineContent', () =>
-      eitherW(
+    P.bind('lineContent', () => {
+      if (forceContent) {
+        return p;
+      }
+      return eitherW(
         pipe(
           lookAheadW(lineBreak),
           P.map(() => ['raw', ''] as const)
         ),
-        () =>
-          eitherW(
+        () => {
+          return eitherW(
             pipe(
               commentParser,
               P.map((it) => ['comment', it] as const)
             ),
             () => p
-          )
-      )
-    ),
+          );
+        }
+      );
+    }),
     P.bind('remainingLineChars', () => S.many(lineContentChar)),
     P.bind('inlineComment', () => P.optional(commentParser)),
     P.bind('endLineBreak', () => lineBreakOrEof),
