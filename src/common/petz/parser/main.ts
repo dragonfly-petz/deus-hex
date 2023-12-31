@@ -40,7 +40,7 @@ export function parseLnz(str: string) {
   return runParser(lnzParser(), str);
 }
 
-type ParsedLnz = ReturnType<typeof parseLnz> extends Either<any, infer A>
+export type ParsedLnz = ReturnType<typeof parseLnz> extends Either<any, infer A>
   ? A
   : never;
 const lnzParser = () =>
@@ -124,10 +124,19 @@ const sectionParser = pipe(
   })
 );
 
-type SectionTypes =
-  | ReturnType<typeof mkSection<'paintBallz', PaintBallzLine>>
-  | ReturnType<typeof mkSection<'linez', LinezLine>>
+export type SectionTypes =
+  | PaintBallzSectionType
+  | LinezSectionType
   | ReturnType<typeof mkSection<'raw', RawParsedLine>>;
+export type PaintBallzSectionType = ReturnType<
+  typeof mkSection<'paintBallz', PaintBallzLine>
+>;
+export type LinezSectionType = ReturnType<typeof mkSection<'linez', LinezLine>>;
+export type SectionTypeTag = SectionTypes['sectionType'];
+
+export type SectionLineTypes = PaintBallzLine | LinezLine | RawParsedLine;
+
+export type LineTags = SectionLineTypes['tag'];
 
 function runSection<Tag, A>(
   line: SectionHeader,

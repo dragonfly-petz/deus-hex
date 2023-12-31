@@ -17,6 +17,7 @@ import {
 } from '../reactive-state/reactive-hooks';
 import { isNully } from '../../common/null';
 import { voidFn } from '../../common/function';
+import { parseLnz } from '../../common/petz/parser/main';
 
 export function CodeMirror({ valueNode }: { valueNode: ReactiveNode<string> }) {
   const initialValue = useReactiveVal(valueNode);
@@ -58,6 +59,7 @@ export function CodeMirror({ valueNode }: { valueNode: ReactiveNode<string> }) {
       const view = resultRef.current;
       // eslint-disable-next-line no-console
       console.log(view, val.substring(0, 50));
+      console.log(parseLnz(val));
       if (isNully(view)) return;
       if (view.state.doc.toString() !== val) {
         view.dispatch({

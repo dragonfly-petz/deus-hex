@@ -10,3 +10,5 @@
 *.ttf   binary
 *.woff  binary
 *.woff2 binary
+*.clo binary
+*.cat binary

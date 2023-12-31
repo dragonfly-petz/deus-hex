@@ -4,9 +4,11 @@ import * as S from 'parser-ts/string';
 import * as StringFP from 'fp-ts/string';
 import { isString } from 'fp-ts/string';
 
+import { Option } from 'fp-ts/Option';
 import { push, pushWithKey, startArray } from './util';
 import {
   baseLineSerializer,
+  LineBase,
   petzSepParser,
   rawLineSerializer,
   sectionContentLineParser,
@@ -22,10 +24,7 @@ export const paintBallzLineParser = sectionContentLineParser(
     // we have to break these because fp-ts doesn't support this many args to pipe haha
     flow(
       pushWithKey('baseBall', S.int),
-
       push(petzSepParser),
-      P.map((it) => it),
-
       pushWithKey('diameter', S.int),
       push(petzSepParser),
       pushWithKey('dirX', S.float),
@@ -73,6 +72,12 @@ export function paintBallzLineSerialize(line: PaintBallzLine) {
   if (line.tag === 'raw') {
     return rawLineSerializer(line);
   }
+  return colDataSerializer(line);
+}
+
+export function colDataSerializer(
+  line: LineBase<any, (string | [string, number | string | Option<number>])[]>
+) {
   return baseLineSerializer(line, (content) => {
     const parts = new Array<string>();
     for (const sec of content) {

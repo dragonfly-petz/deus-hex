@@ -12,8 +12,16 @@ import { unsafeObjectFromEntries } from '../../object';
 import { sortByNumeric, tuple } from '../../array';
 import { allLineCols, LineDef } from '../simple-parser/lines';
 import { isNotNully, isNully } from '../../null';
-import { findSectionByName, parseLnz, serializeLnz } from '../parser/main';
-import { PaintBallzName } from '../parser/section';
+import {
+  findSectionByName,
+  LinezSectionType,
+  PaintBallzSectionType,
+  ParsedLnz,
+  parseLnz,
+  SectionTypeTag,
+  serializeLnz,
+} from '../parser/main';
+import { LinezName, PaintBallzName } from '../parser/section';
 import { findInData } from '../parser/paint-ballz';
 
 export function transformBreedAddBallsToClothing(
@@ -77,21 +85,50 @@ export function applyAntiPetWorkshopReplacements(
   if (E.isLeft(modifiedLnz)) {
     return E.left('Could not parse externally modified lnz');
   }
-  const originalPaint = findSectionByName(originalLnz.right, PaintBallzName);
-  if (
-    originalPaint?.tag !== 'section' ||
-    originalPaint.sectionType !== 'paintBallz'
-  ) {
-    return null;
+  const lineMessages1 =
+    fixPaintBallz(originalLnz.right, modifiedLnz.right) ?? [];
+  const lineMessages2 = fixLinez(originalLnz.right, modifiedLnz.right) ?? [];
+
+  const lineMessages = lineMessages1.concat(lineMessages2);
+  const errorMessages = lefts(lineMessages.filter(isNotNully));
+  if (errorMessages.length > 0) {
+    return E.left(errorMessages.join('\n'));
   }
-  const modifiedPaint = findSectionByName(modifiedLnz.right, PaintBallzName);
-  if (
-    modifiedPaint?.tag !== 'section' ||
-    modifiedPaint.sectionType !== 'paintBallz'
-  ) {
-    return null;
+  return E.of(serializeLnz(modifiedLnz.right));
+}
+
+function findSections(
+  originalLnz: ParsedLnz,
+  modifiedLnz: ParsedLnz,
+  sectionName: string,
+  sectionType: SectionTypeTag
+) {
+  const finder = (lnz: ParsedLnz) => {
+    const sec = findSectionByName(lnz, sectionName);
+    if (sec?.tag !== 'section' || sec.sectionType !== sectionType) {
+      return null;
+    }
+    return sec;
+  };
+  const original = finder(originalLnz);
+  const modified = finder(modifiedLnz);
+  if (isNotNully(original) && isNotNully(modified)) {
+    return [original, modified];
   }
-  const lineMessages = modifiedPaint.lines.map((modifiedLine) => {
+  return null;
+}
+
+function fixPaintBallz(originalLnz: ParsedLnz, modifiedLnz: ParsedLnz) {
+  const secs = findSections(
+    originalLnz,
+    modifiedLnz,
+    PaintBallzName,
+    'paintBallz'
+  );
+  if (isNully(secs)) return null;
+  const [originalPaint, modifiedPaint] = secs as PaintBallzSectionType[];
+
+  return modifiedPaint.lines.map((modifiedLine) => {
     if (modifiedLine.tag !== 'paintBall') return null;
     const relevantData = modifiedLine.lineContent.filter(Array.isArray) as [
       string,
@@ -122,23 +159,54 @@ export function applyAntiPetWorkshopReplacements(
 
     if (isNully(originalLine) || originalLine.tag !== 'paintBall') return null;
 
-    const originalOptionalColumn = findInData(
-      originalLine.lineContent,
-      'optionalColumn'
-    );
-    if (
-      isNotNully(originalOptionalColumn) &&
-      Array.isArray(originalOptionalColumn) &&
-      O.isSome(originalOptionalColumn[1] as any)
-    ) {
-      // we check for equality in all the other fields, so we simply replace the new line with the old line (this will overwrite any spacing changes made externally)
-      modifiedLine.lineContent = [...originalLine.lineContent];
-    }
+    // at this point we have established that we are identical in first items so we may as well just replace because either original is also none or there are some values there
+    modifiedLine.lineContent = [...originalLine.lineContent];
     return null;
   });
-  const errorMessages = lefts(lineMessages.filter(isNotNully));
-  if (errorMessages.length > 0) {
-    return E.left(errorMessages.join('\n'));
-  }
-  return E.of(serializeLnz(modifiedLnz.right));
+}
+
+function fixLinez(originalLnz: ParsedLnz, modifiedLnz: ParsedLnz) {
+  const secs = findSections(originalLnz, modifiedLnz, LinezName, 'linez');
+  if (isNully(secs)) return null;
+  const [originalLinez, modifiedLinez] = secs as LinezSectionType[];
+
+  return modifiedLinez.lines.map((modifiedLine) => {
+    if (modifiedLine.tag !== 'linez') return null;
+    const relevantData = modifiedLine.lineContent.filter(Array.isArray) as [
+      string,
+      number
+    ][];
+
+    const modifiedOptionalColumn1 = findInData(relevantData, 'optionalColumn1');
+    const modifiedOptionalColumn2 = findInData(relevantData, 'optionalColumn2');
+    if (isNully(modifiedOptionalColumn1) || isNully(modifiedOptionalColumn2)) {
+      return E.left(`Could not find modified optional columns `);
+    }
+    if (
+      O.isSome(modifiedOptionalColumn1[1] as any) ||
+      O.isSome(modifiedOptionalColumn2[1] as any)
+    ) {
+      return null;
+    }
+
+    const originalLine = originalLinez.lines.find((it) => {
+      if (it.tag !== 'linez') return false;
+
+      const originalRelevantData = it.lineContent.filter(Array.isArray) as [
+        string,
+        number
+      ][];
+
+      // we compare the first 8 cols for identity
+      return relevantData
+        .slice(0, 8)
+        .every((val, i) => val[1] === originalRelevantData[i][1]);
+    });
+
+    if (isNully(originalLine) || originalLine.tag !== 'linez') return null;
+
+    // at this point we have established that we are identical in first items so we may as well just replace because either original is also none or there are some values there
+    modifiedLine.lineContent = [...originalLine.lineContent];
+    return null;
+  });
 }
