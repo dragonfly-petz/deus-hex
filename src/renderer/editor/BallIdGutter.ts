@@ -10,7 +10,10 @@ import { run } from '../../common/function';
 import { ballLabels } from '../../common/petz/parser/line/ball-labels';
 
 class BallNumberMarker extends GutterMarker {
-  constructor(readonly number: number, readonly tooltipContent?: string) {
+  constructor(
+    readonly number: number,
+    readonly tooltipContent?: string | null
+  ) {
     super();
   }
 
@@ -22,6 +25,7 @@ class BallNumberMarker extends GutterMarker {
     const div = document.createElement('div');
     const node = document.createTextNode(this.number.toString());
     div.appendChild(node);
+    div.className = style.ballNumber;
     if (isNotNully(this.tooltipContent)) {
       tippy(div, {
         content: this.tooltipContent,
@@ -30,6 +34,10 @@ class BallNumberMarker extends GutterMarker {
       });
     }
     return div;
+  }
+
+  destroy(dom: Node) {
+    getTippyInst(dom)?.destroy();
   }
 }
 
@@ -51,7 +59,6 @@ export const parsedLnzUpdateEffect = StateEffect.define<ParsedLnz | null>({});
 
 export const ballIdGutterEx = [
   gutter({
-    class: style.ballNumber,
     lineMarker: (view, line, _otherMarkers) => {
       const state = view.state.field(parsedLnzState);
       if (isNully(state)) {

@@ -1,4 +1,4 @@
-import { ReactNode, useEffect } from 'react';
+import { ReactNode, useEffect, useMemo } from 'react';
 import { pipe } from 'fp-ts/function';
 import { isString } from 'fp-ts/string';
 import bmp from '@wokwi/bmp-ts';
@@ -23,6 +23,7 @@ import { E, O } from '../../common/fp-ts/fp';
 import { Navigation, NavigationDef } from '../layout/NavgationBar';
 import { FileInfoAndData } from '../../main/app/pe-files/pe-files-util';
 import {
+  EditorFileInfo,
   EditorParams,
   ProjectId,
 } from '../../main/app/resource/project-manager';
@@ -38,6 +39,7 @@ import {
   getAllDataEntriesWithId,
   getSingleResourceEntryById,
   resDataEntryToString,
+  ResDataEntryWithId,
   ResourceEntryId,
   resourceEntryIdToStringKey,
 } from '../../common/petz/codecs/rsrc-utility';
@@ -192,6 +194,8 @@ const useMkNavigation = (
 interface SectionAsString {
   data: Uint8Array;
   original: string;
+  // nasty hack to get around recreating the hasChanged node
+  originalHolder: { original: string };
   editNode: ReactiveNode<string>;
   parsedData: ReactiveVal<ParsedLnzResult>;
   isParsing: ReactiveVal<boolean>;
@@ -231,6 +235,11 @@ function useGetDeps() {
     return E.right(null);
   }, [editorFileInfo]);
 
+  const sectionAsStringMapHolder = useMemo(
+    () => ({ map: new Map<string, SectionAsString>() }),
+    []
+  );
+
   const fileInfoQuery = useMkQueryMemo(async () => {
     if (E.isLeft(editorFileInfo)) {
       return editorFileInfo;
@@ -241,36 +250,12 @@ function useGetDeps() {
       res,
       E.map((resIn) => {
         const entries = getAllDataEntriesWithId(resIn.resDirTable);
-        const sectionAsStringMap = new Map<string, SectionAsString>(
-          entries.map((it) => {
-            const { data } = it.entry;
-            const original = resDataEntryToString(it.entry);
-            const editNode = new ReactiveNode(original);
-            const isParsing = new ReactiveNode(false);
-            const parsedData = editNode
-              .fmapStrict((newVal) => {
-                isParsing.setValue(true);
-                return newVal;
-              })
-              .fmapStrict((newVal) => {
-                const ret = parseLnz(newVal, editorFileInfo.right.type);
-                isParsing.setValue(false);
-                return ret;
-              }, 2e3);
-            return [
-              resourceEntryIdToStringKey(it.id),
-              {
-                data,
-                original,
-                editNode,
-                parsedData,
-                isParsing,
-                hasChanged: editNode.fmapStrict((str) => str !== original),
-                id: it.id,
-              },
-            ];
-          })
+        sectionAsStringMapHolder.map = createOrUpdateSections(
+          sectionAsStringMapHolder.map,
+          entries,
+          editorFileInfo.right
         );
+        const sectionAsStringMap = sectionAsStringMapHolder.map;
         return {
           projectId,
           ...resIn,
@@ -319,14 +304,14 @@ function useGetDeps() {
                     )
                   );
                   if (E.isRight(res)) {
+                    const oldValues = Array.from(
+                      value.sectionAsStringMap.entries()
+                    ).map((it) => [it[0], it[1].editNode.getValue()] as const);
                     const reloadFilePromise = fileInfoQuery.reloadSoft();
                     projectInfoQuery.reloadSoft();
                     const newFileVal = await reloadFilePromise;
                     if (E.isRight(newFileVal)) {
-                      for (const [
-                        sectKey,
-                        originalSect,
-                      ] of value.sectionAsStringMap.entries()) {
+                      for (const [sectKey, originalSectEditNode] of oldValues) {
                         if (sectKey.slice(0, 3) !== 'LNZ') {
                           continue;
                         }
@@ -334,7 +319,7 @@ function useGetDeps() {
                           newFileVal.right.sectionAsStringMap.get(sectKey);
                         if (isNotNully(newSect)) {
                           const applyRes = applyAntiPetWorkshopReplacements(
-                            originalSect.editNode.getValue(),
+                            originalSectEditNode,
                             newSect.editNode.getValue(),
                             newFileVal.right.fileType
                           );
@@ -399,6 +384,56 @@ function useGetDeps() {
 }
 
 type TabDefs = ReturnType<typeof useGetDeps>;
+
+function createOrUpdateSections(
+  oldMap: Map<string, SectionAsString>,
+  entries: ResDataEntryWithId[],
+  editorFileInfo: EditorFileInfo
+) {
+  const newMap = new Map<string, SectionAsString>();
+  entries.forEach((it) => {
+    const key = resourceEntryIdToStringKey(it.id);
+    const oldEntry = oldMap.get(key);
+    const { data } = it.entry;
+    const original = resDataEntryToString(it.entry);
+    if (isNully(oldEntry)) {
+      const editNode = new ReactiveNode(original);
+      const isParsing = new ReactiveNode(false);
+      const parsedData = editNode
+        .fmapStrict((newVal) => {
+          isParsing.setValue(true);
+          return newVal;
+        })
+        .fmapStrict((newVal) => {
+          const ret = parseLnz(newVal, editorFileInfo.type);
+          isParsing.setValue(false);
+          return ret;
+        }, 2e3);
+      const originalHolder = { original };
+      newMap.set(key, {
+        data,
+        original,
+        originalHolder,
+        editNode,
+        parsedData,
+        isParsing,
+        hasChanged: editNode.fmapStrict(
+          (str) => str !== originalHolder.original
+        ),
+        id: it.id,
+      });
+      return;
+    }
+    oldEntry.originalHolder.original = original;
+    oldEntry.editNode.setValue(original);
+    newMap.set(key, {
+      ...oldEntry,
+      data,
+      original,
+    });
+  });
+  return newMap;
+}
 
 export function mkEditorTab(): TabDef<TabDefs> {
   return {

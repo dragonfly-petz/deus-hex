@@ -26,7 +26,7 @@ export function CodeMirror({
   parsedData: ReactiveVal<ParsedLnzResult>;
 }) {
   const indentWithTabCustom = { ...indentWithTab, run: insertTab };
-
+  console.log('CODE MIRROR');
   const { refSetter, resultRef } = useMemoRef((div: HTMLDivElement) => {
     const startState = EditorState.create({
       doc: valueNode.getValue(),
@@ -72,8 +72,9 @@ export function CodeMirror({
       // eslint-disable-next-line no-console
       // console.log(view, val.substring(0, 50));
       if (isNully(view)) return;
-      // we do this to account for changes made externally but it would be better to have a different way to react to this because this code does a full comp every time the editor changes a char
+      // we do this to account for changes made externally but it would be better to have a different way to react to this because this code does a full comparison every time the editor changes a char
       if (view.state.doc.toString() !== val) {
+        const snap = view.scrollSnapshot();
         view.dispatch({
           annotations: [isolateHistory.of('full')],
           changes: {
@@ -81,6 +82,7 @@ export function CodeMirror({
             to: view.state.doc.length,
             insert: val,
           },
+          effects: [snap],
         });
       }
 
