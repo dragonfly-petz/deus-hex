@@ -1,4 +1,5 @@
 import { toUpperCase } from 'fp-ts/string';
+import path from 'path';
 import { objectEntries } from '../object';
 import { mkEntryIdQuery } from './codecs/rsrc-utility';
 import {
@@ -89,3 +90,11 @@ export const fileTypeToExpectedSections: Record<
   catz: ['lnzCat', 'lnzKitten', 'breedBmp'],
   dogz: ['lnzDog', 'lnzPuppy', 'breedBmp'],
 };
+
+export function typeFromFilePath(filePath: string): FileType | null {
+  const ext = path.extname(filePath);
+  const found = objectEntries(fileTypes).find((it) => {
+    return it[1].extension === ext;
+  });
+  return found?.[0] ?? null;
+}

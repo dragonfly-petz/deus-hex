@@ -26,7 +26,6 @@ export function CodeMirror({
   parsedData: ReactiveVal<ParsedLnzResult>;
 }) {
   const indentWithTabCustom = { ...indentWithTab, run: insertTab };
-  console.log('CODE MIRROR');
   const { refSetter, resultRef } = useMemoRef((div: HTMLDivElement) => {
     const startState = EditorState.create({
       doc: valueNode.getValue(),
@@ -62,7 +61,6 @@ export function CodeMirror({
     view.dispatch({
       effects: parsedLnzUpdateEffect.of(val),
     });
-    console.log(it);
   });
 
   useListenReactiveVal(

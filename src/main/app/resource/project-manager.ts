@@ -1,12 +1,12 @@
 import path from 'path';
 import { app } from 'electron';
 import { pipe } from 'fp-ts/function';
-import { FileType, fileTypes } from '../../../common/petz/file-types';
 import {
-  mapObjectValuesStringKey,
-  objectEntries,
-  objectValues,
-} from '../../../common/object';
+  FileType,
+  fileTypes,
+  typeFromFilePath,
+} from '../../../common/petz/file-types';
+import { mapObjectValuesStringKey, objectValues } from '../../../common/object';
 import { fromPromiseProperties } from '../../../common/promise';
 import { directoryExists, fileExists, getPathsInDir } from '../file/file-util';
 import { fsPromises } from '../util/fs-promises';
@@ -55,14 +55,6 @@ function projectFolders(id: ProjectId) {
     previousVersionsFolder,
     temporaryBackupsFolder,
   };
-}
-
-export function typeFromFilePath(filePath: string): FileType | null {
-  const ext = path.extname(filePath);
-  const found = objectEntries(fileTypes).find((it) => {
-    return it[1].extension === ext;
-  });
-  return found?.[0] ?? null;
 }
 
 export interface ProjectId {

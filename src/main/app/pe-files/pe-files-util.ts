@@ -31,8 +31,7 @@ import {
 } from '../../../common/petz/codecs/rcdata';
 import { Result } from '../../../common/result';
 import { toHex } from '../../../common/number';
-import { typeFromFilePath } from '../resource/project-manager';
-import { FileType } from '../../../common/petz/file-types';
+import { FileType, typeFromFilePath } from '../../../common/petz/file-types';
 
 function toHexString(arr: Uint8Array) {
   return Array.from(arr)
