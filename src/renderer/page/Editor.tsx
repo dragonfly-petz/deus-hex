@@ -62,6 +62,7 @@ import { renderId } from '../helper/helper';
 import { isNever } from '../../common/type-assertion';
 import { CodeMirror } from '../editor/CodeMirror';
 import { applyAntiPetWorkshopReplacements } from '../../common/petz/transform/transforms';
+import { ParsedLnzResult, parseLnz } from '../../common/petz/parser/main';
 
 interface NavigationDeps {
   fileInfo: FileInfoAndData & {
@@ -191,6 +192,7 @@ interface SectionAsString {
   data: Uint8Array;
   original: string;
   editNode: ReactiveNode<string>;
+  parsedData: ReactiveVal<ParsedLnzResult>;
   hasChanged: ReactiveVal<boolean>;
   id: ResourceEntryId;
 }
@@ -242,13 +244,14 @@ function useGetDeps() {
             const { data } = it.entry;
             const original = resDataEntryToString(it.entry);
             const editNode = new ReactiveNode(original);
-
+            const parsedData = editNode.fmapStrict(parseLnz, 3e3);
             return [
               resourceEntryIdToStringKey(it.id),
               {
                 data,
                 original,
                 editNode,
+                parsedData,
                 hasChanged: editNode.fmapStrict((str) => str !== original),
                 id: it.id,
               },
@@ -744,7 +747,10 @@ const SectionPage = ({
             case 'ascii':
               return (
                 <div className={style.editorTextAreaWrapper}>
-                  <CodeMirror valueNode={node.editNode} />
+                  <CodeMirror
+                    valueNode={node.editNode}
+                    parsedData={node.parsedData}
+                  />
                 </div>
               );
             case 'bitmap': {

@@ -40,7 +40,8 @@ export function parseLnz(str: string) {
   return runParser(lnzParser(), str);
 }
 
-export type ParsedLnz = ReturnType<typeof parseLnz> extends Either<any, infer A>
+export type ParsedLnzResult = ReturnType<typeof parseLnz>;
+export type ParsedLnz = ParsedLnzResult extends Either<any, infer A>
   ? A
   : never;
 const lnzParser = () =>

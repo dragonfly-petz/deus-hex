@@ -7,27 +7,28 @@ import {
   insertTab,
   isolateHistory,
 } from '@codemirror/commands';
-import { useRef } from 'react';
 import { useMemoRef } from '../hooks/use-memo-ref';
 import { ReactiveNode } from '../../common/reactive/reactive-node';
 import style from './CodeMirror.module.scss';
-import {
-  useListenReactiveVal,
-  useReactiveVal,
-} from '../reactive-state/reactive-hooks';
+import { useListenReactiveVal } from '../reactive-state/reactive-hooks';
 import { isNully } from '../../common/null';
 import { voidFn } from '../../common/function';
+import { ballIdGutter } from './BallIdGutter';
+import { ReactiveVal } from '../../common/reactive/reactive-interface';
+import { ParsedLnzResult } from '../../common/petz/parser/main';
 
-export function CodeMirror({ valueNode }: { valueNode: ReactiveNode<string> }) {
-  const initialValue = useReactiveVal(valueNode);
-  const valueNodeRef = useRef(valueNode);
-  valueNodeRef.current = valueNode;
-
+export function CodeMirror({
+  valueNode,
+  parsedData,
+}: {
+  valueNode: ReactiveNode<string>;
+  parsedData: ReactiveVal<ParsedLnzResult>;
+}) {
   const indentWithTabCustom = { ...indentWithTab, run: insertTab };
 
   const { refSetter, resultRef } = useMemoRef((div: HTMLDivElement) => {
     const startState = EditorState.create({
-      doc: initialValue,
+      doc: valueNode.getValue(),
       extensions: [
         basicSetup,
         keymap.of(defaultKeymap),
@@ -35,13 +36,14 @@ export function CodeMirror({ valueNode }: { valueNode: ReactiveNode<string> }) {
         EditorState.tabSize.of(8),
         EditorView.updateListener.of((v) => {
           if (v.docChanged) {
-            valueNodeRef.current.setValue(v.state.doc.toString());
+            valueNode.setValue(v.state.doc.toString());
           }
         }),
         EditorView.theme({
           '&': { height: '100%' },
           '.cm-scroller': { overflow: 'auto' },
         }),
+        ballIdGutter,
       ],
     });
 
@@ -51,6 +53,8 @@ export function CodeMirror({ valueNode }: { valueNode: ReactiveNode<string> }) {
     });
     return [view, voidFn];
   });
+
+  useListenReactiveVal(parsedData, (it) => console.log(it));
 
   useListenReactiveVal(
     valueNode,
