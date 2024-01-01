@@ -31,7 +31,8 @@ import {
 } from '../../../common/petz/codecs/rcdata';
 import { Result } from '../../../common/result';
 import { toHex } from '../../../common/number';
-import { FileType, typeFromFilePath } from '../../../common/petz/file-types';
+import { FileType, fileTypes } from '../../../common/petz/file-types';
+import { objectEntries } from '../../../common/object';
 
 function toHexString(arr: Uint8Array) {
   return Array.from(arr)
@@ -165,6 +166,14 @@ export async function getExistingBreedInfos(targetFile: string) {
   });
   const res = await Promise.all(promises);
   return res.filter(isNotNully);
+}
+
+export function typeFromFilePath(filePath: string): FileType | null {
+  const ext = path.extname(filePath);
+  const found = objectEntries(fileTypes).find((it) => {
+    return it[1].extension === ext;
+  });
+  return found?.[0] ?? null;
 }
 
 export async function getFileInfoAndData(

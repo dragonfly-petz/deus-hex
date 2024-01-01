@@ -1,11 +1,7 @@
 import path from 'path';
 import { app } from 'electron';
 import { pipe } from 'fp-ts/function';
-import {
-  FileType,
-  fileTypes,
-  typeFromFilePath,
-} from '../../../common/petz/file-types';
+import { FileType, fileTypes } from '../../../common/petz/file-types';
 import { mapObjectValuesStringKey, objectValues } from '../../../common/object';
 import { fromPromiseProperties } from '../../../common/promise';
 import { directoryExists, fileExists, getPathsInDir } from '../file/file-util';
@@ -18,6 +14,7 @@ import { taggedValue, TaggedValue } from '../../../common/tagged-value';
 import { FileWatcher } from '../file/file-watcher';
 import { safeLast, sortByNumeric } from '../../../common/array';
 import { globalLogger } from '../../../common/logger';
+import { typeFromFilePath } from '../pe-files/pe-files-util';
 
 const projectFolderName = 'Deus Hex Projects';
 
