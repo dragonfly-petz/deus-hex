@@ -1,11 +1,14 @@
 import { pipe } from 'fp-ts/function';
 import * as P from 'parser-ts/Parser';
+import * as E from 'fp-ts/Either';
+import { bimap, Either } from 'fp-ts/Either';
 import * as S from 'parser-ts/string';
 import * as C from 'parser-ts/char';
-import { bimap, Either } from 'fp-ts/Either';
 import { stream } from 'parser-ts/Stream';
 import { eitherW } from './util';
 import {
+  AddBallInfoName,
+  BallzInfoName,
   baseLineSerializer,
   lineContentChar,
   lineParser,
@@ -20,9 +23,23 @@ import {
   PaintBallzLine,
   paintBallzLineParser,
   paintBallzLineSerialize,
-} from './paint-ballz';
-import { LinezLine, linezLineParser, linezLineSerialize } from './linez';
+} from './line/paint-ballz';
+import { LinezLine, linezLineParser, linezLineSerialize } from './line/linez';
 import { isNever } from '../../type-assertion';
+import { isNotNully } from '../../null';
+import {
+  AddBallContentLine,
+  AddBallLine,
+  addBallLineParser,
+  addBallLineSerialize,
+} from './line/add-ball';
+import {
+  BallzInfoContentLine,
+  BallzInfoLine,
+  ballzInfoLineParser,
+  ballzInfoLineSerialize,
+} from './line/ballz-info';
+import { FileType } from '../file-types';
 
 export const runParser: <A>(
   p: P.Parser<string, A>,
@@ -36,11 +53,66 @@ export const runParser: <A>(
     )
   );
 
-export function parseLnz(str: string) {
-  return runParser(lnzParser(), str);
+export function parseLnz(str: string, fileType: FileType | null) {
+  return pipe(
+    runParser(lnzParser(), str),
+    E.map((rawLines) => {
+      addBallNumbers(rawLines);
+      const flat = new Array<ParsedLine>();
+
+      for (const line of rawLines) {
+        flat.push(line);
+        if (line.tag === 'section') {
+          flat.push(...line.lines);
+        }
+      }
+      return {
+        structured: rawLines,
+        flat,
+        fileType,
+      };
+    })
+  );
 }
 
-export type ParsedLnz = ReturnType<typeof parseLnz> extends Either<any, infer A>
+function addBallNumbers(lines: ParsedLnzStructured) {
+  const ballzInfoSec = findSectionByName(lines, BallzInfoName);
+  const addBallzInfoSec = findSectionByName(lines, AddBallInfoName);
+  const ballzLines =
+    isNotNully(ballzInfoSec) &&
+    ballzInfoSec.tag === 'section' &&
+    ballzInfoSec.sectionType === 'ballzInfo'
+      ? (ballzInfoSec.lines.filter(
+          (it) => it.tag === 'ballzInfo'
+        ) as BallzInfoContentLine[])
+      : [];
+
+  const addBallzLines =
+    isNotNully(addBallzInfoSec) &&
+    addBallzInfoSec.tag === 'section' &&
+    addBallzInfoSec.sectionType === 'addBall'
+      ? (addBallzInfoSec.lines.filter(
+          (it) => it.tag === 'addBall'
+        ) as AddBallContentLine[])
+      : [];
+
+  let number = 0;
+  for (const ballLine of [...ballzLines, ...addBallzLines]) {
+    ballLine.lineContent.ballId = number;
+    number++;
+  }
+}
+
+export type ParsedLine = SectionLineTypes | SectionTypes;
+export type ParsedLnzStructured = ReturnType<typeof lnzParser> extends P.Parser<
+  any,
+  infer A
+>
+  ? A
+  : never;
+
+export type ParsedLnzResult = ReturnType<typeof parseLnz>;
+export type ParsedLnz = ParsedLnzResult extends Either<any, infer A>
   ? A
   : never;
 const lnzParser = () =>
@@ -51,11 +123,10 @@ const lnzParser = () =>
 
 export function serializeLnz(lnz: ParsedLnz) {
   const parts = new Array<string>();
-  for (const line of lnz) {
+  for (const line of lnz.structured) {
     switch (line.tag) {
       case 'raw':
-        parts.push(rawLineSerializer(line));
-        break;
+      case 'emptyLine':
       case 'comment':
         parts.push(rawLineSerializer(line));
         break;
@@ -77,6 +148,16 @@ export function serializeLnz(lnz: ParsedLnz) {
               parts.push(linezLineSerialize(sLine));
             }
             break;
+          case 'addBall':
+            for (const sLine of line.lines) {
+              parts.push(addBallLineSerialize(sLine));
+            }
+            break;
+          case 'ballzInfo':
+            for (const sLine of line.lines) {
+              parts.push(ballzInfoLineSerialize(sLine));
+            }
+            break;
           default:
             isNever(line);
         }
@@ -88,7 +169,10 @@ export function serializeLnz(lnz: ParsedLnz) {
   return parts.join('');
 }
 
-export function findSectionByName(lnz: ParsedLnz, sectionName: string) {
+export function findSectionByName(
+  lnz: ParsedLnzStructured,
+  sectionName: string
+) {
   return lnz.find(
     (it) => it.tag === 'section' && it.lineContent === sectionName
   );
@@ -122,23 +206,42 @@ const sectionParser = pipe(
         return runSection(line, 'paintBallz' as const, paintBallzLineParser);
       case LinezName:
         return runSection(line, 'linez' as const, linezLineParser);
+      case AddBallInfoName:
+        return runSection(line, 'addBall' as const, addBallLineParser);
+      case BallzInfoName:
+        return runSection(line, 'ballzInfo' as const, ballzInfoLineParser);
       default:
         return runSection(line, 'raw' as const, sectionContentRawLineParser);
     }
   })
 );
-
-export type SectionTypes =
-  | PaintBallzSectionType
-  | LinezSectionType
-  | ReturnType<typeof mkSection<'raw', RawParsedLine>>;
 export type PaintBallzSectionType = ReturnType<
   typeof mkSection<'paintBallz', PaintBallzLine>
 >;
+
 export type LinezSectionType = ReturnType<typeof mkSection<'linez', LinezLine>>;
+
+export type AddBallSectionType = ReturnType<
+  typeof mkSection<'addBall', AddBallLine>
+>;
+export type BallzInfoSectionType = ReturnType<
+  typeof mkSection<'ballzInfo', BallzInfoLine>
+>;
+export type SectionTypes =
+  | PaintBallzSectionType
+  | LinezSectionType
+  | AddBallSectionType
+  | BallzInfoSectionType
+  | ReturnType<typeof mkSection<'raw', RawParsedLine>>;
+
 export type SectionTypeTag = SectionTypes['sectionType'];
 
-export type SectionLineTypes = PaintBallzLine | LinezLine | RawParsedLine;
+export type SectionLineTypes =
+  | PaintBallzLine
+  | LinezLine
+  | AddBallLine
+  | BallzInfoLine
+  | RawParsedLine;
 
 export type LineTags = SectionLineTypes['tag'];
 

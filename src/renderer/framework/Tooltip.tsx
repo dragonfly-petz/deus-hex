@@ -1,5 +1,6 @@
 import Tippy, { TippyProps } from '@tippyjs/react';
 import React from 'react';
+import { Instance } from 'tippy.js';
 import style from './Tooltip.module.scss';
 
 type ExposedTippyProps = Pick<
@@ -40,4 +41,8 @@ export function Tooltip({ children, content, ...rest }: TooltipProps) {
       {children}
     </Tippy>
   );
+}
+
+export function getTippyInst(node: object) {
+  return (node as any)._tippy as Instance | undefined;
 }

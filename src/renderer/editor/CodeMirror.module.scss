@@ -1,4 +1,20 @@
+@use '../style/styleVar';
+
 .main {
   height: 100%;
   background-color: white;
+
+  :global(.cm-foldGutter) {
+    display: none !important;
+  }
+}
+
+.ballNumber {
+  background-color: styleVar.$infoFgColor;
+  color: styleVar.$infoBgColor;
+  border-radius: 50%;
+  padding: 0 2px;
+  text-align: center;
+  cursor: default;
+  height: 100%;
 }

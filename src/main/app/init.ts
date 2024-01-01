@@ -1,4 +1,5 @@
-import { app } from 'electron';
+import { app, session } from 'electron';
+import path from 'path';
 import {
   createWindow,
   CreateWindowParams,
@@ -34,12 +35,24 @@ interface AdditionalData {
   argv: string[];
 }
 
+// runs after app ready
 export async function init(domIpcHolder: DomIpcHolder) {
   let createWindowWithParams: (
     params: CreateWindowParams | null
   ) => Promise<void> = () => {
     throw new Error('Invoked create window before it was set');
   };
+  if (isDev()) {
+    const reactExtPath = path.join(
+      __dirname,
+      '../../../dev-resources/react-dev-tools-4-24-7'
+    );
+    await session.defaultSession.loadExtension(
+      reactExtPath,
+      // allowFileAccess is required to load the devtools extension on file:// URLs.
+      { allowFileAccess: true }
+    );
+  }
   app.on('second-instance', (_event, _argv, _workingDir, additionalData) => {
     const additional = additionalData as AdditionalData;
     globalLogger.info(

@@ -6,8 +6,8 @@ import {
   petzSepParser,
   rawLineSerializer,
   sectionContentLineParser,
-} from './section';
-import { push, pushWithKey, startArray } from './util';
+} from '../section';
+import { push, pushWithKey, startArray } from '../util';
 import { colDataSerializer } from './paint-ballz';
 
 export const linezLineParser = sectionContentLineParser(

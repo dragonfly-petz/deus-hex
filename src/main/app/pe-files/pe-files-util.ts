@@ -31,6 +31,8 @@ import {
 } from '../../../common/petz/codecs/rcdata';
 import { Result } from '../../../common/result';
 import { toHex } from '../../../common/number';
+import { FileType, fileTypes } from '../../../common/petz/file-types';
+import { objectEntries } from '../../../common/object';
 
 function toHexString(arr: Uint8Array) {
   return Array.from(arr)
@@ -166,9 +168,19 @@ export async function getExistingBreedInfos(targetFile: string) {
   return res.filter(isNotNully);
 }
 
+export function typeFromFilePath(filePath: string): FileType | null {
+  const ext = path.extname(filePath);
+  const found = objectEntries(fileTypes).find((it) => {
+    return it[1].extension === ext;
+  });
+  return found?.[0] ?? null;
+}
+
 export async function getFileInfoAndData(
   filePath: string
 ): Promise<Result<FileInfoAndData>> {
+  const fileType = typeFromFilePath(filePath);
+
   const buf = await fsPromises.readFile(filePath);
   return pipe(
     await getResourceFileInfo(buf),
@@ -176,7 +188,7 @@ export async function getFileInfoAndData(
       return `Error when getting info for ${filePath}: ${it}`;
     }),
     E.map((it) => {
-      return { ...it, filePath, pathParsed: path.parse(filePath) };
+      return { ...it, filePath, pathParsed: path.parse(filePath), fileType };
     })
   );
 }
@@ -185,6 +197,7 @@ export type FileInfoAndData = {
   pathParsed: path.ParsedPath;
   filePath: string;
   itemName: string;
+  fileType: FileType | null;
 } & ResourceData;
 
 export async function getFileInfo(

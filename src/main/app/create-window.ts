@@ -72,6 +72,8 @@ export class DomIpcHolder {
   }
 }
 
+/*
+// uses most recent extensions so not useful any more
 const installExtensions = async () => {
   // eslint-disable-next-line global-require,@typescript-eslint/no-var-requires
   const installer = require('electron-devtools-installer');
@@ -84,7 +86,7 @@ const installExtensions = async () => {
       forceDownload
     )
     .catch(globalLogger.error);
-};
+}; */
 
 let lastWindowId = 0;
 
@@ -94,9 +96,6 @@ export async function createWindow(
   mainIpc: MainIpcBase,
   params: CreateWindowParams | null
 ) {
-  if (isDev()) {
-    await installExtensions();
-  }
   const windowId = lastWindowId;
   lastWindowId++;
   const window = new BrowserWindow({
@@ -108,6 +107,7 @@ export async function createWindow(
       preload: getPreloadPath(),
     },
   });
+
   window.webContents.on(
     'console-message',
     (_e, level, message, line, sourceId) => {

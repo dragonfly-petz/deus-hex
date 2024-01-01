@@ -23,7 +23,8 @@ import {
   serializeLnz,
 } from '../parser/main';
 import { LinezName, PaintBallzName } from '../parser/section';
-import { findInData } from '../parser/paint-ballz';
+import { findInData } from '../parser/line/paint-ballz';
+import { FileType } from '../file-types';
 
 export function transformBreedAddBallsToClothing(
   val: LinezArray<AddBallBreed>
@@ -76,13 +77,14 @@ export function transformBreedLinesToClothing(
 // some external tools e.g. pet workshop remove some columns of data - anchoring paint balls and in linez for full outlines
 export function applyAntiPetWorkshopReplacements(
   original: string,
-  externallyModified: string
+  externallyModified: string,
+  fileType: FileType | null
 ): E.Either<string, [string, string]> | null {
-  const originalLnz = parseLnz(original);
+  const originalLnz = parseLnz(original, fileType);
   if (E.isLeft(originalLnz)) {
     return E.left('Could not parse original lnz');
   }
-  const modifiedLnz = parseLnz(externallyModified);
+  const modifiedLnz = parseLnz(externallyModified, fileType);
   if (E.isLeft(modifiedLnz)) {
     return E.left('Could not parse externally modified lnz');
   }
@@ -118,7 +120,7 @@ function findSections(
   sectionType: SectionTypeTag
 ) {
   const finder = (lnz: ParsedLnz) => {
-    const sec = findSectionByName(lnz, sectionName);
+    const sec = findSectionByName(lnz.structured, sectionName);
     if (sec?.tag !== 'section' || sec.sectionType !== sectionType) {
       return null;
     }

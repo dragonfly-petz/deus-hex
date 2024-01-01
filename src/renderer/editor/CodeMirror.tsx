@@ -7,27 +7,28 @@ import {
   insertTab,
   isolateHistory,
 } from '@codemirror/commands';
-import { useRef } from 'react';
+import { isRight } from 'fp-ts/Either';
 import { useMemoRef } from '../hooks/use-memo-ref';
 import { ReactiveNode } from '../../common/reactive/reactive-node';
 import style from './CodeMirror.module.scss';
-import {
-  useListenReactiveVal,
-  useReactiveVal,
-} from '../reactive-state/reactive-hooks';
+import { useListenReactiveVal } from '../reactive-state/reactive-hooks';
 import { isNully } from '../../common/null';
 import { voidFn } from '../../common/function';
+import { ballIdGutter, parsedLnzUpdateEffect } from './BallIdGutter';
+import { ReactiveVal } from '../../common/reactive/reactive-interface';
+import { ParsedLnzResult } from '../../common/petz/parser/main';
 
-export function CodeMirror({ valueNode }: { valueNode: ReactiveNode<string> }) {
-  const initialValue = useReactiveVal(valueNode);
-  const valueNodeRef = useRef(valueNode);
-  valueNodeRef.current = valueNode;
-
+export function CodeMirror({
+  valueNode,
+  parsedData,
+}: {
+  valueNode: ReactiveNode<string>;
+  parsedData: ReactiveVal<ParsedLnzResult>;
+}) {
   const indentWithTabCustom = { ...indentWithTab, run: insertTab };
-
   const { refSetter, resultRef } = useMemoRef((div: HTMLDivElement) => {
     const startState = EditorState.create({
-      doc: initialValue,
+      doc: valueNode.getValue(),
       extensions: [
         basicSetup,
         keymap.of(defaultKeymap),
@@ -35,13 +36,14 @@ export function CodeMirror({ valueNode }: { valueNode: ReactiveNode<string> }) {
         EditorState.tabSize.of(8),
         EditorView.updateListener.of((v) => {
           if (v.docChanged) {
-            valueNodeRef.current.setValue(v.state.doc.toString());
+            valueNode.setValue(v.state.doc.toString());
           }
         }),
         EditorView.theme({
           '&': { height: '100%' },
           '.cm-scroller': { overflow: 'auto' },
         }),
+        ballIdGutter,
       ],
     });
 
@@ -52,6 +54,15 @@ export function CodeMirror({ valueNode }: { valueNode: ReactiveNode<string> }) {
     return [view, voidFn];
   });
 
+  useListenReactiveVal(parsedData, (it) => {
+    const view = resultRef.current;
+    if (isNully(view)) return;
+    const val = isRight(it) ? it.right : null;
+    view.dispatch({
+      effects: parsedLnzUpdateEffect.of(val),
+    });
+  });
+
   useListenReactiveVal(
     valueNode,
     (val) => {
@@ -59,8 +70,9 @@ export function CodeMirror({ valueNode }: { valueNode: ReactiveNode<string> }) {
       // eslint-disable-next-line no-console
       // console.log(view, val.substring(0, 50));
       if (isNully(view)) return;
-      // we do this to account for changes made externally but it would be better to have a different way to react to this because this code does a full comp every time the editor changes a char
+      // we do this to account for changes made externally but it would be better to have a different way to react to this because this code does a full comparison every time the editor changes a char
       if (view.state.doc.toString() !== val) {
+        const snap = view.scrollSnapshot();
         view.dispatch({
           annotations: [isolateHistory.of('full')],
           changes: {
@@ -68,6 +80,7 @@ export function CodeMirror({ valueNode }: { valueNode: ReactiveNode<string> }) {
             to: view.state.doc.length,
             insert: val,
           },
+          effects: [snap],
         });
       }
 

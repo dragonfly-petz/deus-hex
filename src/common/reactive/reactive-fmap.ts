@@ -1,4 +1,5 @@
 import { pipe } from 'fp-ts/function';
+import { debounce } from 'debounce';
 import { ChangeListener, Listenable, toChangeVal } from './listener';
 import {
   deepEqualityCheck,
@@ -8,6 +9,7 @@ import {
 import { ReactiveVal } from './reactive-interface';
 import { Disposer } from '../disposable';
 import { O, Option } from '../fp-ts/fp';
+import { isNotNully } from '../null';
 
 class ReactiveFmap<Source, A> implements ReactiveVal<A> {
   private readonly listenable = new Listenable<[A, A]>();
@@ -17,7 +19,8 @@ class ReactiveFmap<Source, A> implements ReactiveVal<A> {
   constructor(
     private readonly source: ReactiveVal<Source>,
     private readonly fn: (a: Source) => A,
-    private readonly equalityCheck: EqualityCheck<A>
+    private readonly equalityCheck: EqualityCheck<A>,
+    private readonly debounceInterval?: number
   ) {}
 
   listen(fn: ChangeListener<A>, callOnListen: boolean): Disposer {
@@ -33,7 +36,18 @@ class ReactiveFmap<Source, A> implements ReactiveVal<A> {
   }
 
   private subscribeToSource() {
-    return this.source.listen(this.updateValue.bind(this), true);
+    let firstCall = true;
+    const updateVal = this.updateValue.bind(this);
+    const wrapped = isNotNully(this.debounceInterval)
+      ? debounce(updateVal, this.debounceInterval)
+      : updateVal;
+    return this.source.listen((a, b) => {
+      if (firstCall) {
+        firstCall = false;
+        return updateVal(a, b);
+      }
+      return wrapped(a, b);
+    }, true);
   }
 
   private updateValue(a: Source, old: Source) {
@@ -63,8 +77,8 @@ class ReactiveFmap<Source, A> implements ReactiveVal<A> {
     return fmapHelper.fmap(this, fn, equalityCheck);
   }
 
-  fmapStrict<B>(fn: (a: A) => B): ReactiveVal<B> {
-    return fmapHelper.fmapStrict(this, fn);
+  fmapStrict<B>(fn: (a: A) => B, debounceInt?: number): ReactiveVal<B> {
+    return fmapHelper.fmapStrict(this, fn, debounceInt);
   }
 
   fmapDeep<B>(fn: (a: A) => B): ReactiveVal<B> {
@@ -76,12 +90,17 @@ export const fmapHelper = {
   fmap<A, B>(
     source: ReactiveVal<A>,
     fn: (a: A) => B,
-    equalityCheck: EqualityCheck<B>
+    equalityCheck: EqualityCheck<B>,
+    debounceInt?: number
   ) {
-    return new ReactiveFmap(source, fn, equalityCheck);
+    return new ReactiveFmap(source, fn, equalityCheck, debounceInt);
   },
-  fmapStrict<A, B>(source: ReactiveVal<A>, fn: (a: A) => B) {
-    return this.fmap(source, fn, strictEqualityCheck);
+  fmapStrict<A, B>(
+    source: ReactiveVal<A>,
+    fn: (a: A) => B,
+    debounceInt?: number
+  ) {
+    return this.fmap(source, fn, strictEqualityCheck, debounceInt);
   },
   fmapDeep<A, B>(source: ReactiveVal<A>, fn: (a: A) => B) {
     return this.fmap(source, fn, deepEqualityCheck);

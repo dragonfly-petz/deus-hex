@@ -1,12 +1,12 @@
-import { ReactiveNode } from '../../common/reactive/reactive-node';
 import { RenderFunction } from '../framework/render';
 import { useReactiveVal } from './reactive-hooks';
+import { ReactiveVal } from '../../common/reactive/reactive-interface';
 
-export function WithReactiveNode<A>({
+export function WithReactiveVal<A>({
   node,
   render,
 }: {
-  node: ReactiveNode<A>;
+  node: ReactiveVal<A>;
   render: RenderFunction<{ value: A }>;
 }) {
   const result = useReactiveVal(node);
