@@ -1,4 +1,23 @@
+@use '../style/styleVar';
+
 .main {
   height: 100%;
   background-color: white;
 }
+
+.ballNumber {
+
+  :global(.cm-gutterElement) {
+    background-color: styleVar.$infoFgColor;
+    color: styleVar.$infoBgColor;
+    border-radius: 50%;
+    padding: 0 2px;
+    text-align: center;
+    cursor: default;
+
+  }
+
+}
+
+
+

@@ -77,8 +77,8 @@ class ReactiveFmap<Source, A> implements ReactiveVal<A> {
     return fmapHelper.fmap(this, fn, equalityCheck);
   }
 
-  fmapStrict<B>(fn: (a: A) => B): ReactiveVal<B> {
-    return fmapHelper.fmapStrict(this, fn);
+  fmapStrict<B>(fn: (a: A) => B, debounce?: number): ReactiveVal<B> {
+    return fmapHelper.fmapStrict(this, fn, debounce);
   }
 
   fmapDeep<B>(fn: (a: A) => B): ReactiveVal<B> {

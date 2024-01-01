@@ -5,15 +5,15 @@ import * as StringFP from 'fp-ts/string';
 import { isString } from 'fp-ts/string';
 
 import { Option } from 'fp-ts/Option';
-import { push, pushWithKey, startArray } from './util';
+import { push, pushWithKey, startArray } from '../util';
 import {
   baseLineSerializer,
   LineBase,
   petzSepParser,
   rawLineSerializer,
   sectionContentLineParser,
-} from './section';
-import { isObjectWithKey } from '../../type-assertion';
+} from '../section';
+import { isObjectWithKey } from '../../../type-assertion';
 /*
  * ;Base ball,diameter(% of baseball),direction (x,y,z),colour,outline colour,fuzz,outline,group,texture
  * */

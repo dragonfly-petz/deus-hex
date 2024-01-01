@@ -1,3 +1,5 @@
+import * as O from 'fp-ts/Option';
+
 export function isNotNully<A>(value: A | null | undefined): value is A {
   return value !== null && value !== undefined;
 }
@@ -13,4 +15,8 @@ export function nullable<T>(t?: T): T | null {
     return null;
   }
   return t;
+}
+
+export function none<A>(): O.Option<A> {
+  return O.none;
 }

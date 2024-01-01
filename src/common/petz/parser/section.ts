@@ -19,6 +19,8 @@ import {
 
 export const PaintBallzName = 'Paint Ballz';
 export const LinezName = 'Linez';
+export const BallzInfoName = 'Ballz Info';
+export const AddBallInfoName = 'Add Ball';
 
 export const isCommentChar = (c: C.Char) => c === SEMICOLON;
 export const lineContentChar: P.Parser<C.Char, C.Char> = P.expected(
@@ -86,7 +88,7 @@ export function lineParser<Tag, A>(
       return eitherW(
         pipe(
           lookAheadW(lineBreak),
-          P.map(() => ['raw', ''] as const)
+          P.map(() => ['emptyLine', ''] as const)
         ),
         () => {
           return eitherW(
@@ -109,7 +111,10 @@ export function lineParser<Tag, A>(
     }))
   ) as P.Parser<
     string,
-    LineBase<Tag, A> | LineBase<'raw', string> | LineBase<'comment', string>
+    | LineBase<Tag, A>
+    | LineBase<'raw', string>
+    | LineBase<'comment', string>
+    | LineBase<'emptyLine', string>
   >;
 }
 

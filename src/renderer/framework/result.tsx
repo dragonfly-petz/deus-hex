@@ -4,7 +4,7 @@ import style from './result.module.scss';
 import { ReactiveNode } from '../../common/reactive/reactive-node';
 import {
   RenderRenderFunc,
-  WithReactiveNode,
+  WithReactiveVal,
 } from '../reactive-state/reactive-components';
 
 export function renderResult<A>(
@@ -29,7 +29,7 @@ export function renderReactiveResult<A>(
   render: RenderFunction<A>
 ) {
   return (
-    <WithReactiveNode
+    <WithReactiveVal
       node={result}
       render={(res) => {
         return renderResult(res.value, render);

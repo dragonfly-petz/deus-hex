@@ -44,11 +44,11 @@ async function testSection(
     return;
   }
   const original = resDataEntryToString(entry.entry);
-  const parsed = parseLnz(original);
+  const parsed = parseLnz(original, 'catz');
   expect(E.isRight(parsed)).toEqual(true);
   if (E.isLeft(parsed)) return;
-  expect(parsed.right.length).toEqual(sectionsExpected);
-  const paintBallzSection = parsed.right[paintBallzIndex];
+  expect(parsed.right.structured.length).toEqual(sectionsExpected);
+  const paintBallzSection = parsed.right.structured[paintBallzIndex];
   expect(paintBallzSection.lineContent).toEqual('Paint Ballz');
   if (paintBallzSection.tag !== 'section') {
     throw new Error('Expected section');

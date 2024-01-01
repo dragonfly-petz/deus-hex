@@ -57,7 +57,7 @@ function projectFolders(id: ProjectId) {
   };
 }
 
-function typeFromFilePath(filePath: string): FileType | null {
+export function typeFromFilePath(filePath: string): FileType | null {
   const ext = path.extname(filePath);
   const found = objectEntries(fileTypes).find((it) => {
     return it[1].extension === ext;

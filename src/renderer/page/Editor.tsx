@@ -63,6 +63,7 @@ import { isNever } from '../../common/type-assertion';
 import { CodeMirror } from '../editor/CodeMirror';
 import { applyAntiPetWorkshopReplacements } from '../../common/petz/transform/transforms';
 import { ParsedLnzResult, parseLnz } from '../../common/petz/parser/main';
+import { renderReactive } from '../reactive-state/render-reactive';
 
 interface NavigationDeps {
   fileInfo: FileInfoAndData & {
@@ -193,6 +194,7 @@ interface SectionAsString {
   original: string;
   editNode: ReactiveNode<string>;
   parsedData: ReactiveVal<ParsedLnzResult>;
+  isParsing: ReactiveVal<boolean>;
   hasChanged: ReactiveVal<boolean>;
   id: ResourceEntryId;
 }
@@ -244,7 +246,17 @@ function useGetDeps() {
             const { data } = it.entry;
             const original = resDataEntryToString(it.entry);
             const editNode = new ReactiveNode(original);
-            const parsedData = editNode.fmapStrict(parseLnz, 3e3);
+            const isParsing = new ReactiveNode(false);
+            const parsedData = editNode
+              .fmapStrict((newVal) => {
+                isParsing.setValue(true);
+                return newVal;
+              })
+              .fmapStrict((newVal) => {
+                const ret = parseLnz(newVal, editorFileInfo.right.type);
+                isParsing.setValue(false);
+                return ret;
+              }, 2e3);
             return [
               resourceEntryIdToStringKey(it.id),
               {
@@ -252,6 +264,7 @@ function useGetDeps() {
                 original,
                 editNode,
                 parsedData,
+                isParsing,
                 hasChanged: editNode.fmapStrict((str) => str !== original),
                 id: it.id,
               },
@@ -322,7 +335,8 @@ function useGetDeps() {
                         if (isNotNully(newSect)) {
                           const applyRes = applyAntiPetWorkshopReplacements(
                             originalSect.editNode.getValue(),
-                            newSect.editNode.getValue()
+                            newSect.editNode.getValue(),
+                            newFileVal.right.fileType
                           );
                           if (isNotNully(applyRes)) {
                             if (E.isRight(applyRes)) {
@@ -741,7 +755,12 @@ const SectionPage = ({
     const sectionType = resourceDataSections[sectionName].type;
     return (
       <>
-        <h2>Editing section {resourceEntryIdToStringKey(entWithId.id)}</h2>
+        <h2>
+          Editing section {resourceEntryIdToStringKey(entWithId.id)}{' '}
+          {renderReactive(node.isParsing, (it) =>
+            it ? <>Parsing...</> : null
+          )}
+        </h2>
         {run(() => {
           switch (sectionType) {
             case 'ascii':

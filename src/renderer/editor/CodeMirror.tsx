@@ -7,13 +7,14 @@ import {
   insertTab,
   isolateHistory,
 } from '@codemirror/commands';
+import { isRight } from 'fp-ts/Either';
 import { useMemoRef } from '../hooks/use-memo-ref';
 import { ReactiveNode } from '../../common/reactive/reactive-node';
 import style from './CodeMirror.module.scss';
 import { useListenReactiveVal } from '../reactive-state/reactive-hooks';
 import { isNully } from '../../common/null';
 import { voidFn } from '../../common/function';
-import { ballIdGutter } from './BallIdGutter';
+import { ballIdGutter, parsedLnzUpdateEffect } from './BallIdGutter';
 import { ReactiveVal } from '../../common/reactive/reactive-interface';
 import { ParsedLnzResult } from '../../common/petz/parser/main';
 
@@ -54,7 +55,15 @@ export function CodeMirror({
     return [view, voidFn];
   });
 
-  useListenReactiveVal(parsedData, (it) => console.log(it));
+  useListenReactiveVal(parsedData, (it) => {
+    const view = resultRef.current;
+    if (isNully(view)) return;
+    const val = isRight(it) ? it.right : null;
+    view.dispatch({
+      effects: parsedLnzUpdateEffect.of(val),
+    });
+    console.log(it);
+  });
 
   useListenReactiveVal(
     valueNode,
