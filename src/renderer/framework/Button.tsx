@@ -12,6 +12,7 @@ import { O, Option } from '../../common/fp-ts/fp';
 import { useReactiveOrConstantOption } from '../reactive-state/reactive-hooks';
 
 const sizeClasses = {
+  small: style.small,
   normal: style.normal,
   large: style.large,
 } as const;

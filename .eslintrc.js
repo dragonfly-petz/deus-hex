@@ -26,6 +26,7 @@ module.exports = {
     'no-continue': 'off',
     'react/jsx-filename-extension': ['error', { extensions: ['.jsx', '.tsx'] }],
     'react/no-unstable-nested-components': 'off',
+    'react/no-array-index-key': 'off',
     'no-implicit-coercion': [
       'warn',
       {
