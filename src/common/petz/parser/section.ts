@@ -16,6 +16,7 @@ import {
   notLineBreak,
   SEMICOLON,
 } from './util';
+import { nullable } from '../../null';
 
 export const PaintBallzName = 'Paint Ballz';
 export const LinezName = 'Linez';
@@ -41,6 +42,7 @@ export type LineBase<Tag, A> = {
   inlineComment: Option<string>;
   endLineBreak: string;
   tag: Tag;
+  lineIndex: number | null;
 };
 
 export function baseLineSerializer<Tag, A>(
@@ -108,6 +110,7 @@ export function lineParser<Tag, A>(
       ...it,
       tag: it.lineContent[0],
       lineContent: it.lineContent[1],
+      lineIndex: nullable<number>(),
     }))
   ) as P.Parser<
     string,

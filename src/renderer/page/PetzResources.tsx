@@ -38,7 +38,7 @@ import { Icon, IconDef } from '../framework/Icon';
 import { globalSh, GlobalStyleVarName } from '../framework/global-style-var';
 import { classNames } from '../../common/react';
 import { getAndModifyOrPut } from '../../common/map';
-import { Navigation, NavigationDef } from '../layout/NavgationBar';
+import { Navigation, NavigationDef } from '../layout/NavigationBar';
 import { renderEither, renderNullable } from '../framework/render';
 import { eitherToNullable } from '../../common/fp-ts/either';
 import {

@@ -17,6 +17,7 @@ import { voidFn } from '../../common/function';
 import { ballIdGutter, parsedLnzUpdateEffect } from './BallIdGutter';
 import { ReactiveVal } from '../../common/reactive/reactive-interface';
 import { ParsedLnzResult } from '../../common/petz/parser/main';
+import { useAppReactiveNodes } from '../context/context';
 
 export function CodeMirror({
   valueNode,
@@ -53,7 +54,16 @@ export function CodeMirror({
     });
     return [view, voidFn];
   });
-
+  const { editorScrollSignal } = useAppReactiveNodes();
+  useListenReactiveVal(editorScrollSignal, (val) => {
+    const view = resultRef.current;
+    if (isNully(view)) return;
+    const lineInfo = view.state.doc.line(val.toLine);
+    view.dispatch({
+      selection: { anchor: lineInfo.from },
+      effects: [EditorView.scrollIntoView(lineInfo.from, { y: 'start' })],
+    });
+  });
   useListenReactiveVal(parsedData, (it) => {
     const view = resultRef.current;
     if (isNully(view)) return;

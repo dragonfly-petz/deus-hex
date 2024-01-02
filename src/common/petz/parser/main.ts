@@ -59,11 +59,14 @@ export function parseLnz(str: string, fileType: FileType | null) {
     E.map((rawLines) => {
       addBallNumbers(rawLines);
       const flat = new Array<ParsedLine>();
-
       for (const line of rawLines) {
+        line.lineIndex = flat.length;
         flat.push(line);
         if (line.tag === 'section') {
-          flat.push(...line.lines);
+          for (const line2 of line.lines) {
+            line2.lineIndex = flat.length;
+            flat.push(line2);
+          }
         }
       }
       return {

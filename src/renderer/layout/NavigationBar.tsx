@@ -1,9 +1,11 @@
 import { isString } from 'fp-ts/string';
+import { Fragment } from 'react';
 import { FunctionalComponent } from '../framework/render';
 import style from './layout.module.scss';
 import { useReactiveVal } from '../reactive-state/reactive-hooks';
 import { Button } from '../framework/Button';
 import { ReactiveNode } from '../../common/reactive/reactive-node';
+import { isNotNully } from '../../common/null';
 
 export interface NavigationDef<
   A extends string,
@@ -32,11 +34,13 @@ export function Navigation<
   items,
   node,
   labelDeps,
+  SuffixItem,
 }: {
   navigationNames: ReadonlyArray<A>;
   items: Record<A, NavigationItem<Deps, LabelDeps>>;
   node: ReactiveNode<A>;
   labelDeps: LabelDeps;
+  SuffixItem?: FunctionalComponent<LabelDeps & { name: A; currentName: A }>;
 }) {
   const currentName = useReactiveVal(node);
 
@@ -48,14 +52,22 @@ export function Navigation<
           ? () => <>{name}</>
           : () => <def.name {...labelDeps} />;
         return (
-          <Button
-            key={name}
-            label={label}
-            active={name === currentName}
-            onClick={() => {
-              node.setValue(name);
-            }}
-          />
+          <Fragment key={name}>
+            <Button
+              label={label}
+              active={name === currentName}
+              onClick={() => {
+                node.setValue(name);
+              }}
+            />
+            {isNotNully(SuffixItem) ? (
+              <SuffixItem
+                {...labelDeps}
+                name={name}
+                currentName={currentName}
+              />
+            ) : null}
+          </Fragment>
         );
       })}
     </div>

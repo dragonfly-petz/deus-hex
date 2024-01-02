@@ -13,6 +13,8 @@ import { getContextBridgeWindowParams } from '../context-bridge';
 import { isNully } from '../../common/null';
 import { run } from '../../common/function';
 import { PromiseInner } from '../../common/promise';
+import { ResourceDataSectionName } from '../../common/petz/file-types';
+import { ScrollSignal } from '../editor/scroll-signal';
 
 export type AppReactiveNodesStatic = ReturnType<typeof mkStaticReactiveNodes>;
 
@@ -26,7 +28,10 @@ export function mkStaticReactiveNodes() {
     isDev() ? 'clothes' : 'overview'
   );
   const currentProjectsPage = new ReactiveNode<ProjectsPage>('overview');
-  const currentEditorSection = new ReactiveNode<string>('overview');
+  const editorScrollSignal = new ReactiveNode<ScrollSignal>({ toLine: 0 });
+  const currentEditorSection = new ReactiveNode<ResourceDataSectionName>(
+    'clzClot'
+  );
   const localFontSizeAdjust = new ReactiveNode<number>(0);
   const dropFileHasDrag = new ReactiveNode(false);
   return {
@@ -36,6 +41,7 @@ export function mkStaticReactiveNodes() {
     modalsNode,
     currentProjectsPage,
     currentEditorSection,
+    editorScrollSignal,
     localFontSizeAdjust,
     dropFileHasDrag,
   };

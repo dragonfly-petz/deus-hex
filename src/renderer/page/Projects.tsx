@@ -26,7 +26,7 @@ import { ModalContentProps, useModal } from '../framework/Modal';
 import { E } from '../../common/fp-ts/fp';
 import { objectEntries } from '../../common/object';
 import { allFileTypeExtensions, FileType } from '../../common/petz/file-types';
-import { Navigation, NavigationDef } from '../layout/NavgationBar';
+import { Navigation, NavigationDef } from '../layout/NavigationBar';
 import type {
   CreateProjectResult,
   ProjectResult,
