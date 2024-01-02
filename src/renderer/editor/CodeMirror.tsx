@@ -52,6 +52,14 @@ export function CodeMirror({
       state: startState,
       parent: div,
     });
+
+    // set initial value for parsed data
+    const initialVal = parsedData.getValue();
+    const val = isRight(initialVal) ? initialVal.right : null;
+    view.dispatch({
+      effects: parsedLnzUpdateEffect.of(val),
+    });
+
     return [view, voidFn];
   });
   const { editorScrollSignal } = useAppReactiveNodes();
@@ -64,6 +72,7 @@ export function CodeMirror({
       effects: [EditorView.scrollIntoView(lineInfo.from, { y: 'start' })],
     });
   });
+
   useListenReactiveVal(parsedData, (it) => {
     const view = resultRef.current;
     if (isNully(view)) return;
