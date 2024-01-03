@@ -452,6 +452,12 @@ export const ballAbrsAndZones = {
   clothes: null,
 };
 
+export interface BallLabelData {
+  label: string;
+  abbr: string;
+  zone: BodyZone;
+}
+
 export function getBallLabelData<A extends FileType>(
   ballId: number,
   fileType: A

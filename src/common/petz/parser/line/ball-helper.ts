@@ -20,6 +20,19 @@ export interface BallInfo {
   parent: Either<string, BallInfo | null>;
 }
 
+export function toArrayWithParents(info: BallInfo): Either<string, BallInfo>[] {
+  const arr: Either<string, BallInfo>[] = [E.of(info)];
+  if (E.isRight(info.parent)) {
+    if (isNully(info.parent.right)) {
+      return arr;
+    }
+    return arr.concat(toArrayWithParents(info.parent.right));
+  }
+  arr.push(info.parent);
+
+  return arr;
+}
+
 export function getBaseBallId(info: BallInfo): Either<string, number> {
   if (info.line.tag === 'ballzInfo') {
     if (isNully(info.line.lineContent.ballId)) {
@@ -31,7 +44,6 @@ export function getBaseBallId(info: BallInfo): Either<string, number> {
     info.ultimateParent,
     E.chain((it) => {
       if (isNully(it)) {
-        console.log(info);
         return E.left(
           'addball with no ultimate parent - Should be impossible!'
         );

@@ -20,6 +20,7 @@ import { ParsedLnzResult } from '../../common/petz/parser/main';
 import { useAppReactiveNodes } from '../context/context';
 import { ballRefGutter } from './BallRefGutter';
 import { parsedLnzState, parsedLnzUpdateEffect } from './gutter-helper';
+import { jumpToLine } from './code-mirror-helper';
 
 export function CodeMirror({
   valueNode,
@@ -70,11 +71,7 @@ export function CodeMirror({
   useListenReactiveVal(editorScrollSignal, (val) => {
     const view = resultRef.current;
     if (isNully(view)) return;
-    const lineInfo = view.state.doc.line(val.toLine);
-    view.dispatch({
-      selection: { anchor: lineInfo.from },
-      effects: [EditorView.scrollIntoView(lineInfo.from, { y: 'start' })],
-    });
+    jumpToLine(view, val.toLine);
   });
 
   useListenReactiveVal(parsedData, (it) => {

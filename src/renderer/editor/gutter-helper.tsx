@@ -24,6 +24,9 @@ export const tippyDomEventHandlers: GutterConfig['domEventHandlers'] = {
     if (isNully(tippyInst)) {
       return false;
     }
+    if (tippyInst.props.interactive) {
+      return false;
+    }
     tippyInst.hide();
     return true;
   },

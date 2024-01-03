@@ -1,4 +1,4 @@
-import { gutter, GutterMarker } from '@codemirror/view';
+import { EditorView, gutter, GutterMarker } from '@codemirror/view';
 import { tippy } from '@tippyjs/react';
 import * as E from 'fp-ts/Either';
 import { safeGet } from '../../common/array';
@@ -21,9 +21,12 @@ import { deepEqual } from '../../common/equality';
 import { FileType } from '../../common/petz/file-types';
 import { getBallLabelData } from '../../common/petz/parser/line/ball-labels';
 import { classNames } from '../../common/react';
+import { createBallRefTooltip } from './ball-ref-tooltip';
+import { jumpToLine } from './code-mirror-helper';
 
 class BallRefMarker extends GutterMarker {
   constructor(
+    readonly view: EditorView,
     readonly ballIds: Array<number | null>,
     private readonly ballz: BallzInfo,
     private readonly fileType: FileType | null
@@ -72,16 +75,24 @@ class BallRefMarker extends GutterMarker {
             `zone-${labelData.zone}`
           ),
           labelData.abbr,
-          labelData.label,
+          createBallRefTooltip(info.right, labelData, (l) => {
+            jumpToLine(this.view, l);
+          }),
         ];
       });
       itemDiv.className = classNames(style.ballRefMarker, addClass);
       itemDiv.appendChild(document.createTextNode(content));
       if (isNotNully(tooltip)) {
         tippy(itemDiv, {
+          appendTo: () => document.body,
           content: tooltip,
-          trigger: 'hover',
           placement: 'left',
+          // trigger: 'manual',
+          maxWidth: 'none',
+          interactive: true,
+          onClickOutside: (inst) => {
+            inst.hide();
+          },
         });
       }
     }
@@ -134,7 +145,7 @@ export const ballRefGutter = [
         }
       });
 
-      return new BallRefMarker(ballIds, state.ballz, state.fileType);
+      return new BallRefMarker(view, ballIds, state.ballz, state.fileType);
     },
 
     lineMarkerChange: parsedLnzChange,
