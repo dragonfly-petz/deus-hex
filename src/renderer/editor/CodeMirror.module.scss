@@ -18,3 +18,36 @@
   cursor: default;
   height: 100%;
 }
+
+.ballRefMarkerContainer {
+  display: flex;
+}
+
+.ballRefMarker {
+  cursor: default;
+  margin-right: 5px;
+  color: white;
+  background-color: styleVar.$infoFgColor;
+  padding: 2px;
+
+  &.missingRef {
+    background-color: styleVar.$errorFgColor
+  }
+
+  &.errorRef {
+    background-color: styleVar.$errorFgColor
+  }
+
+  &.isBaseBall {
+    font-weight: bold;
+  }
+
+
+  @each $name, $color in styleVar.$zones {
+    &:global(.zone-#{$name}) {
+      background-color: $color;
+    }
+  }
+
+}
+

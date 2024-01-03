@@ -40,6 +40,13 @@ const globalStyleDef = {
   tertiaryFontColor: '#f3f3f3',
   headingFont: 'Comic Sans MS, Comic Sans, sans-serif',
 
+  zoneHead: '#ff5e5e',
+  zoneBody: '#ffac4b',
+  zoneFrontLegs: '#ffeb5b',
+  zoneBackLegs: '#22ff00',
+  zoneTail: '#733cff',
+  zoneMisc: '#f45cff',
+
   // local
   localVar1: null,
 };
