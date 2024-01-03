@@ -43,24 +43,23 @@ $zoneBackLegs: declareVar(zoneBackLegs);
 $zoneTail: declareVar(zoneTail);
 $zoneMisc: declareVar(zoneMisc);
 
-
 @mixin initStyleVars {
   @each $str in $globalVars {
     --#{$str}: styleVarInit-#{$str};
   }
 }
 
-$zones: ("head": $zoneHead,
-  "body": $zoneBody,
-  "frontLegs": $zoneFrontLegs,
-  "backLegs": $zoneBackLegs,
-  "tail": $zoneTail,
-  "misc": $zoneMisc,
+$zones: (
+  'head': $zoneHead,
+  'body': $zoneBody,
+  'frontLegs': $zoneFrontLegs,
+  'backLegs': $zoneBackLegs,
+  'tail': $zoneTail,
+  'misc': $zoneMisc,
 );
 
 :export {
   @each $str in $globalVars {
     #{$str}: $str;
   }
-
 }

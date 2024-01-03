@@ -31,35 +31,31 @@
   padding: 2px;
 
   &.missingRef {
-    background-color: styleVar.$errorFgColor
+    background-color: styleVar.$errorFgColor;
   }
 
   &.errorRef {
-    background-color: styleVar.$errorFgColor
+    background-color: styleVar.$errorFgColor;
   }
 
   &.isBaseBall {
     font-weight: bold;
   }
 
-
   @each $name, $color in styleVar.$zones {
     &:global(.zone-#{$name}) {
       background-color: $color;
     }
   }
-
 }
 
 .tooltip {
   .tags {
-
     .zone {
       margin-left: 5px;
       padding: 0 4px;
       border-radius: 2px;
       @each $name, $color in styleVar.$zones {
-
         &:global(.zone-#{$name}) {
           background-color: $color;
         }
@@ -75,22 +71,18 @@
     cursor: pointer;
     align-items: center;
     margin-bottom: 5px;
-
   }
-
 
   .baseBall {
     font-weight: bold;
   }
 
   .spacer {
-
     margin-right: 5px;
   }
 
-
   .error {
-    background-color: styleVar.$errorFgColor
+    background-color: styleVar.$errorFgColor;
   }
 
   .first {
@@ -107,7 +99,6 @@
     cursor: pointer;
     outline: inherit;
     display: flex;
-    
 
     &:hover {
       opacity: 0.8;
@@ -115,4 +106,3 @@
     }
   }
 }
-
