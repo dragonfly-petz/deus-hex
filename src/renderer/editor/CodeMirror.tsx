@@ -14,10 +14,13 @@ import style from './CodeMirror.module.scss';
 import { useListenReactiveVal } from '../reactive-state/reactive-hooks';
 import { isNully } from '../../common/null';
 import { voidFn } from '../../common/function';
-import { ballIdGutter, parsedLnzUpdateEffect } from './BallIdGutter';
+import { ballIdGutter } from './BallIdGutter';
 import { ReactiveVal } from '../../common/reactive/reactive-interface';
 import { ParsedLnzResult } from '../../common/petz/parser/main';
 import { useAppReactiveNodes } from '../context/context';
+import { ballRefGutter } from './BallRefGutter';
+import { parsedLnzState, parsedLnzUpdateEffect } from './gutter-helper';
+import { jumpToLine } from './code-mirror-helper';
 
 export function CodeMirror({
   valueNode,
@@ -45,6 +48,8 @@ export function CodeMirror({
           '.cm-scroller': { overflow: 'auto' },
         }),
         ballIdGutter,
+        ballRefGutter,
+        parsedLnzState.extension,
       ],
     });
 
@@ -66,11 +71,7 @@ export function CodeMirror({
   useListenReactiveVal(editorScrollSignal, (val) => {
     const view = resultRef.current;
     if (isNully(view)) return;
-    const lineInfo = view.state.doc.line(val.toLine);
-    view.dispatch({
-      selection: { anchor: lineInfo.from },
-      effects: [EditorView.scrollIntoView(lineInfo.from, { y: 'start' })],
-    });
+    jumpToLine(view, val.toLine);
   });
 
   useListenReactiveVal(parsedData, (it) => {

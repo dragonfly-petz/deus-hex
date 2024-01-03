@@ -2,18 +2,14 @@ import * as P from 'parser-ts/Parser';
 import { flow, pipe } from 'fp-ts/function';
 import * as S from 'parser-ts/string';
 import * as StringFP from 'fp-ts/string';
-import { isString } from 'fp-ts/string';
-
-import { Option } from 'fp-ts/Option';
 import { push, pushWithKey, startArray } from '../util';
 import {
-  baseLineSerializer,
-  LineBase,
   petzSepParser,
   rawLineSerializer,
   sectionContentLineParser,
 } from '../section';
-import { isObjectWithKey } from '../../../type-assertion';
+import { colDataSerializerWith } from './col-data';
+import { tuple } from '../../../array';
 /*
  * ;Base ball,diameter(% of baseball),direction (x,y,z),colour,outline colour,fuzz,outline,group,texture
  * */
@@ -23,7 +19,7 @@ export const paintBallzLineParser = sectionContentLineParser(
 
     // we have to break these because fp-ts doesn't support this many args to pipe haha
     flow(
-      pushWithKey('baseBall', S.int),
+      pushWithKey('ballRef', S.int),
       push(petzSepParser),
       pushWithKey('diameter', S.int),
       push(petzSepParser),
@@ -52,14 +48,14 @@ export const paintBallzLineParser = sectionContentLineParser(
       pushWithKey('optionalColumn', P.optional(S.int)),
       push(P.maybe(StringFP.Monoid)(petzSepParser))
     ),
-
-    P.map((it) => ['paintBall', it] as const)
+    P.map((it) =>
+      tuple('paintBall' as const, {
+        content: it,
+        ballRef: it[0][1] as number,
+      })
+    )
   )
 );
-
-export function findInData(data: (string | [string, unknown])[], key: string) {
-  return data.find((it) => Array.isArray(it) && it[0] === key);
-}
 
 export type PaintBallzLine = typeof paintBallzLineParser extends P.Parser<
   any,
@@ -72,28 +68,5 @@ export function paintBallzLineSerialize(line: PaintBallzLine) {
   if (line.tag !== 'paintBall') {
     return rawLineSerializer(line);
   }
-  return colDataSerializer(line);
-}
-
-export function colDataSerializer(
-  line: LineBase<any, (string | [string, number | string | Option<number>])[]>
-) {
-  return baseLineSerializer(line, (content) => {
-    const parts = new Array<string>();
-    for (const sec of content) {
-      if (isString(sec)) {
-        parts.push(sec);
-      } else if (sec.length === 2) {
-        const val = sec[1];
-        if (isObjectWithKey(val, '_tag')) {
-          if (val._tag === 'Some') {
-            parts.push(String(val.value));
-          }
-        } else {
-          parts.push(String(sec[1]));
-        }
-      }
-    }
-    return parts.join('');
-  });
+  return colDataSerializerWith(line, (it) => it.content);
 }

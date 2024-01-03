@@ -8,7 +8,9 @@ import {
   sectionContentLineParser,
 } from '../section';
 import { push, pushWithKey, startArray } from '../util';
-import { colDataSerializer } from './paint-ballz';
+
+import { colDataSerializerWith } from './col-data';
+import { tuple } from '../../../array';
 
 export const linezLineParser = sectionContentLineParser(
   pipe(
@@ -41,7 +43,13 @@ export const linezLineParser = sectionContentLineParser(
       pushWithKey('optionalColumn2', P.optional(S.int)),
       push(P.maybe(StringFP.Monoid)(petzSepParser))
     ),
-    P.map((it) => ['linez', it] as const)
+    P.map((it) =>
+      tuple('linez' as const, {
+        content: it,
+        startBall: it[0][1] as number,
+        endBall: it[2][1] as number,
+      })
+    )
   )
 );
 export type LinezLine = typeof linezLineParser extends P.Parser<any, infer A>
@@ -52,5 +60,5 @@ export function linezLineSerialize(line: LinezLine) {
   if (line.tag !== 'linez') {
     return rawLineSerializer(line);
   }
-  return colDataSerializer(line);
+  return colDataSerializerWith(line, (it) => it.content);
 }

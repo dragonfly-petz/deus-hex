@@ -58,7 +58,8 @@ async function testSection(
   }
 
   const firstLine = paintBallzSection.lines[0];
-  expect(firstLine.lineContent[0]).toEqual(['baseBall', 2]);
+  expect((firstLine.lineContent as any).content[0]).toEqual(['ballRef', 2]);
+  expect((firstLine.lineContent as any).ballRef).toEqual(2);
 
   const ser = serializeLnz(parsed.right);
 

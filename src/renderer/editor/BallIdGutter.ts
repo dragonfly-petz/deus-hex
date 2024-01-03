@@ -1,13 +1,16 @@
 import { gutter, GutterMarker } from '@codemirror/view';
-import { StateEffect, StateField } from '@codemirror/state';
 import { tippy } from '@tippyjs/react';
-import { ParsedLnz } from '../../common/petz/parser/main';
-import { safeGet, safeLast } from '../../common/array';
+import { safeGet } from '../../common/array';
 import { isNotNully, isNully } from '../../common/null';
 import style from './CodeMirror.module.scss';
 import { getTippyInst } from '../framework/Tooltip';
 import { run } from '../../common/function';
 import { ballLabels } from '../../common/petz/parser/line/ball-labels';
+import {
+  parsedLnzChange,
+  parsedLnzState,
+  tippyDomEventHandlers,
+} from './gutter-helper';
 
 class BallNumberMarker extends GutterMarker {
   constructor(
@@ -41,23 +44,7 @@ class BallNumberMarker extends GutterMarker {
   }
 }
 
-export const parsedLnzState = StateField.define<ParsedLnz | null>({
-  create() {
-    return null;
-  },
-  update(previous, transaction) {
-    const effect = safeLast(
-      transaction.effects.filter((it) => it.is(parsedLnzUpdateEffect))
-    );
-    if (isNotNully(effect)) {
-      return effect.value;
-    }
-    return previous;
-  },
-});
-export const parsedLnzUpdateEffect = StateEffect.define<ParsedLnz | null>({});
-
-export const ballIdGutterEx = [
+export const ballIdGutter = [
   gutter({
     lineMarker: (view, line, _otherMarkers) => {
       const state = view.state.field(parsedLnzState);
@@ -84,34 +71,7 @@ export const ballIdGutterEx = [
       return null;
     },
 
-    lineMarkerChange: (update) => {
-      return update.transactions.some((trans) =>
-        trans.effects.some((eff) => eff.is(parsedLnzUpdateEffect))
-      );
-    },
-    domEventHandlers: {
-      mouseover: (_view, _line, event) => {
-        const { target } = event;
-        if (isNully(target)) return false;
-        const tippyInst = getTippyInst(target);
-        if (isNully(tippyInst)) {
-          return false;
-        }
-        tippyInst.show();
-        return true;
-      },
-      mouseout: (_view, _line, event) => {
-        const { target } = event;
-        if (isNully(target)) return false;
-        const tippyInst = getTippyInst(target);
-        if (isNully(tippyInst)) {
-          return false;
-        }
-        tippyInst.hide();
-        return true;
-      },
-    },
+    lineMarkerChange: parsedLnzChange,
+    domEventHandlers: tippyDomEventHandlers,
   }),
 ];
-
-export const ballIdGutter = [ballIdGutterEx, parsedLnzState.extension];

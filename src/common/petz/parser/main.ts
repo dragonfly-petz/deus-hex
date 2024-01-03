@@ -40,6 +40,7 @@ import {
   ballzInfoLineSerialize,
 } from './line/ballz-info';
 import { FileType } from '../file-types';
+import { BallContentLine, BallInfo } from './line/ball-helper';
 
 export const runParser: <A>(
   p: P.Parser<string, A>,
@@ -57,7 +58,7 @@ export function parseLnz(str: string, fileType: FileType | null) {
   return pipe(
     runParser(lnzParser(), str),
     E.map((rawLines) => {
-      addBallNumbers(rawLines);
+      const ballzArray = addBallNumbersAndCreateBallsArray(rawLines);
       const flat = new Array<ParsedLine>();
       for (const line of rawLines) {
         line.lineIndex = flat.length;
@@ -73,12 +74,16 @@ export function parseLnz(str: string, fileType: FileType | null) {
         structured: rawLines,
         flat,
         fileType,
+        ballz: {
+          ballzArray,
+          ballInfoMap: new Map<number, Either<string, BallInfo>>([]),
+        },
       };
     })
   );
 }
 
-function addBallNumbers(lines: ParsedLnzStructured) {
+function addBallNumbersAndCreateBallsArray(lines: ParsedLnzStructured) {
   const ballzInfoSec = findSectionByName(lines, BallzInfoName);
   const addBallzInfoSec = findSectionByName(lines, AddBallInfoName);
   const ballzLines =
@@ -99,11 +104,12 @@ function addBallNumbers(lines: ParsedLnzStructured) {
         ) as AddBallContentLine[])
       : [];
 
-  let number = 0;
+  const ballzArray = new Array<BallContentLine>();
   for (const ballLine of [...ballzLines, ...addBallzLines]) {
-    ballLine.lineContent.ballId = number;
-    number++;
+    ballLine.lineContent.ballId = ballzArray.length;
+    ballzArray.push(ballLine);
   }
+  return ballzArray;
 }
 
 export type ParsedLine = SectionLineTypes | SectionTypes;

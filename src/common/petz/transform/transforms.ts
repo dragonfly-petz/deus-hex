@@ -23,8 +23,8 @@ import {
   serializeLnz,
 } from '../parser/main';
 import { LinezName, PaintBallzName } from '../parser/section';
-import { findInData } from '../parser/line/paint-ballz';
 import { FileType } from '../file-types';
+import { findInData } from '../parser/line/col-data';
 
 export function transformBreedAddBallsToClothing(
   val: LinezArray<AddBallBreed>
@@ -146,10 +146,9 @@ function fixPaintBallz(originalLnz: ParsedLnz, modifiedLnz: ParsedLnz) {
 
   return modifiedPaint.lines.map((modifiedLine) => {
     if (modifiedLine.tag !== 'paintBall') return null;
-    const relevantData = modifiedLine.lineContent.filter(Array.isArray) as [
-      string,
-      number
-    ][];
+    const relevantData = modifiedLine.lineContent.content.filter(
+      Array.isArray
+    ) as [string, number][];
 
     const modifiedOptionalColumn = findInData(relevantData, 'optionalColumn');
     if (isNully(modifiedOptionalColumn)) {
@@ -162,10 +161,9 @@ function fixPaintBallz(originalLnz: ParsedLnz, modifiedLnz: ParsedLnz) {
     const originalLine = originalPaint.lines.find((it) => {
       if (it.tag !== 'paintBall') return false;
 
-      const originalRelevantData = it.lineContent.filter(Array.isArray) as [
-        string,
-        number
-      ][];
+      const originalRelevantData = it.lineContent.content.filter(
+        Array.isArray
+      ) as [string, number][];
 
       // we  compare the first 11 cols for identity, the 12th is the one we are fixing
       return relevantData
@@ -176,7 +174,7 @@ function fixPaintBallz(originalLnz: ParsedLnz, modifiedLnz: ParsedLnz) {
     if (isNully(originalLine) || originalLine.tag !== 'paintBall') return null;
 
     const originalOptionalColumn = findInData(
-      originalLine.lineContent,
+      originalLine.lineContent.content,
       'optionalColumn'
     );
 
@@ -184,7 +182,7 @@ function fixPaintBallz(originalLnz: ParsedLnz, modifiedLnz: ParsedLnz) {
       Array.isArray(originalOptionalColumn) &&
       isSome(originalOptionalColumn[1] as any)
     ) {
-      modifiedLine.lineContent = [...originalLine.lineContent];
+      modifiedLine.lineContent.content = [...originalLine.lineContent.content];
       return E.right(true);
     }
     return null;
@@ -198,10 +196,9 @@ function fixLinez(originalLnz: ParsedLnz, modifiedLnz: ParsedLnz) {
 
   return modifiedLinez.lines.map((modifiedLine) => {
     if (modifiedLine.tag !== 'linez') return null;
-    const relevantData = modifiedLine.lineContent.filter(Array.isArray) as [
-      string,
-      number
-    ][];
+    const relevantData = modifiedLine.lineContent.content.filter(
+      Array.isArray
+    ) as [string, number][];
 
     const modifiedOptionalColumn1 = findInData(relevantData, 'optionalColumn1');
     const modifiedOptionalColumn2 = findInData(relevantData, 'optionalColumn2');
@@ -218,10 +215,9 @@ function fixLinez(originalLnz: ParsedLnz, modifiedLnz: ParsedLnz) {
     const originalLine = originalLinez.lines.find((it) => {
       if (it.tag !== 'linez') return false;
 
-      const originalRelevantData = it.lineContent.filter(Array.isArray) as [
-        string,
-        number
-      ][];
+      const originalRelevantData = it.lineContent.content.filter(
+        Array.isArray
+      ) as [string, number][];
 
       // we compare the first 8 cols for identity
       return relevantData
@@ -232,11 +228,11 @@ function fixLinez(originalLnz: ParsedLnz, modifiedLnz: ParsedLnz) {
     if (isNully(originalLine) || originalLine.tag !== 'linez') return null;
 
     const originalOptionalColumn1 = findInData(
-      originalLine.lineContent,
+      originalLine.lineContent.content,
       'optionalColumn1'
     );
     const originalOptionalColumn2 = findInData(
-      originalLine.lineContent,
+      originalLine.lineContent.content,
       'optionalColumn2'
     );
     if (
@@ -245,7 +241,7 @@ function fixLinez(originalLnz: ParsedLnz, modifiedLnz: ParsedLnz) {
       (Array.isArray(originalOptionalColumn2) &&
         isSome(originalOptionalColumn2[1] as any))
     ) {
-      modifiedLine.lineContent = [...originalLine.lineContent];
+      modifiedLine.lineContent.content = [...originalLine.lineContent.content];
       return E.right(true);
     }
     return null;

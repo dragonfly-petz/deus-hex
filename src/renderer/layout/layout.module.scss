@@ -68,12 +68,16 @@
 .leftBar,
 .rightBar {
   flex-shrink: 0;
-  width: 300px;
+  width: 250px;
   background-color: styleVar.$themeSecondaryBgColor;
   margin: 10px;
   border: solid 2px styleVar.$panelBorderColor;
   border-radius: 10px;
   overflow: auto;
+}
+
+.rightBar {
+  width: 150px;
 }
 
 .tabs {

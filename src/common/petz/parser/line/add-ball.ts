@@ -1,8 +1,7 @@
-import { pipe } from 'fp-ts/function';
+import { flow, pipe } from 'fp-ts/function';
 import * as S from 'parser-ts/string';
 import * as P from 'parser-ts/Parser';
 import {
-  baseLineSerializer,
   LineBase,
   lineContentChar,
   rawLineSerializer,
@@ -10,11 +9,18 @@ import {
 } from '../section';
 import { nullable } from '../../../null';
 import { tuple } from '../../../array';
+import { push, pushWithKey, startArray } from '../util';
+import { colDataSerializerWith } from './col-data';
 
 const addBallContentLineParser = pipe(
-  S.many(lineContentChar),
+  startArray<string, string>(),
+  flow(pushWithKey('ballRef', S.int), push(S.many(lineContentChar))),
   P.map((it) =>
-    tuple('addBall' as const, { content: it, ballId: nullable<number>() })
+    tuple('addBall' as const, {
+      content: it,
+      ballRef: it[0][1] as number,
+      ballId: nullable<number>(),
+    })
   )
 );
 export const addBallLineParser = sectionContentLineParser(
@@ -43,5 +49,5 @@ export function addBallLineSerialize(line: AddBallLine) {
   if (line.tag !== 'addBall') {
     return rawLineSerializer(line);
   }
-  return baseLineSerializer(line, (it) => it.content);
+  return colDataSerializerWith(line, (it) => it.content);
 }
