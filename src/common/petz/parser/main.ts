@@ -13,6 +13,7 @@ import {
   lineContentChar,
   lineParser,
   LinezName,
+  OmissionName,
   PaintBallzName,
   rawLineParser,
   rawLineSerializer,
@@ -26,7 +27,7 @@ import {
 } from './line/paint-ballz';
 import { LinezLine, linezLineParser, linezLineSerialize } from './line/linez';
 import { isNever } from '../../type-assertion';
-import { isNotNully } from '../../null';
+import { isNotNully, isNully } from '../../null';
 import {
   AddBallContentLine,
   AddBallLine,
@@ -41,6 +42,11 @@ import {
 } from './line/ballz-info';
 import { FileType } from '../file-types';
 import { BallContentLine, BallInfo } from './line/ball-helper';
+import {
+  OmissionLine,
+  omissionLineParser,
+  omissionLineSerialize,
+} from './line/omission';
 
 export const runParser: <A>(
   p: P.Parser<string, A>,
@@ -70,16 +76,34 @@ export function parseLnz(str: string, fileType: FileType | null) {
           }
         }
       }
+
       return {
         structured: rawLines,
         flat,
         fileType,
+        omissionsSet: makeOmissionsSet(rawLines),
         ballz: {
           ballzArray,
           ballInfoMap: new Map<number, Either<string, BallInfo>>([]),
         },
       };
     })
+  );
+}
+
+function makeOmissionsSet(lines: ParsedLnzStructured) {
+  const omissionsSect = findSectionByName(lines, OmissionName);
+  if (
+    isNully(omissionsSect) ||
+    omissionsSect.tag !== 'section' ||
+    omissionsSect.sectionType !== 'omission'
+  ) {
+    return new Set<number>();
+  }
+  return new Set(
+    omissionsSect.lines
+      .map((it) => (it.tag === 'omission' ? it.lineContent.ballRef : null))
+      .filter(isNotNully)
   );
 }
 
@@ -167,6 +191,11 @@ export function serializeLnz(lnz: ParsedLnz) {
               parts.push(ballzInfoLineSerialize(sLine));
             }
             break;
+          case 'omission':
+            for (const sLine of line.lines) {
+              parts.push(omissionLineSerialize(sLine));
+            }
+            break;
           default:
             isNever(line);
         }
@@ -219,6 +248,8 @@ const sectionParser = pipe(
         return runSection(line, 'addBall' as const, addBallLineParser);
       case BallzInfoName:
         return runSection(line, 'ballzInfo' as const, ballzInfoLineParser);
+      case OmissionName:
+        return runSection(line, 'omission' as const, omissionLineParser);
       default:
         return runSection(line, 'raw' as const, sectionContentRawLineParser);
     }
@@ -236,11 +267,16 @@ export type AddBallSectionType = ReturnType<
 export type BallzInfoSectionType = ReturnType<
   typeof mkSection<'ballzInfo', BallzInfoLine>
 >;
+export type OmissionSectionType = ReturnType<
+  typeof mkSection<'omission', OmissionLine>
+>;
+
 export type SectionTypes =
   | PaintBallzSectionType
   | LinezSectionType
   | AddBallSectionType
   | BallzInfoSectionType
+  | OmissionSectionType
   | ReturnType<typeof mkSection<'raw', RawParsedLine>>;
 
 export type SectionTypeTag = SectionTypes['sectionType'];
@@ -250,6 +286,7 @@ export type SectionLineTypes =
   | LinezLine
   | AddBallLine
   | BallzInfoLine
+  | OmissionLine
   | RawParsedLine;
 
 export type LineTags = SectionLineTypes['tag'];

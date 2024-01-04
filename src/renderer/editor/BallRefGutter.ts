@@ -1,18 +1,18 @@
 import { EditorView, gutter, GutterMarker } from '@codemirror/view';
 import { tippy } from '@tippyjs/react';
 import * as E from 'fp-ts/Either';
-import { safeGet } from '../../common/array';
 import { isNotNully, isNully } from '../../common/null';
 import style from './CodeMirror.module.scss';
 import { getTippyInst } from '../framework/Tooltip';
 import { run } from '../../common/function';
 import {
+  getParsedLineFromPos,
   parsedLnzChange,
   parsedLnzState,
-  tippyDomEventHandlers,
 } from './gutter-helper';
 import { isNever } from '../../common/type-assertion';
 import {
+  BallContentLine,
   BallzInfo,
   getBallInfo,
   getBaseBallId,
@@ -24,12 +24,29 @@ import { classNames } from '../../common/react';
 import { createBallRefTooltip } from './ball-ref-tooltip';
 import { jumpToLine } from './code-mirror-helper';
 
-class BallRefMarker extends GutterMarker {
+export class EmptyBallRefMarker extends GutterMarker {
+  toDOM() {
+    const div = document.createElement('div');
+    div.className = style.ballRefMarkerContainer;
+    for (const _ of [null, null]) {
+      const itemDiv = document.createElement('div');
+      div.appendChild(itemDiv);
+      itemDiv.className = classNames(style.ballRefMarker);
+      itemDiv.appendChild(document.createTextNode('ffff'));
+    }
+
+    return div;
+  }
+}
+
+export class BallRefMarker extends GutterMarker {
   constructor(
+    readonly ballDefLine: BallContentLine | null,
     readonly view: EditorView,
     readonly ballIds: Array<number | null>,
     private readonly ballz: BallzInfo,
-    private readonly fileType: FileType | null
+    private readonly fileType: FileType | null,
+    private readonly omissions: Set<number>
   ) {
     super();
   }
@@ -75,9 +92,14 @@ class BallRefMarker extends GutterMarker {
             `zone-${labelData.zone}`
           ),
           labelData.abbr,
-          createBallRefTooltip(info.right, labelData, (l) => {
-            jumpToLine(this.view, l);
-          }),
+          createBallRefTooltip(
+            info.right,
+            labelData,
+            (l) => {
+              jumpToLine(this.view, l);
+            },
+            this.omissions
+          ),
         ];
       });
       itemDiv.className = classNames(style.ballRefMarker, addClass);
@@ -86,8 +108,8 @@ class BallRefMarker extends GutterMarker {
         tippy(itemDiv, {
           appendTo: () => document.body,
           content: tooltip,
-          placement: 'left',
-          // trigger: 'manual',
+          placement: 'left-end',
+          trigger: 'click',
           maxWidth: 'none',
           interactive: true,
           onClickOutside: (inst) => {
@@ -95,6 +117,23 @@ class BallRefMarker extends GutterMarker {
           },
         });
       }
+    }
+    if (
+      isNotNully(this.ballDefLine) &&
+      isNotNully(this.ballDefLine.lineContent.ballId)
+    ) {
+      const numberingContainerDiv = document.createElement('div');
+      div.appendChild(numberingContainerDiv);
+      numberingContainerDiv.className = style.numberingContainerDiv;
+      const numberingDiv = document.createElement('div');
+      numberingContainerDiv.appendChild(numberingDiv);
+      numberingDiv.className = classNames(
+        style.ballNumberMarker,
+        this.ballDefLine.tag === 'ballzInfo' ? style.isBaseBall : null
+      );
+      numberingDiv.appendChild(
+        document.createTextNode(String(this.ballDefLine.lineContent.ballId))
+      );
     }
     return div;
   }
@@ -111,14 +150,14 @@ export const ballRefGutter = [
       if (isNully(state)) {
         return null;
       }
-      const lineNumber = view.state.doc.lineAt(line.from).number;
-      const parsedLine = safeGet(state.flat, lineNumber - 1);
+      const parsedLine = getParsedLineFromPos(view, state, line.from);
       if (isNully(parsedLine)) return null;
       if (
         parsedLine.tag !== 'addBall' &&
         parsedLine.tag !== 'ballzInfo' &&
         parsedLine.tag !== 'linez' &&
-        parsedLine.tag !== 'paintBall'
+        parsedLine.tag !== 'paintBall' &&
+        parsedLine.tag !== 'omission'
       ) {
         return null;
       }
@@ -140,15 +179,29 @@ export const ballRefGutter = [
               parsedLine.lineContent.endBall,
             ];
           }
+          case 'omission': {
+            return [parsedLine.lineContent.ballRef];
+          }
           default:
             return isNever(parsedLine);
         }
       });
 
-      return new BallRefMarker(view, ballIds, state.ballz, state.fileType);
+      return new BallRefMarker(
+        parsedLine.tag === 'addBall' || parsedLine.tag === 'ballzInfo'
+          ? parsedLine
+          : null,
+        view,
+        ballIds,
+        state.ballz,
+        state.fileType,
+        state.omissionsSet
+      );
     },
-
+    initialSpacer: () => {
+      return new EmptyBallRefMarker();
+    },
     lineMarkerChange: parsedLnzChange,
-    domEventHandlers: tippyDomEventHandlers,
+    // domEventHandlers: tippyDomEventHandlers,
   }),
 ];

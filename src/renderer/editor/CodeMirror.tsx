@@ -14,13 +14,15 @@ import style from './CodeMirror.module.scss';
 import { useListenReactiveVal } from '../reactive-state/reactive-hooks';
 import { isNully } from '../../common/null';
 import { voidFn } from '../../common/function';
-import { ballIdGutter } from './BallIdGutter';
 import { ReactiveVal } from '../../common/reactive/reactive-interface';
 import { ParsedLnzResult } from '../../common/petz/parser/main';
 import { useAppReactiveNodes } from '../context/context';
 import { ballRefGutter } from './BallRefGutter';
 import { parsedLnzState, parsedLnzUpdateEffect } from './gutter-helper';
 import { jumpToLine } from './code-mirror-helper';
+import { classNames } from '../../common/react';
+import { omissionHighlighter } from './omission-highlighter';
+import { useReactiveUserSetting } from '../context/reactive-nodes-helper';
 
 export function CodeMirror({
   valueNode,
@@ -47,9 +49,9 @@ export function CodeMirror({
           '&': { height: '100%' },
           '.cm-scroller': { overflow: 'auto' },
         }),
-        ballIdGutter,
         ballRefGutter,
         parsedLnzState.extension,
+        omissionHighlighter,
       ],
     });
 
@@ -110,6 +112,15 @@ export function CodeMirror({
     },
     true
   );
+  const showLineNumbers = useReactiveUserSetting((it) => it.showLineNumbers);
 
-  return <div className={style.main} ref={refSetter} />;
+  return (
+    <div
+      className={classNames(
+        style.main,
+        showLineNumbers ? null : style.hideLineNumbersGutter
+      )}
+      ref={refSetter}
+    />
+  );
 }

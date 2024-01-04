@@ -10,27 +10,31 @@ export function findInData(data: ColData[], key: string) {
 
 export type ColData = string | [string, number | string | Option<number>];
 
+export function colDataToContentStrings(data: ColData[]) {
+  const parts = new Array<string>();
+  for (const sec of data) {
+    if (isString(sec)) {
+      parts.push(sec);
+    } else if (sec.length === 2) {
+      const val = sec[1];
+      if (isObjectWithKey(val, '_tag')) {
+        if (val._tag === 'Some') {
+          parts.push(String(val.value));
+        }
+      } else {
+        parts.push(String(sec[1]));
+      }
+    }
+  }
+  return parts;
+}
+
 export function colDataSerializerWith<A>(
   line: LineBase<unknown, A>,
   toColData: (l: A) => ColData[]
 ) {
   return baseLineSerializer(line, (content) => {
-    const parts = new Array<string>();
-    for (const sec of toColData(content)) {
-      if (isString(sec)) {
-        parts.push(sec);
-      } else if (sec.length === 2) {
-        const val = sec[1];
-        if (isObjectWithKey(val, '_tag')) {
-          if (val._tag === 'Some') {
-            parts.push(String(val.value));
-          }
-        } else {
-          parts.push(String(sec[1]));
-        }
-      }
-    }
-    return parts.join('');
+    return colDataToContentStrings(toColData(content)).join('');
   });
 }
 

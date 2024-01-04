@@ -7,28 +7,65 @@
   :global(.cm-foldGutter) {
     display: none !important;
   }
+
+  &.hideLineNumbersGutter {
+    :global(.cm-lineNumbers) {
+      display: none !important;
+    }
+  }
 }
 
-.ballNumber {
+.lineOmission {
+  background-color: styleVar.$omissionLineBg;
+}
+
+.valueOmission {
+  background-color: styleVar.$omissionValBg;
+}
+
+.numberingContainerDiv {
+  min-width: 2em;
+  max-width: 2em;
+  display: flex;
+  align-items: center;
+  margin-right: 2px;
+}
+
+.ballNumberMarker {
   background-color: styleVar.$infoFgColor;
   color: styleVar.$infoBgColor;
   border-radius: 50%;
   padding: 0 2px;
   text-align: center;
-  cursor: default;
-  height: 100%;
+  width: 2em;
 }
 
 .ballRefMarkerContainer {
   display: flex;
+  justify-content: space-between;
+}
+
+.isBaseBall {
+  font-weight: bold;
 }
 
 .ballRefMarker {
-  cursor: default;
+  &:only-child {
+    margin-left: auto;
+  }
+
+  cursor: pointer;
+  width: 2.6em;
+
+  &:hover {
+    opacity: 0.8;
+  }
+
   margin-right: 5px;
   color: white;
   background-color: styleVar.$infoFgColor;
-  padding: 2px;
+  padding: 0 2px;
+  height: 100%;
 
   &.missingRef {
     background-color: styleVar.$errorFgColor;
@@ -36,10 +73,6 @@
 
   &.errorRef {
     background-color: styleVar.$errorFgColor;
-  }
-
-  &.isBaseBall {
-    font-weight: bold;
   }
 
   @each $name, $color in styleVar.$zones {
@@ -75,6 +108,15 @@
 
   .baseBall {
     font-weight: bold;
+  }
+
+  .omissionTag {
+    background-color: styleVar.$omissionValBg;
+    font-size: 0.9em;
+    color: black;
+    margin-left: 4px;
+    padding: 0 3px;
+    border-radius: 3px;
   }
 
   .spacer {

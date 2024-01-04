@@ -15,7 +15,8 @@ type JumpToLine = (l: number) => void;
 export function createBallRefTooltip(
   info: BallInfo,
   labelData: BallLabelData,
-  jumpToLine: JumpToLine
+  jumpToLine: JumpToLine,
+  omissions: Set<number>
 ) {
   const tooltipNode = document.createElement('div');
   render(
@@ -23,6 +24,7 @@ export function createBallRefTooltip(
       info={info}
       labelData={labelData}
       jumpToLine={jumpToLine}
+      omissions={omissions}
     />,
     tooltipNode
   );
@@ -33,21 +35,29 @@ function BallRefTooltip({
   info,
   labelData,
   jumpToLine,
+  omissions,
 }: {
   info: BallInfo;
   labelData: BallLabelData;
   jumpToLine: JumpToLine;
+  omissions: Set<number>;
 }) {
-  const lines = toArrayWithParents(info);
+  const lines = toArrayWithParents(info).reverse();
   const head = lines[0];
   const tail = lines.slice(1);
   return (
     <div className={style.tooltip}>
+      <div className={style.tags}>
+        <div className={classNames(style.zone, `zone-${labelData.zone}`)}>
+          {labelData.zone}
+        </div>
+      </div>
       <BallRefLine
         info={head}
         first
         labelData={labelData}
         jumpToLine={jumpToLine}
+        omissions={omissions}
       />
       {tail.map((it, idx) => {
         return (
@@ -56,14 +66,10 @@ function BallRefTooltip({
             info={it}
             labelData={labelData}
             jumpToLine={jumpToLine}
+            omissions={omissions}
           />
         );
       })}
-      <div className={style.tags}>
-        <div className={classNames(style.zone, `zone-${labelData.zone}`)}>
-          {labelData.zone}
-        </div>
-      </div>
     </div>
   );
 }
@@ -73,11 +79,13 @@ function BallRefLine({
   first = false,
   labelData,
   jumpToLine,
+  omissions,
 }: {
   info: Either<string, BallInfo>;
   labelData: BallLabelData;
   first?: boolean;
   jumpToLine: JumpToLine;
+  omissions: Set<number>;
 }) {
   if (E.isLeft(info)) {
     return <div className={style.error}>{info.left}</div>;
@@ -103,6 +111,10 @@ function BallRefLine({
         {'>'}
         {line.tag === 'ballzInfo' ? <> {labelData.label}</> : ''}
       </button>
+      {isNotNully(line.lineContent.ballId) &&
+      omissions.has(line.lineContent.ballId) ? (
+        <div className={style.omissionTag}>omitted</div>
+      ) : null}
     </div>
   );
 }

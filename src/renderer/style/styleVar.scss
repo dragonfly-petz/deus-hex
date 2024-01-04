@@ -43,6 +43,9 @@ $zoneBackLegs: declareVar(zoneBackLegs);
 $zoneTail: declareVar(zoneTail);
 $zoneMisc: declareVar(zoneMisc);
 
+$omissionLineBg: declareVar(omissionLineBg);
+$omissionValBg: declareVar(omissionValBg);
+
 @mixin initStyleVars {
   @each $str in $globalVars {
     --#{$str}: styleVarInit-#{$str};

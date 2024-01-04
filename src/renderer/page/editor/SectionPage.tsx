@@ -22,6 +22,7 @@ import type { NavigationDeps } from './get-deps';
 import { ReactiveNode } from '../../../common/reactive/reactive-node';
 import { ReactiveVal } from '../../../common/reactive/reactive-interface';
 import { ParsedLnzResult } from '../../../common/petz/parser/main';
+import { useAppReactiveNodes } from '../../context/context';
 
 export interface SectionDataNodes {
   data: Uint8Array;
@@ -73,6 +74,8 @@ export const SectionPage = ({
 }: NavigationDeps & {
   sectionName: ResourceDataSectionName;
 }) => {
+  const { userSettingsRemote } = useAppReactiveNodes();
+
   const dataNodesE = getSectionDataNodes(fileInfo, sectionName);
   return renderResult(dataNodesE, ({ dataNodes, sectionType }) => {
     return (
@@ -82,6 +85,15 @@ export const SectionPage = ({
           {renderReactive(dataNodes.isParsing, (it) =>
             it ? <>Parsing...</> : null
           )}
+          <button
+            onClick={() => {
+              userSettingsRemote.setRemotePartialFn((it) => ({
+                showLineNumbers: !it.showLineNumbers,
+              }));
+            }}
+          >
+            Toggle line numbers
+          </button>
         </h2>
         {run(() => {
           switch (sectionType) {
