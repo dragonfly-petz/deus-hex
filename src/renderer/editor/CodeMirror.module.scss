@@ -58,7 +58,7 @@
   width: 2.6em;
 
   &:hover {
-    opacity: .8;
+    opacity: 0.8;
   }
 
   margin-right: 5px;
@@ -74,7 +74,6 @@
   &.errorRef {
     background-color: styleVar.$errorFgColor;
   }
-
 
   @each $name, $color in styleVar.$zones {
     &:global(.zone-#{$name}) {
