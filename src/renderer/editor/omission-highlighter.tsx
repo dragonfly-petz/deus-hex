@@ -14,6 +14,7 @@ import {
 } from './gutter-helper';
 import { isNully } from '../../common/null';
 import { safeGet } from '../../common/array';
+import { colDataToContentStrings } from '../../common/petz/parser/line/col-data';
 
 export const omissionHighlighter = ViewPlugin.fromClass(
   class {
@@ -36,10 +37,10 @@ export const omissionHighlighter = ViewPlugin.fromClass(
   {
     decorations: (v) => v.decorations,
 
-    eventHandlers: {
-      // if we need them...
-      mousedown: (_e, _view) => {},
-    },
+    /*   eventHandlers: {
+         // if we need them...
+         mousedown: (_e, _view) => {},
+       }, */
   }
 );
 
@@ -63,35 +64,69 @@ function getOmissions(view: EditorView) {
       }
       switch (line.tag) {
         case 'ballzInfo':
-          {
-            if (isNully(line.lineContent.ballId)) {
-              return;
-            }
-            if (omissionsSet.has(line.lineContent.ballId)) {
-              marks.push(lineOmission.range(editorLine.from, editorLine.to));
-            }
+          if (isNully(line.lineContent.ballId)) {
+            return;
           }
+          if (omissionsSet.has(line.lineContent.ballId)) {
+            marks.push(lineOmission.range(editorLine.from, editorLine.to));
+          }
+
           break;
         case 'addBall':
+          if (omissionsSet.has(line.lineContent.ballRef)) {
+            const start = editorLine.from + line.initialWhitespace.length;
+            marks.push(
+              valueOmission.range(
+                start,
+                start + line.lineContent.ballRef.toString().length
+              )
+            );
+          }
+          if (isNully(line.lineContent.ballId)) {
+            return;
+          }
+          if (omissionsSet.has(line.lineContent.ballId)) {
+            marks.push(lineOmission.range(editorLine.from, editorLine.to));
+          }
+          break;
+
+        case 'paintBall':
+          if (omissionsSet.has(line.lineContent.ballRef)) {
+            const start = editorLine.from + line.initialWhitespace.length;
+            marks.push(
+              valueOmission.range(
+                start,
+                start + line.lineContent.ballRef.toString().length
+              )
+            );
+          }
+          break;
+
+        case 'linez':
           {
-            if (omissionsSet.has(line.lineContent.ballRef)) {
-              const start = editorLine.from + line.initialWhitespace.length;
+            let start = editorLine.from + line.initialWhitespace.length;
+            if (omissionsSet.has(line.lineContent.startBall)) {
               marks.push(
                 valueOmission.range(
                   start,
-                  start + line.lineContent.ballRef.toString().length
+                  start + line.lineContent.startBall.toString().length
                 )
               );
             }
+            const strs = colDataToContentStrings(line.lineContent.content);
 
-            if (isNully(line.lineContent.ballId)) {
-              return;
-            }
-            if (omissionsSet.has(line.lineContent.ballId)) {
-              marks.push(lineOmission.range(editorLine.from, editorLine.to));
+            start += strs[0].length + strs[1].length;
+            if (omissionsSet.has(line.lineContent.endBall)) {
+              marks.push(
+                valueOmission.range(
+                  start,
+                  start + line.lineContent.endBall.toString().length
+                )
+              );
             }
           }
           break;
+
         default:
       }
     });

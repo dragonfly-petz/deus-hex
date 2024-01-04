@@ -7,7 +7,7 @@ import {
   getSingleResourceEntryById,
   resDataEntryToString,
 } from '../common/petz/codecs/rsrc-utility';
-import { isNully } from '../common/null';
+import { isNotNully, isNully } from '../common/null';
 import { parseLnz, serializeLnz } from '../common/petz/parser/main';
 import {
   mkResourceDataSections,
@@ -18,18 +18,22 @@ initGlobalLogger('test');
 describe('lnz parsing', () => {
   // eslint-disable-next-line jest/expect-expect
   test('parse and serialize cat', async () => {
-    await testSection('lnzCat', 28, 1);
+    await testSection('lnzCat', 28, 1, { size: 20, omitted: 71 });
   });
   // eslint-disable-next-line jest/expect-expect
   test('parse and serialize kitten', async () => {
-    await testSection('lnzKitten', 13, 8);
+    await testSection('lnzKitten', 13, 8, { size: 0, omitted: null });
   });
 });
 
 async function testSection(
   idQueryKey: ResourceDataSectionName,
   sectionsExpected: number,
-  paintBallzIndex: number
+  paintBallzIndex: number,
+  omissions: {
+    size: number;
+    omitted: number | null;
+  }
 ) {
   const filePath = getTestResourcesPath('Orange Shorthair.cat');
   globalLogger.info(`opening file at ${filePath}`);
@@ -61,7 +65,11 @@ async function testSection(
   expect((firstLine.lineContent as any).content[0]).toEqual(['ballRef', 2]);
   expect((firstLine.lineContent as any).ballRef).toEqual(2);
 
-  const ser = serializeLnz(parsed.right);
+  expect(parsed.right.omissionsSet.size).toEqual(omissions.size);
+  if (isNotNully(omissions.omitted)) {
+    expect(parsed.right.omissionsSet.has(omissions.omitted)).toEqual(true);
+  }
 
+  const ser = serializeLnz(parsed.right);
   expect(ser).toEqual(original);
 }

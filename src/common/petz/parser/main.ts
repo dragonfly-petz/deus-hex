@@ -100,7 +100,6 @@ function makeOmissionsSet(lines: ParsedLnzStructured) {
   ) {
     return new Set<number>();
   }
-  console.log(omissionsSect);
   return new Set(
     omissionsSect.lines
       .map((it) => (it.tag === 'omission' ? it.lineContent.ballRef : null))

@@ -15,9 +15,6 @@ import { run } from '../../common/function';
 import { PromiseInner } from '../../common/promise';
 import { ResourceDataSectionName } from '../../common/petz/file-types';
 import { ScrollSignal } from '../editor/scroll-signal';
-import { UserSettings } from '../../main/app/persisted/user-settings';
-import { useAppReactiveNodes } from './context';
-import { useReactiveVal } from '../reactive-state/reactive-hooks';
 
 export type AppReactiveNodesStatic = ReturnType<typeof mkStaticReactiveNodes>;
 
@@ -83,10 +80,4 @@ export async function mkAsyncReactiveNodes(
     },
     () => userSettingsRemote.dispose(),
   ] as const;
-}
-
-export function useReactiveUserSetting<A>(fn: (it: UserSettings) => A): A {
-  return useReactiveVal(
-    useAppReactiveNodes().userSettingsRemote.fmapStrict(fn)
-  );
 }

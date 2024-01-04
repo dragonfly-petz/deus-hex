@@ -20,9 +20,9 @@ import { useAppReactiveNodes } from '../context/context';
 import { ballRefGutter } from './BallRefGutter';
 import { parsedLnzState, parsedLnzUpdateEffect } from './gutter-helper';
 import { jumpToLine } from './code-mirror-helper';
-import { useReactiveUserSetting } from '../context/app-reactive-nodes';
 import { classNames } from '../../common/react';
 import { omissionHighlighter } from './omission-highlighter';
+import { useReactiveUserSetting } from '../context/reactive-nodes-helper';
 
 export function CodeMirror({
   valueNode,
