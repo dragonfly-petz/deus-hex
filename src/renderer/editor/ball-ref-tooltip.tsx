@@ -38,11 +38,16 @@ function BallRefTooltip({
   labelData: BallLabelData;
   jumpToLine: JumpToLine;
 }) {
-  const lines = toArrayWithParents(info);
+  const lines = toArrayWithParents(info).reverse();
   const head = lines[0];
   const tail = lines.slice(1);
   return (
     <div className={style.tooltip}>
+      <div className={style.tags}>
+        <div className={classNames(style.zone, `zone-${labelData.zone}`)}>
+          {labelData.zone}
+        </div>
+      </div>
       <BallRefLine
         info={head}
         first
@@ -59,11 +64,6 @@ function BallRefTooltip({
           />
         );
       })}
-      <div className={style.tags}>
-        <div className={classNames(style.zone, `zone-${labelData.zone}`)}>
-          {labelData.zone}
-        </div>
-      </div>
     </div>
   );
 }

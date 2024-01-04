@@ -14,7 +14,6 @@ import style from './CodeMirror.module.scss';
 import { useListenReactiveVal } from '../reactive-state/reactive-hooks';
 import { isNully } from '../../common/null';
 import { voidFn } from '../../common/function';
-import { ballIdGutter } from './BallIdGutter';
 import { ReactiveVal } from '../../common/reactive/reactive-interface';
 import { ParsedLnzResult } from '../../common/petz/parser/main';
 import { useAppReactiveNodes } from '../context/context';
@@ -47,7 +46,6 @@ export function CodeMirror({
           '&': { height: '100%' },
           '.cm-scroller': { overflow: 'auto' },
         }),
-        ballIdGutter,
         ballRefGutter,
         parsedLnzState.extension,
       ],
