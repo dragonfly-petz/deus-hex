@@ -7,6 +7,12 @@
   :global(.cm-foldGutter) {
     display: none !important;
   }
+
+  &.hideLineNumbersGutter {
+    :global(.cm-lineNumbers) {
+      display: none !important;
+    }
+  }
 }
 
 .numberingContainerDiv {

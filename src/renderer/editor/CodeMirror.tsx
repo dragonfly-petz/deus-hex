@@ -20,6 +20,8 @@ import { useAppReactiveNodes } from '../context/context';
 import { ballRefGutter } from './BallRefGutter';
 import { parsedLnzState, parsedLnzUpdateEffect } from './gutter-helper';
 import { jumpToLine } from './code-mirror-helper';
+import { useReactiveUserSetting } from '../context/app-reactive-nodes';
+import { classNames } from '../../common/react';
 
 export function CodeMirror({
   valueNode,
@@ -108,6 +110,15 @@ export function CodeMirror({
     },
     true
   );
+  const showLineNumbers = useReactiveUserSetting((it) => it.showLineNumbers);
 
-  return <div className={style.main} ref={refSetter} />;
+  return (
+    <div
+      className={classNames(
+        style.main,
+        showLineNumbers ? null : style.hideLineNumbersGutter
+      )}
+      ref={refSetter}
+    />
+  );
 }
