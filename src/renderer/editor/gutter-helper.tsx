@@ -1,9 +1,9 @@
-import { gutter } from '@codemirror/view';
-import { StateEffect, StateField } from '@codemirror/state';
+import { EditorView, gutter, ViewUpdate } from '@codemirror/view';
+import { Line, StateEffect, StateField } from '@codemirror/state';
 import { isNotNully, isNully } from '../../common/null';
 import { getTippyInst } from '../framework/Tooltip';
 import { ParsedLnz } from '../../common/petz/parser/main';
-import { safeLast } from '../../common/array';
+import { safeGet, safeLast } from '../../common/array';
 
 type GutterConfig = typeof gutter extends (ex: infer A) => any ? A : never;
 export const tippyDomEventHandlers: GutterConfig['domEventHandlers'] = {
@@ -47,8 +47,31 @@ export const parsedLnzState = StateField.define<ParsedLnz | null>({
 });
 export const parsedLnzUpdateEffect = StateEffect.define<ParsedLnz | null>({});
 
-export const parsedLnzChange: GutterConfig['lineMarkerChange'] = (update) => {
+export const parsedLnzChange: (update: ViewUpdate) => boolean = (update) => {
   return update.transactions.some((trans) =>
     trans.effects.some((eff) => eff.is(parsedLnzUpdateEffect))
   );
 };
+
+export function getParsedLineFromPos(
+  view: EditorView,
+  state: ParsedLnz,
+  pos: number
+) {
+  const lineNumber = view.state.doc.lineAt(pos).number;
+  return safeGet(state.flat, lineNumber - 1);
+}
+
+export function getLinesBetween(view: EditorView, from: number, to: number) {
+  const start = view.state.doc.lineAt(from);
+  const end = view.state.doc.lineAt(to);
+  const lines = new Array<Line>();
+  lines.push(start);
+  let lineN = start.number + 1;
+  while (lineN < end.number) {
+    lines.push(view.state.doc.line(lineN));
+    lineN++;
+  }
+  lines.push(end);
+  return lines;
+}

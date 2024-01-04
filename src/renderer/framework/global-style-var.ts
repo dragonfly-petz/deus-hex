@@ -46,6 +46,8 @@ const globalStyleDef = {
   zoneBackLegs: '#22ff00',
   zoneTail: '#733cff',
   zoneMisc: '#f45cff',
+  omissionLineBg: '#ebebeb',
+  omissionValBg: '#d0d0d0',
 
   // local
   localVar1: null,

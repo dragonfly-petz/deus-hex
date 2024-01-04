@@ -22,6 +22,7 @@ export const PaintBallzName = 'Paint Ballz';
 export const LinezName = 'Linez';
 export const BallzInfoName = 'Ballz Info';
 export const AddBallInfoName = 'Add Ball';
+export const OmissionName = 'Omissions';
 
 export const isCommentChar = (c: C.Char) => c === SEMICOLON;
 export const lineContentChar: P.Parser<C.Char, C.Char> = P.expected(

@@ -1,12 +1,15 @@
 import { EditorView, gutter, GutterMarker } from '@codemirror/view';
 import { tippy } from '@tippyjs/react';
 import * as E from 'fp-ts/Either';
-import { safeGet } from '../../common/array';
 import { isNotNully, isNully } from '../../common/null';
 import style from './CodeMirror.module.scss';
 import { getTippyInst } from '../framework/Tooltip';
 import { run } from '../../common/function';
-import { parsedLnzChange, parsedLnzState } from './gutter-helper';
+import {
+  getParsedLineFromPos,
+  parsedLnzChange,
+  parsedLnzState,
+} from './gutter-helper';
 import { isNever } from '../../common/type-assertion';
 import {
   BallContentLine,
@@ -42,7 +45,8 @@ export class BallRefMarker extends GutterMarker {
     readonly view: EditorView,
     readonly ballIds: Array<number | null>,
     private readonly ballz: BallzInfo,
-    private readonly fileType: FileType | null
+    private readonly fileType: FileType | null,
+    private readonly omissions: Set<number>
   ) {
     super();
   }
@@ -88,9 +92,14 @@ export class BallRefMarker extends GutterMarker {
             `zone-${labelData.zone}`
           ),
           labelData.abbr,
-          createBallRefTooltip(info.right, labelData, (l) => {
-            jumpToLine(this.view, l);
-          }),
+          createBallRefTooltip(
+            info.right,
+            labelData,
+            (l) => {
+              jumpToLine(this.view, l);
+            },
+            this.omissions
+          ),
         ];
       });
       itemDiv.className = classNames(style.ballRefMarker, addClass);
@@ -141,14 +150,14 @@ export const ballRefGutter = [
       if (isNully(state)) {
         return null;
       }
-      const lineNumber = view.state.doc.lineAt(line.from).number;
-      const parsedLine = safeGet(state.flat, lineNumber - 1);
+      const parsedLine = getParsedLineFromPos(view, state, line.from);
       if (isNully(parsedLine)) return null;
       if (
         parsedLine.tag !== 'addBall' &&
         parsedLine.tag !== 'ballzInfo' &&
         parsedLine.tag !== 'linez' &&
-        parsedLine.tag !== 'paintBall'
+        parsedLine.tag !== 'paintBall' &&
+        parsedLine.tag !== 'omission'
       ) {
         return null;
       }
@@ -170,6 +179,9 @@ export const ballRefGutter = [
               parsedLine.lineContent.endBall,
             ];
           }
+          case 'omission': {
+            return [parsedLine.lineContent.ballRef];
+          }
           default:
             return isNever(parsedLine);
         }
@@ -182,7 +194,8 @@ export const ballRefGutter = [
         view,
         ballIds,
         state.ballz,
-        state.fileType
+        state.fileType,
+        state.omissionsSet
       );
     },
     initialSpacer: () => {

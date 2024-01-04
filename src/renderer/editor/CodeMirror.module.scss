@@ -15,6 +15,14 @@
   }
 }
 
+.lineOmission {
+  background-color: styleVar.$omissionLineBg;
+}
+
+.valueOmission {
+  background-color: styleVar.$omissionValBg;
+}
+
 .numberingContainerDiv {
   min-width: 2em;
   max-width: 2em;
@@ -101,6 +109,15 @@
 
   .baseBall {
     font-weight: bold;
+  }
+
+  .omissionTag {
+    background-color: styleVar.$omissionValBg;
+    font-size: 0.9em;
+    color: black;
+    margin-left: 4px;
+    padding: 0 3px;
+    border-radius: 3px;
   }
 
   .spacer {

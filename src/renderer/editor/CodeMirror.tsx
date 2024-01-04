@@ -22,6 +22,7 @@ import { parsedLnzState, parsedLnzUpdateEffect } from './gutter-helper';
 import { jumpToLine } from './code-mirror-helper';
 import { useReactiveUserSetting } from '../context/app-reactive-nodes';
 import { classNames } from '../../common/react';
+import { omissionHighlighter } from './omission-highlighter';
 
 export function CodeMirror({
   valueNode,
@@ -50,6 +51,7 @@ export function CodeMirror({
         }),
         ballRefGutter,
         parsedLnzState.extension,
+        omissionHighlighter,
       ],
     });
 
