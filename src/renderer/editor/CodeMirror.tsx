@@ -23,6 +23,7 @@ import { jumpToLine } from './code-mirror-helper';
 import { classNames } from '../../common/react';
 import { omissionHighlighter } from './omission-highlighter';
 import { useReactiveUserSetting } from '../context/reactive-nodes-helper';
+import { globalErrorReporter } from '../../common/error';
 
 export function CodeMirror({
   valueNode,
@@ -52,6 +53,9 @@ export function CodeMirror({
         ballRefGutter,
         parsedLnzState.extension,
         omissionHighlighter,
+        EditorView.exceptionSink.of((it) =>
+          globalErrorReporter.handleCaught(it)
+        ),
       ],
     });
 

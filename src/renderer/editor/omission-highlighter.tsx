@@ -131,6 +131,5 @@ function getOmissions(view: EditorView) {
       }
     });
   }
-
-  return Decoration.set(marks);
+  return Decoration.set(marks, true);
 }
