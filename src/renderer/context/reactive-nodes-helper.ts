@@ -1,9 +1,9 @@
-import { UserSettings } from '../../main/app/persisted/user-settings';
 import { useReactiveVal } from '../reactive-state/reactive-hooks';
-import { useAppReactiveNodes } from './context';
+import { AppReactiveNodes, useAppReactiveNodes } from './context';
+import { ReactiveVal } from '../../common/reactive/reactive-interface';
 
-export function useReactiveUserSetting<A>(fn: (it: UserSettings) => A): A {
-  return useReactiveVal(
-    useAppReactiveNodes().userSettingsRemote.fmapStrict(fn)
-  );
+export function useAppReactiveNode<A>(
+  fn: (it: AppReactiveNodes) => ReactiveVal<A>
+): A {
+  return useReactiveVal(fn(useAppReactiveNodes()));
 }

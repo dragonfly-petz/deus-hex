@@ -157,7 +157,9 @@ export const ballRefGutter = [
         parsedLine.tag !== 'ballzInfo' &&
         parsedLine.tag !== 'linez' &&
         parsedLine.tag !== 'paintBall' &&
-        parsedLine.tag !== 'omission'
+        parsedLine.tag !== 'omission' &&
+        parsedLine.tag !== 'move' &&
+        parsedLine.tag !== 'projectBall'
       ) {
         return null;
       }
@@ -181,6 +183,15 @@ export const ballRefGutter = [
           }
           case 'omission': {
             return [parsedLine.lineContent.ballRef];
+          }
+          case 'move': {
+            return [parsedLine.lineContent.ballRef];
+          }
+          case 'projectBall': {
+            return [
+              parsedLine.lineContent.anchorBall,
+              parsedLine.lineContent.ball,
+            ];
           }
           default:
             return isNever(parsedLine);

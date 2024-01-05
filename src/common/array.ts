@@ -25,12 +25,27 @@ export function snd<A, B>(val: [A, B]) {
 
 export const numericComparer: Comparer<number> = (a1, a2) =>
   (a1 - a2) as ComparisonResult;
+export const stringComparer: Comparer<string> = (a1, a2) =>
+  a1.localeCompare(a2) as ComparisonResult;
 
 export function sortByNumeric<A, B extends number>(
   array: Array<A>,
   by: (arg: A) => B
 ): void {
   const func = mkSortByComparer(by, numericComparer);
+  array.sort(func);
+}
+
+export function sortByDate<A>(array: Array<A>, by: (arg: A) => Date): void {
+  const func = mkSortByComparer((it: A) => by(it).getTime(), numericComparer);
+  array.sort(func);
+}
+
+export function sortByString<A, B extends string>(
+  array: Array<A>,
+  by: (arg: A) => B
+): void {
+  const func = mkSortByComparer(by, stringComparer);
   array.sort(func);
 }
 

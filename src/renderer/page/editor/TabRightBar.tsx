@@ -74,7 +74,7 @@ export function TabRightBar({
               icon: 'faSave',
               key: 'saveBackup',
               tooltip:
-                "Save the current changes as a backup file but don't save them to the current file'",
+                "Save the current changes as a backup file but don't save them to the current file",
               action: () => {
                 return ger.withFlashMessageK(async () => {
                   const res = await mainIpc.saveResourceSections(

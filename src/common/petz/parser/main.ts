@@ -13,8 +13,10 @@ import {
   lineContentChar,
   lineParser,
   LinezName,
+  MoveName,
   OmissionName,
   PaintBallzName,
+  ProjectBallName,
   rawLineParser,
   rawLineSerializer,
   RawParsedLine,
@@ -47,6 +49,12 @@ import {
   omissionLineParser,
   omissionLineSerialize,
 } from './line/omission';
+import { MoveLine, moveLineParser, moveLineSerialize } from './line/move';
+import {
+  ProjectBallLine,
+  projectBallLineParser,
+  projectBallLineSerialize,
+} from './line/project-ball';
 
 export const runParser: <A>(
   p: P.Parser<string, A>,
@@ -196,6 +204,16 @@ export function serializeLnz(lnz: ParsedLnz) {
               parts.push(omissionLineSerialize(sLine));
             }
             break;
+          case 'move':
+            for (const sLine of line.lines) {
+              parts.push(moveLineSerialize(sLine));
+            }
+            break;
+          case 'projectBall':
+            for (const sLine of line.lines) {
+              parts.push(projectBallLineSerialize(sLine));
+            }
+            break;
           default:
             isNever(line);
         }
@@ -250,6 +268,10 @@ const sectionParser = pipe(
         return runSection(line, 'ballzInfo' as const, ballzInfoLineParser);
       case OmissionName:
         return runSection(line, 'omission' as const, omissionLineParser);
+      case MoveName:
+        return runSection(line, 'move' as const, moveLineParser);
+      case ProjectBallName:
+        return runSection(line, 'projectBall' as const, projectBallLineParser);
       default:
         return runSection(line, 'raw' as const, sectionContentRawLineParser);
     }
@@ -270,6 +292,11 @@ export type BallzInfoSectionType = ReturnType<
 export type OmissionSectionType = ReturnType<
   typeof mkSection<'omission', OmissionLine>
 >;
+export type MoveSectionType = ReturnType<typeof mkSection<'move', MoveLine>>;
+
+export type ProjectBallSectionType = ReturnType<
+  typeof mkSection<'projectBall', ProjectBallLine>
+>;
 
 export type SectionTypes =
   | PaintBallzSectionType
@@ -277,6 +304,8 @@ export type SectionTypes =
   | AddBallSectionType
   | BallzInfoSectionType
   | OmissionSectionType
+  | MoveSectionType
+  | ProjectBallSectionType
   | ReturnType<typeof mkSection<'raw', RawParsedLine>>;
 
 export type SectionTypeTag = SectionTypes['sectionType'];
@@ -287,6 +316,8 @@ export type SectionLineTypes =
   | AddBallLine
   | BallzInfoLine
   | OmissionLine
+  | MoveLine
+  | ProjectBallLine
   | RawParsedLine;
 
 export type LineTags = SectionLineTypes['tag'];

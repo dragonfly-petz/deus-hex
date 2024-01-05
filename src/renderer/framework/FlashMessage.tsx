@@ -66,9 +66,12 @@ function FlashMessageC({ message }: { message: FlashMessage }) {
     });
   }, [flashMessagesNode, message]);
   useEffect(() => {
-    const val = setTimeout(clearMessage, 10e3);
+    const val = setTimeout(
+      clearMessage,
+      message.kind === 'success' ? 10e3 : 30e3
+    );
     return () => clearTimeout(val);
-  }, [clearMessage]);
+  }, [clearMessage, message.kind]);
   return (
     <div style={kindStyles[message.kind]} className={classNames(style.message)}>
       <div className={style.button}>
