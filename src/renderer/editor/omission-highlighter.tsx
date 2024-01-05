@@ -126,6 +126,42 @@ function getOmissions(view: EditorView) {
             }
           }
           break;
+        case 'move':
+          if (omissionsSet.has(line.lineContent.ballRef)) {
+            const start = editorLine.from + line.initialWhitespace.length;
+            marks.push(
+              valueOmission.range(
+                start,
+                start + line.lineContent.ballRef.toString().length
+              )
+            );
+          }
+          break;
+
+        case 'projectBall':
+          {
+            let start = editorLine.from + line.initialWhitespace.length;
+            if (omissionsSet.has(line.lineContent.anchorBall)) {
+              marks.push(
+                valueOmission.range(
+                  start,
+                  start + line.lineContent.anchorBall.toString().length
+                )
+              );
+            }
+            const strs = colDataToContentStrings(line.lineContent.content);
+
+            start += strs[0].length + strs[1].length;
+            if (omissionsSet.has(line.lineContent.ball)) {
+              marks.push(
+                valueOmission.range(
+                  start,
+                  start + line.lineContent.ball.toString().length
+                )
+              );
+            }
+          }
+          break;
 
         default:
       }
