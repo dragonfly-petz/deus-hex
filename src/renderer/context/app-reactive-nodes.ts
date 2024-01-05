@@ -18,16 +18,22 @@ import { ScrollSignal } from '../editor/scroll-signal';
 
 export type AppReactiveNodesStatic = ReturnType<typeof mkStaticReactiveNodes>;
 
+export type ProjectsPageSortKey = 'name' | 'date';
+
 export function mkStaticReactiveNodes() {
   const currentTabNode = new ReactiveNode<TabName>(
-    isDev() ? 'editor' : 'petzResources'
+    isDev() ? 'projects' : 'petzResources'
   );
   const flashMessagesNode = new ReactiveNode(new Map<string, FlashMessage>());
   const modalsNode = new ReactiveNode(new Map<string, ModalDef>());
   const currentResourcesPage = new ReactiveNode<ResourcesPage>(
-    isDev() ? 'clothes' : 'overview'
+    isDev() ? 'catz' : 'overview'
   );
-  const currentProjectsPage = new ReactiveNode<ProjectsPage>('overview');
+  const currentProjectsPage = new ReactiveNode<ProjectsPage>('catz');
+  const projectsPageSort = new ReactiveNode<[ProjectsPageSortKey, boolean]>([
+    'name',
+    true,
+  ]);
   const editorScrollSignal = new ReactiveNode<ScrollSignal>({ toLine: 0 });
   const currentEditorSection = new ReactiveNode<ResourceDataSectionName>(
     'clzClot'
@@ -44,6 +50,7 @@ export function mkStaticReactiveNodes() {
     editorScrollSignal,
     localFontSizeAdjust,
     dropFileHasDrag,
+    projectsPageSort,
   };
 }
 

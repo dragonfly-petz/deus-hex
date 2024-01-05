@@ -1,3 +1,4 @@
+import { pipe } from 'fp-ts/function';
 import style from './Projects.module.scss';
 import {
   useAppHelper,
@@ -32,11 +33,18 @@ import type {
   ProjectResult,
   ProjectsByType,
 } from '../../main/app/resource/project-manager';
-import { sumBy } from '../../common/array';
+import { sortByDate, sortByString, sumBy } from '../../common/array';
 import { FormInput, FormItem, FormLabel } from '../framework/form/form';
 import { TextInput } from '../framework/form/TextInput';
 import { renderResult } from '../framework/result';
 import { renderIf } from '../framework/render';
+import {
+  formatDateDistance,
+  formatDateStandard,
+  maxDate,
+} from '../../common/df';
+import { useAppReactiveNode } from '../context/reactive-nodes-helper';
+import { ProjectsPageSortKey } from '../context/app-reactive-nodes';
 
 const navigationNames = ['overview', 'catz', 'dogz', 'clothes'] as const;
 export type ProjectsPage = (typeof navigationNames)[number];
@@ -263,10 +271,47 @@ function SpecificPage({
   useAddActions(actionsNode, (actions) => {
     actions.push(openFolderAction);
   });
+
+  const { projectsPageSort } = useAppReactiveNodes();
+
+  const [sortKey, ascending] = useAppReactiveNode((it) => it.projectsPageSort);
+
+  const setSortByKey = (k: ProjectsPageSortKey) => {
+    projectsPageSort.setValueFn((it) => [k, k === it[0] ? !it[1] : true]);
+  };
   return (
     <>
-      <h2>{type} projects</h2>
-      {renderResult(projectsByType[type], (projects) => {
+      <h2>
+        {type} projects, sort by:{' '}
+        <Button
+          label="name"
+          onClick={() => setSortByKey('name')}
+          size="small"
+        />{' '}
+        or{' '}
+        <Button
+          label="last modified date"
+          onClick={() => setSortByKey('date')}
+          size="small"
+        />
+      </h2>
+      {renderResult(projectsByType[type], (projectsRaw) => {
+        const projects = projectsRaw.slice();
+        if (sortKey === 'name') {
+          sortByString(projects, (it) => it.id.name);
+        } else if (sortKey === 'date') {
+          sortByDate(projects, (proj) =>
+            pipe(
+              proj.info,
+              E.map((it) => it.current.savedDate),
+              E.getOrElse(() => maxDate)
+            )
+          );
+        }
+
+        if (!ascending) {
+          projects.reverse();
+        }
         return (
           <>
             {projects.map((it) => {
@@ -290,6 +335,12 @@ function ProjectResultC({ result }: { result: ProjectResult }) {
             <>
               <div className={style.currentName}>{inf.current.itemName}</div>
               <div className={style.backups}>{inf.previousVersions.length}</div>
+              <div className={style.dateDistance}>
+                {formatDateDistance(inf.current.savedDate)}
+              </div>
+              <div className={style.date}>
+                {formatDateStandard(inf.current.savedDate)}
+              </div>
               <div className={style.buttons}>
                 <Button
                   onClick={() => {

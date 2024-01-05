@@ -71,7 +71,7 @@ function FlashMessageC({ message }: { message: FlashMessage }) {
       message.kind === 'success' ? 10e3 : 30e3
     );
     return () => clearTimeout(val);
-  }, [clearMessage]);
+  }, [clearMessage, message.kind]);
   return (
     <div style={kindStyles[message.kind]} className={classNames(style.message)}>
       <div className={style.button}>
