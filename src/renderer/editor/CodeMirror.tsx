@@ -98,6 +98,10 @@ export function CodeMirror({
       // we do this to account for changes made externally but it would be better to have a different way to react to this because this code does a full comparison every time the editor changes a char
       if (view.state.doc.toString() !== val) {
         const snap = view.scrollSnapshot();
+        const scrollTo =
+          val.length > snap.value.range.from
+            ? snap
+            : EditorView.scrollIntoView(val.length - 1, { y: 'start' });
         view.dispatch({
           annotations: [isolateHistory.of('full')],
           changes: {
@@ -105,7 +109,7 @@ export function CodeMirror({
             to: view.state.doc.length,
             insert: val,
           },
-          effects: [snap],
+          effects: [scrollTo],
         });
       }
 
