@@ -57,13 +57,33 @@ export function getBallInfo(
   id: number,
   ballz: BallzInfo
 ): Either<string, BallInfo> {
+  return doGetBallInfo(id, ballz, []);
+}
+
+function doGetBallInfo(
+  id: number,
+  ballz: BallzInfo,
+  encountered: Array<number>
+): Either<string, BallInfo> {
+  if (encountered.includes(id)) {
+    return E.left(
+      `Cycle detected - id ${id} was encountered while looking for its own parent (${encountered.join(
+        ' -> '
+      )} -> ${id})`
+    );
+  }
+  encountered.push(id);
   return getOrPut(ballz.ballInfoMap, id, () => {
     const line = safeGet(ballz.ballzArray, id);
     if (isNully(line)) {
       return E.left(`Couldn\`t find ball with id ${id}`);
     }
     if (line.tag === 'addBall') {
-      const parent = getBallInfo(line.lineContent.ballRef, ballz);
+      const parent = doGetBallInfo(
+        line.lineContent.ballRef,
+        ballz,
+        encountered
+      );
       return E.of({
         line,
         parent,
