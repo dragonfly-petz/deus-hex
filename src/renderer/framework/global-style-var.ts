@@ -40,12 +40,12 @@ const globalStyleDef = {
   tertiaryFontColor: '#f3f3f3',
   headingFont: 'Comic Sans MS, Comic Sans, sans-serif',
 
-  zoneHead: '#ff5e5e',
-  zoneBody: '#ffac4b',
-  zoneFrontLegs: '#ffeb5b',
-  zoneBackLegs: '#22ff00',
-  zoneTail: '#733cff',
-  zoneMisc: '#f45cff',
+  zoneHead: '#F7CDDB',
+  zoneBody: '#F8E7CC',
+  zoneFrontLegs: '#F7F9B3',
+  zoneBackLegs: '#D4F8CC',
+  zoneTail: '#CCF2F8',
+  zoneMisc: '#F8CCF5',
   omissionLineBg: '#ebebeb',
   omissionValBg: '#d0d0d0',
 
