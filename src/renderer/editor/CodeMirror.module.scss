@@ -56,24 +56,21 @@
 
   cursor: pointer;
   width: 2.6em;
-
+  color: #222;
   &:hover {
     opacity: 0.8;
   }
 
   margin-right: 5px;
-  color: white;
-  background-color: styleVar.$infoFgColor;
+  background-color: styleVar.$infoBgColor;
   padding: 0 2px;
   height: 100%;
 
-  &.missingRef {
+  &.missingRef,  &.errorRef {
     background-color: styleVar.$errorFgColor;
+    color: white;
   }
 
-  &.errorRef {
-    background-color: styleVar.$errorFgColor;
-  }
 
   @each $name, $color in styleVar.$zones {
     &:global(.zone-#{$name}) {
