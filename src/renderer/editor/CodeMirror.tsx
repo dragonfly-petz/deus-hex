@@ -57,10 +57,10 @@ export function CodeMirror({
         ),
       ],
     });
-
     const view = new EditorView({
       state: startState,
       parent: div,
+      scrollTo: EditorView.scrollIntoView(0),
     });
 
     // set initial value for parsed data
