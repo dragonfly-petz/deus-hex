@@ -18,7 +18,15 @@ import { ScrollSignal } from '../editor/scroll-signal';
 
 export type AppReactiveNodesStatic = ReturnType<typeof mkStaticReactiveNodes>;
 
-export type ProjectsPageSortKey = 'name' | 'date';
+export const projectsPageSortKeys = ['name', 'date', 'projectDate'] as const;
+
+export type ProjectsPageSortKey = (typeof projectsPageSortKeys)[number];
+
+export const projectsPageSortKeysLabels: Record<ProjectsPageSortKey, string> = {
+  name: 'Name',
+  date: 'Last modified',
+  projectDate: 'Project creation date',
+};
 
 export function mkStaticReactiveNodes() {
   const currentTabNode = new ReactiveNode<TabName>(

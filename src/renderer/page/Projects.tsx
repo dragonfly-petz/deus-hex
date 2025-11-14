@@ -44,7 +44,13 @@ import {
   maxDate,
 } from '../../common/df';
 import { useAppReactiveNode } from '../context/reactive-nodes-helper';
-import { ProjectsPageSortKey } from '../context/app-reactive-nodes';
+import {
+  ProjectsPageSortKey,
+  projectsPageSortKeys,
+  projectsPageSortKeysLabels,
+} from '../context/app-reactive-nodes';
+import { isNever } from '../../common/type-assertion';
+import { Icon } from '../framework/Icon';
 
 const navigationNames = ['overview', 'catz', 'dogz', 'clothes'] as const;
 export type ProjectsPage = (typeof navigationNames)[number];
@@ -138,10 +144,13 @@ function TabLeftBar({ navigation }: TabDefs) {
 }
 
 function TabRightBar({ actionsNode, projectsQuery }: TabDefs) {
+  const { projectsPageSort } = useAppReactiveNodes();
+
   const newProjectModalNode = useModal({
     Content: (rest) => (
       <NewProjectForm
         onProjectCreated={() => {
+          projectsPageSort.setValue(['projectDate', false]);
           // noinspection JSIgnoredPromiseFromCall
           projectsQuery.reload();
           // eslint-disable-next-line react/destructuring-assignment
@@ -279,34 +288,57 @@ function SpecificPage({
   const setSortByKey = (k: ProjectsPageSortKey) => {
     projectsPageSort.setValueFn((it) => [k, k === it[0] ? !it[1] : true]);
   };
+
   return (
     <>
       <h2>
-        {type} projects, sort by:{' '}
-        <Button
-          label="name"
-          onClick={() => setSortByKey('name')}
-          size="small"
-        />{' '}
-        or{' '}
-        <Button
-          label="last modified date"
-          onClick={() => setSortByKey('date')}
-          size="small"
-        />
+        {type} projects, sort by: {}
+        <div className={style.sortButtons}>
+          {projectsPageSortKeys.map((k) => {
+            const active = sortKey === k;
+            return (
+              <div key={k} className={style.sortButtonWrapper}>
+                <Button
+                  key={k}
+                  active={active}
+                  label={projectsPageSortKeysLabels[k]}
+                  onClick={() => setSortByKey(k)}
+                  size="small"
+                />
+                {renderIf(active, () => {
+                  return <Icon icon={ascending ? 'faSortAsc' : 'faSortDesc'} />;
+                })}
+              </div>
+            );
+          })}
+        </div>
       </h2>
       {renderResult(projectsByType[type], (projectsRaw) => {
         const projects = projectsRaw.slice();
-        if (sortKey === 'name') {
-          sortByString(projects, (it) => it.id.name);
-        } else if (sortKey === 'date') {
-          sortByDate(projects, (proj) =>
-            pipe(
-              proj.info,
-              E.map((it) => it.current.savedDate),
-              E.getOrElse(() => maxDate)
-            )
-          );
+        switch (sortKey) {
+          case 'name':
+            sortByString(projects, (it) => it.id.name);
+            break;
+          case 'date':
+            sortByDate(projects, (proj) =>
+              pipe(
+                proj.info,
+                E.map((it) => it.current.savedDate),
+                E.getOrElse(() => maxDate)
+              )
+            );
+            break;
+          case 'projectDate':
+            sortByDate(projects, (proj) =>
+              pipe(
+                proj.info,
+                E.map((it) => it.current.savedDate),
+                E.getOrElse(() => maxDate)
+              )
+            );
+            break;
+          default:
+            isNever(sortKey);
         }
 
         if (!ascending) {

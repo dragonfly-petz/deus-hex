@@ -4,7 +4,12 @@ import { pipe } from 'fp-ts/function';
 import { FileType, fileTypes } from '../../../common/petz/file-types';
 import { mapObjectValuesStringKey, objectValues } from '../../../common/object';
 import { fromPromiseProperties } from '../../../common/promise';
-import { directoryExists, fileExists, getPathsInDir } from '../file/file-util';
+import {
+  directoryExists,
+  fileExists,
+  fileStat,
+  getPathsInDir,
+} from '../file/file-util';
 import { fsPromises } from '../util/fs-promises';
 import { Result } from '../../../common/result';
 import { A, E, Either } from '../../../common/fp-ts/fp';
@@ -77,6 +82,7 @@ interface ProjectFileInfoWithVersion extends ProjectFileInfo {
 
 export interface ProjectInfo {
   id: ProjectId;
+  createdDate: Date;
   current: ProjectFileInfo;
   previousVersions: ProjectFileInfoWithVersion[];
   temporaryBackups: ProjectFileInfo[];
@@ -221,6 +227,13 @@ export class ProjectManager {
       id.type,
       projectPaths.currentFolder
     );
+
+    const projectFolderStatE = await fileStat(projectPaths.currentFolder);
+    const createdDate = pipe(
+      projectFolderStatE,
+      E.map((it) => it.birthtime),
+      E.getOrElseW((_) => new Date())
+    );
     const retErrResult = (val: E.Left<string>): ProjectResult => {
       return {
         id,
@@ -244,6 +257,7 @@ export class ProjectManager {
       id,
       info: E.right({
         id,
+        createdDate,
         current: current.right,
         previousVersions,
         temporaryBackups: E.isRight(temporaryBackups)
