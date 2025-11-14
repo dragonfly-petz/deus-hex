@@ -67,7 +67,6 @@ export function Tabs() {
             onClick={() => {
               currentTabNode.setValue(tabName);
             }}
-            size="large"
           />
         );
       })}

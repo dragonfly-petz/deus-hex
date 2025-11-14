@@ -1,9 +1,6 @@
 @use '../style/styleVar';
 @use '../style/mixins';
 
-.wrapper {
-  display: inline-block;
-}
 
 .main {
   background-color: styleVar.$buttonBgColor;
@@ -12,12 +9,13 @@
   font-weight: bold;
 
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
   @include mixins.defaultStates {
     border-style: solid;
     border-color: styleVar.$panelBorderColor;
   }
+  text-align: start;
 
   .icon {
     &:not(:last-child) {
@@ -52,13 +50,13 @@
   }
 
   &.normal {
-    padding: 6px 12px;
+    padding: 4px 8px;
 
     &.iconOnly {
       padding: 6px 6px;
     }
 
-    font-size: 2.5rem;
+    font-size: 2rem;
     border-radius: 7px;
     border-width: 2px;
   }
@@ -70,7 +68,7 @@
       padding: 8px 8px;
     }
 
-    font-size: 3rem;
+    font-size: 2.4rem;
     border-radius: 10px;
     border-width: 3px;
   }

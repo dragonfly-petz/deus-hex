@@ -11,7 +11,7 @@ const globalStyleDef = {
 
   headerFontColor: 'white',
   headerFontOutlineColor: '#6aabe2',
-  headerFontOutlineSize: '3px',
+  headerFontOutlineSize: '2px',
 
   buttonBgColor: '#dff1fd',
   buttonBgHoverColor: '#e8f5fe',

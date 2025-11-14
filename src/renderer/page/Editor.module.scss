@@ -53,16 +53,31 @@
 .tabLeftLnzSections {
   display: flex;
   flex-direction: column;
+
+  > div {
+    width: 100%;
+    margin-bottom: 3px;
+    padding: 0 3px;
+
+    button {
+      width: 100%;
+    }
+  }
 }
 
 .heading {
   display: flex;
   align-items: center;
   font-size: 3rem;
+  white-space: nowrap;
+
+  button {
+    white-space: nowrap;
+  }
 }
 
 .headerFilePath {
   margin-left: 10px;
   font-size: 2rem;
-  max-width: 50%;
+  white-space: normal;
 }

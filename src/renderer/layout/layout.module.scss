@@ -11,7 +11,7 @@
   padding: 5px 10px;
   display: flex;
   align-items: center;
-  margin-bottom: 15px;
+  margin-bottom: 5px;
   position: relative;
 }
 
@@ -20,10 +20,14 @@
   top: 0;
   left: -15px;
   transform: scaleX(-1);
+
+  img {
+    width: 110px;
+  }
 }
 
 .logoArea {
-  margin-left: 200px;
+  margin-left: 90px;
 
   .logo {
     font-size: 2.4rem;
@@ -85,7 +89,7 @@
 
   > * {
     &:not(:last-child) {
-      margin-right: 10px;
+      margin-right: 5px;
     }
   }
 }
@@ -100,4 +104,8 @@
 }
 
 .actions {
+
+  button {
+    width: 100%;
+  }
 }
