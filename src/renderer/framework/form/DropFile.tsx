@@ -53,6 +53,28 @@ export function DropFile({
 
   const droppedFileInfo = useReactiveVal(droppedFileInfoNode);
 
+  const setFilePaths = (paths: string[]) => {
+    const filter = paths.filter((it) => {
+      const extSplit = it.split('.');
+      const ext = extSplit.length > 1 ? extSplit.pop() : null;
+      const extWithDot = isNotNully(ext) ? `.${ext}` : '';
+      return validExtensions.has(extWithDot);
+    });
+    const pickedPath = safeHead(filter);
+    if (isNully(pickedPath)) {
+      valueNode.setValue(null);
+      droppedFileInfoNode.setValue(
+        E.left(
+          `No valid files dropped: expected file with extension ${Array.from(
+            validExtensions
+          ).join(' ,')}`
+        )
+      );
+    } else {
+      valueNode.setValue(pickedPath);
+      droppedFileInfoNode.setValue(E.right(pickedPath));
+    }
+  };
   const { refSetter } = useMemoRef((div: HTMLDivElement) => {
     const disposers = new Array<Disposer>();
     disposers.push(
@@ -82,26 +104,8 @@ export function DropFile({
         for (const file of ev.dataTransfer?.files ?? []) {
           paths.push(file.path);
         }
-        const filter = paths.filter((it) => {
-          const extSplit = it.split('.');
-          const ext = extSplit.length > 1 ? extSplit.pop() : null;
-          const extWithDot = isNotNully(ext) ? `.${ext}` : '';
-          return validExtensions.has(extWithDot);
-        });
-        const pickedPath = safeHead(filter);
-        if (isNully(pickedPath)) {
-          valueNode.setValue(null);
-          droppedFileInfoNode.setValue(
-            E.left(
-              `No valid files dropped: expected file with extension ${Array.from(
-                validExtensions
-              ).join(' ,')}`
-            )
-          );
-        } else {
-          valueNode.setValue(pickedPath);
-          droppedFileInfoNode.setValue(E.right(pickedPath));
-        }
+
+        setFilePaths(paths);
       })
     );
 
@@ -122,7 +126,23 @@ export function DropFile({
           );
         })}
         <div className={style.instruction}>
-          Drop file/folder here. Accepted file types: {extensions.join(', ')}
+          Drop file/folder anywhere on the screen. Accepted file types:{' '}
+          {extensions.join(', ')}
+        </div>
+        <div className={style.filePickerWrapper}>
+          OR:
+          <input
+            type="file"
+            className={style.filePicker}
+            accept={extensions.join(', ')}
+            onChange={(ev) => {
+              setFilePaths(
+                ev.target.files
+                  ? Array.from(ev.target.files).map((f) => f.path)
+                  : []
+              );
+            }}
+          />
         </div>
       </div>
     </div>
