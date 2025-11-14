@@ -12,3 +12,11 @@ export function isTest() {
 export function isDevOrTest() {
   return isDev() || isTest();
 }
+interface Features {
+  showFixDuplicatesButton: boolean;
+}
+export function getFeatures(): Features {
+  return {
+    showFixDuplicatesButton: isDev(),
+  };
+}

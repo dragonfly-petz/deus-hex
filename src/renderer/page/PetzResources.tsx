@@ -50,6 +50,7 @@ import {
 } from '../framework/form/form';
 import { TextInput } from '../framework/form/TextInput';
 import { renderId } from '../helper/helper';
+import { getFeatures } from '../../main/app/util';
 
 const navigationNames = ['overview', 'catz', 'dogz', 'clothes'] as const;
 export type ResourcesPage = (typeof navigationNames)[number];
@@ -399,7 +400,7 @@ const SpecificPage = ({
     const mainIpc = useMainIpc();
     // eslint-disable-next-line react-hooks/rules-of-hooks
     useAddActions(actionsNode, (actions) => {
-      if (duplicates.length > 0) {
+      if (duplicates.length > 0 && getFeatures().showFixDuplicatesButton) {
         actions.push({
           label: 'Fix duplicate ids',
           key: 'fixDuplicateIds',
