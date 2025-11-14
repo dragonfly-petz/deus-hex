@@ -258,9 +258,8 @@ async function fixDuplicateIds(
 ) {
   const sequenced = await getExistingInfos(petzFolder, type);
   if (E.isLeft(sequenced)) return sequenced;
-  const idsAssigned = new Set<number>(
-    A.flatten(fileTypesValues.map((it) => it.vanillaIds))
-  );
+
+  const idsAssigned = new Set<number>();
   const toReassign = new Array<{ info: FileInfo; path: string }>();
   for (const file of sequenced.right) {
     if (idsAssigned.has(file.info.rcInfo.breedId)) {
@@ -269,13 +268,17 @@ async function fixDuplicateIds(
       idsAssigned.add(file.info.rcInfo.breedId);
     }
   }
+  const vanillaIds = new Set<number>(
+    A.flatten(fileTypesValues.map((it) => it.vanillaIds))
+  );
+  const asArr = Array.from(vanillaIds);
+  sortByNumeric(asArr, identity);
+  // start search from the lowest vanilla id
+  const from = asArr[0];
 
   const pickNewId = () => {
-    const asArr = Array.from(idsAssigned);
-    sortByNumeric(asArr, identity);
-    const from = asArr[0];
     for (let i = from; i < highestId; i++) {
-      if (!idsAssigned.has(i)) {
+      if (!idsAssigned.has(i) && !vanillaIds.has(i)) {
         idsAssigned.add(i);
         return i;
       }
