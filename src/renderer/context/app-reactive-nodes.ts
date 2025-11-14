@@ -30,7 +30,7 @@ export const projectsPageSortKeysLabels: Record<ProjectsPageSortKey, string> = {
 
 export function mkStaticReactiveNodes() {
   const currentTabNode = new ReactiveNode<TabName>(
-    isDev() ? 'projects' : 'petzResources'
+    isDev() ? 'editor' : 'petzResources'
   );
   const flashMessagesNode = new ReactiveNode(new Map<string, FlashMessage>());
   const modalsNode = new ReactiveNode(new Map<string, ModalDef>());

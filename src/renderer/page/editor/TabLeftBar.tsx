@@ -99,14 +99,12 @@ function SubMenu({
 
 function RcDataInfo({
   value,
-  projectId,
 }: {
   value: FileInfoQueryResult;
   projectId: ProjectId | null;
 }) {
   return (
     <div className={style.rcData}>
-      <RcDataRow label="Path" value={value.filePath} />
       <RcDataRow label="Item Name" value={value.itemName} />
       <RcDataRow
         label="Sprite Name"
@@ -119,18 +117,6 @@ function RcDataInfo({
       <RcDataRow
         label="Breed Id"
         value={renderId(value.rcDataAndEntry.rcData.breedId)}
-      />
-      <RcDataRow
-        label="Tag"
-        value={value.rcDataAndEntry.rcData.tag.toFixed()}
-      />
-      <RcDataRow
-        label="Is Project?"
-        value={
-          isNully(projectId)
-            ? 'No'
-            : `Yes - ${projectId.name} - ${projectId.type}`
-        }
       />
     </div>
   );

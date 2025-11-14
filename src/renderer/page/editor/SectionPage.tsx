@@ -23,6 +23,9 @@ import { ReactiveNode } from '../../../common/reactive/reactive-node';
 import { ReactiveVal } from '../../../common/reactive/reactive-interface';
 import { ParsedLnzResult } from '../../../common/petz/parser/main';
 import { useAppReactiveNodes } from '../../context/context';
+import { Button } from '../../framework/Button';
+import { useReactiveVal } from '../../reactive-state/reactive-hooks';
+import { renderNullable } from '../../framework/render';
 
 export interface SectionDataNodes {
   data: Uint8Array;
@@ -71,30 +74,39 @@ export function getSectionDataNodes(
 export const SectionPage = ({
   fileInfo,
   sectionName,
+  projectId,
 }: NavigationDeps & {
   sectionName: ResourceDataSectionName;
 }) => {
   const { userSettingsRemote } = useAppReactiveNodes();
-
+  const showLineNumbers = useReactiveVal(
+    userSettingsRemote.fmapStrict((it) => it.showLineNumbers)
+  );
   const dataNodesE = getSectionDataNodes(fileInfo, sectionName);
   return renderResult(dataNodesE, ({ dataNodes, sectionType }) => {
     return (
       <>
-        <h2>
-          Editing section {resourceEntryIdToStringKey(dataNodes.id)}{' '}
+        <div className={style.heading}>
+          {renderNullable(projectId, (id) => {
+            return <>Project: {id.name}</>;
+          })}
           {renderReactive(dataNodes.isParsing, (it) =>
             it ? <>Parsing...</> : null
           )}
-          <button
+          <Button
             onClick={() => {
               userSettingsRemote.setRemotePartialFn((it) => ({
                 showLineNumbers: !it.showLineNumbers,
               }));
             }}
-          >
-            Toggle line numbers
-          </button>
-        </h2>
+            active={showLineNumbers}
+            label="Toggle line numbers"
+          />
+          <div className={style.headerFilePath}>
+            File Path: {fileInfo.filePath}
+          </div>
+        </div>
+
         {run(() => {
           switch (sectionType) {
             case 'ascii':
