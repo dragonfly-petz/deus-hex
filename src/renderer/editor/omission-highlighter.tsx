@@ -59,7 +59,7 @@ function getOmissions(view: EditorView) {
     const editorLines = getLinesBetween(view, from, to);
     editorLines.forEach((editorLine) => {
       const line = safeGet(state.flat, editorLine.number - 1);
-      if (isNully(line)) {
+      if (isNully(line) || editorLine.from === editorLine.to) {
         return;
       }
       switch (line.tag) {
