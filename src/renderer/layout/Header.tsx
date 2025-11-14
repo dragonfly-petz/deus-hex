@@ -18,7 +18,7 @@ export function Header() {
         <div className={style.logo}>
           <Heading>Deus Hex</Heading>
         </div>
-        <div className={style.version}>v{appVersion}</div>
+        <div className={style.version}>Beta v{appVersion}</div>
       </div>
       <div className={style.tabsWrapper}>
         <Tabs />
