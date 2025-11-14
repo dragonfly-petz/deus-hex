@@ -23,6 +23,10 @@ export function Banner({
   );
 }
 
+export function BannerTitle({ children }: { children: ReactNode }) {
+  return <div className={style.header}>{children}</div>;
+}
+
 export function BannerBody({ children }: { children: ReactNode }) {
   return <div className={style.body}>{children}</div>;
 }

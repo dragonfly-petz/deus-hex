@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import path from 'path-browserify';
 import style from './PetzResources.module.scss';
 import {
   useAppHelper,
@@ -37,9 +38,9 @@ import { renderResult } from '../framework/result';
 import { Icon, IconDef } from '../framework/Icon';
 import { globalSh, GlobalStyleVarName } from '../framework/global-style-var';
 import { classNames } from '../../common/react';
-import { getAndModifyOrPut } from '../../common/map';
+import { arrayToMapBy, getAndModifyOrPut } from '../../common/map';
 import { Navigation, NavigationDef } from '../layout/NavigationBar';
-import { renderEither, renderNullable } from '../framework/render';
+import { renderEither, renderIf, renderNullable } from '../framework/render';
 import { eitherToNullable } from '../../common/fp-ts/either';
 import {
   FormError,
@@ -51,6 +52,7 @@ import {
 import { TextInput } from '../framework/form/TextInput';
 import { renderId } from '../helper/helper';
 import { getFeatures } from '../../main/app/util';
+import { Banner, BannerBody, BannerTitle } from '../layout/Banner';
 
 const navigationNames = ['overview', 'catz', 'dogz', 'clothes'] as const;
 export type ResourcesPage = (typeof navigationNames)[number];
@@ -384,7 +386,7 @@ const SpecificPage = ({
   resourcesOverviewQuery,
 }: NavigationDeps & { type: FileType }) => {
   const typeInfoR = resourcesInfo[type];
-  return renderResult(typeInfoR, ({ fileInfos, path }) => {
+  return renderResult(typeInfoR, ({ fileInfos, path: folderPath }) => {
     const validFiles = fileInfos.filter((it) => E.isRight(it.info));
     const invalidFiles = fileInfos.filter(
       (it) => E.isLeft(it.info) && it.info.left.tag === 'error'
@@ -415,7 +417,7 @@ const SpecificPage = ({
     });
     return (
       <>
-        <h2>Folder: {path}</h2>
+        <h2>Folder: {folderPath}</h2>
         <FilesList
           infos={invalidFiles}
           title="Error files"
@@ -441,12 +443,28 @@ const SpecificPage = ({
           duplicates={duplicatesMap}
           type={type}
         />
-        <FilesList
-          infos={invalidPaths}
-          title="Other files"
-          resourcesOverviewQuery={resourcesOverviewQuery}
-          type={type}
-        />
+        {renderIf(invalidPaths.length > 0, () => {
+          const filesByExtension = arrayToMapBy(invalidPaths, (it) =>
+            path.extname(it.path)
+          );
+          return (
+            <Banner kind="info">
+              <BannerBody>
+                <BannerTitle>Other Files: {invalidPaths.length}</BannerTitle>
+
+                <ul>
+                  {[...filesByExtension.entries()].map((ent) => {
+                    return (
+                      <li key={ent[0]}>
+                        &quot;.{ent[0]}&quot;: {ent[1].length} files
+                      </li>
+                    );
+                  })}
+                </ul>
+              </BannerBody>
+            </Banner>
+          );
+        })}
       </>
     );
   });

@@ -45,3 +45,20 @@ export function mapMapValue<K, A, B>(
   }
   return outMap;
 }
+
+export function arrayToMapBy<K, V>(
+  arra: Array<V>,
+  by: (v: V) => K
+): Map<K, Array<V>> {
+  const result = new Map<K, Array<V>>();
+  for (const item of arra) {
+    const key = by(item);
+    const arr = result.get(key);
+    if (arr) {
+      arr.push(item);
+    } else {
+      result.set(key, [item]);
+    }
+  }
+  return result;
+}
