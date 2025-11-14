@@ -240,7 +240,7 @@
     "tippy.js": "^6.3.7",
     "uuid": "^8.3.2"
   },
-  "devEngines": {
+  "engines": {
     "node": ">=14.x",
     "npm": ">=7.x"
   },

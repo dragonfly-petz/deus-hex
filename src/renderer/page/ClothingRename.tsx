@@ -41,7 +41,7 @@ export function ClothingRename() {
   if (isDev()) {
     setTimeout(() => {
       pickedPathNode.setValue(
-        'C:\\Users\\franc\\Documents\\Petz\\Petz 4\\Resource\\Clothes\\Nosepest.clo'
+        'C:\\Users\\franc\\OneDrive\\Documents\\My Games\\Petz 4 (All Game Files)\\Resource\\Clothes\\Nosepest.clo'
       );
     }, 500);
   }
