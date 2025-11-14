@@ -19,7 +19,7 @@ const globalStyleDef = {
 
   buttonFontColor: '#69afdb',
   buttonFontHoverColor: '#68aedb',
-  buttonFontActiveColor: '#2f86be',
+  buttonFontActiveColor: '#1b6291',
 
   panelBorderColor: '#3d92dd',
 
@@ -34,7 +34,7 @@ const globalStyleDef = {
   successFgColor: '#00852e',
 
   mainFont: 'Arial, sans-serif',
-  primaryFontColor: '#111',
+  primaryFontColor: '#1c4966',
   primaryFontFadeColor: '#999',
   secondaryFontColor: '#111',
   tertiaryFontColor: '#f3f3f3',

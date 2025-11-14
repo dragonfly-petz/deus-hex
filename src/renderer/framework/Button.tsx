@@ -26,6 +26,7 @@ export function Button({
   icon,
   tooltip,
   disable,
+  title,
 }: {
   label?: string | FunctionalComponent;
   onClick: () => void;
@@ -34,6 +35,7 @@ export function Button({
   icon?: IconDef | IconProps;
   tooltip?: ReactNode;
   disable?: ReactiveVal<Option<string>> | string;
+  title?: string;
 }) {
   const disableVal = useReactiveOrConstantOption(disable);
   const disabled = O.isSome(disableVal);
@@ -41,7 +43,7 @@ export function Button({
     disableVal,
     O.getOrElseW(() => tooltip)
   );
-
+  const titleString = title ?? (isString(label) ? label : undefined);
   return (
     <Tooltip content={tooltipContent} disabled={isNully(tooltipContent)}>
       <div className={style.wrapper}>
@@ -55,6 +57,7 @@ export function Button({
           )}
           onClick={onClick}
           type="button"
+          title={titleString}
         >
           {renderNullable(icon, (i) => {
             const props = isIconDef(i) ? { icon: i } : i;

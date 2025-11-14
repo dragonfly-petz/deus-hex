@@ -3,8 +3,12 @@
 }
 
 .label {
-  margin-bottom: 4px;
+  font-weight: bold;
+  font-size: 1.8rem;
+  margin-bottom: 5px;
 }
 
 .input {
+  display: flex;
+  align-items: center;
 }

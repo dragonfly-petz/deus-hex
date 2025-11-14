@@ -13,9 +13,11 @@
   background-color: styleVar.$themeSecondaryBgColor;
   padding: 10px;
   margin-bottom: 10px;
+  width: 100%;
 }
 
 .folderOverviewPath {
+  margin-bottom: 10px;
 }
 
 .folderTypeAndSummary {

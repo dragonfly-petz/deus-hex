@@ -103,9 +103,9 @@ export const SectionPage = ({
             active={showLineNumbers}
             label="Toggle line numbers"
           />
-          <div className={style.headerFilePath}>
+          {/*       <div className={style.headerFilePath}>
             File Path: {fileInfo.filePath}
-          </div>
+          </div> */}
         </div>
 
         {run(() => {

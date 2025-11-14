@@ -164,7 +164,8 @@ function BackupsInfo({
                           </div>
                           <div className={style.button}>
                             <Button
-                              label="Restore"
+                              title="Restore"
+                              icon="faTurnUp"
                               onClick={() => {
                                 throwRejectionK(async () => {
                                   const res = await ger.withFlashMessageK(

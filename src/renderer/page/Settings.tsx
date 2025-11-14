@@ -1,4 +1,4 @@
-import style from './ClothingRename.module.scss';
+import style from './Settings.module.scss';
 import { FormInput, FormItem, FormLabel } from '../framework/form/form';
 import { Button } from '../framework/Button';
 import { userSettingsDefault } from '../../main/app/persisted/user-settings';
@@ -16,7 +16,7 @@ export function Settings() {
         <>
           <FormLabel>Base Font Size</FormLabel>
           <FormInput>
-            Current: {current}
+            <div className={style.inputValue}>Current: {current}</div>
             <Button
               tooltip="Reduce base font size"
               icon="faMinus"
