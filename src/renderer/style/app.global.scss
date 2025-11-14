@@ -29,3 +29,15 @@ h2 {
 .tippy-content {
   font-size: 1.8rem;
 }
+
+a {
+  color: styleVar.$buttonFontActiveColor;
+  text-decoration: underline;
+  cursor: pointer;
+
+  &:hover {
+    color: styleVar.$buttonFontHoverColor;
+
+    text-decoration: underline;
+  }
+}

@@ -22,7 +22,7 @@ import type { NavigationDeps } from './get-deps';
 import { ReactiveNode } from '../../../common/reactive/reactive-node';
 import { ReactiveVal } from '../../../common/reactive/reactive-interface';
 import { ParsedLnzResult } from '../../../common/petz/parser/main';
-import { useAppReactiveNodes } from '../../context/context';
+import { useAppReactiveNodes, useMainIpc } from '../../context/context';
 import { Button } from '../../framework/Button';
 import { useReactiveVal } from '../../reactive-state/reactive-hooks';
 import { renderNullable } from '../../framework/render';
@@ -83,6 +83,7 @@ export const SectionPage = ({
     userSettingsRemote.fmapStrict((it) => it.showLineNumbers)
   );
   const dataNodesE = getSectionDataNodes(fileInfo, sectionName);
+  const mainIpc = useMainIpc();
   return renderResult(dataNodesE, ({ dataNodes, sectionType }) => {
     return (
       <>
@@ -106,6 +107,16 @@ export const SectionPage = ({
           {/*       <div className={style.headerFilePath}>
             File Path: {fileInfo.filePath}
           </div> */}
+          {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
+          <a
+            onClick={() =>
+              mainIpc.openLinkInBrowser(
+                'https://codemirror.net/docs/ref/#commands'
+              )
+            }
+          >
+            Editor command reference (standardKeymap and defaultKeymap)
+          </a>
         </div>
 
         {run(() => {

@@ -198,6 +198,10 @@ export class MainIpcBase {
     return this.openDirInExplorer(path.parse(filePath).dir);
   }
 
+  async openLinkInBrowser(url: string) {
+    return shell.openExternal(url);
+  }
+
   async openEditor(file: string) {
     return createWindow(this.domIpcHolder, this.userSettingsRemote, this, {
       editorTarget: file,
