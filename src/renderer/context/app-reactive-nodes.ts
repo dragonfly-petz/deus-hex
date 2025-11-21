@@ -22,10 +22,17 @@ export const projectsPageSortKeys = ['name', 'date', 'projectDate'] as const;
 
 export type ProjectsPageSortKey = (typeof projectsPageSortKeys)[number];
 
-export const projectsPageSortKeysLabels: Record<ProjectsPageSortKey, string> = {
-  name: 'Name',
-  date: 'Last modified',
-  projectDate: 'Project creation date',
+interface ProjectsPageSortKeyInfo {
+  label: string;
+  defaultSortOrder: boolean;
+}
+export const projectsPageSortKeyInfos: Record<
+  ProjectsPageSortKey,
+  ProjectsPageSortKeyInfo
+> = {
+  name: { label: 'Name', defaultSortOrder: true },
+  date: { label: 'Last modified', defaultSortOrder: false },
+  projectDate: { label: 'Project creation date', defaultSortOrder: false },
 };
 
 export function mkStaticReactiveNodes() {

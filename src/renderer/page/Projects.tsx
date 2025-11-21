@@ -46,11 +46,12 @@ import {
 import { useAppReactiveNode } from '../context/reactive-nodes-helper';
 import {
   ProjectsPageSortKey,
+  projectsPageSortKeyInfos,
   projectsPageSortKeys,
-  projectsPageSortKeysLabels,
 } from '../context/app-reactive-nodes';
 import { isNever } from '../../common/type-assertion';
 import { Icon } from '../framework/Icon';
+import { classNames } from '../../common/react';
 
 const navigationNames = ['overview', 'catz', 'dogz', 'clothes'] as const;
 export type ProjectsPage = (typeof navigationNames)[number];
@@ -286,7 +287,10 @@ function SpecificPage({
   const [sortKey, ascending] = useAppReactiveNode((it) => it.projectsPageSort);
 
   const setSortByKey = (k: ProjectsPageSortKey) => {
-    projectsPageSort.setValueFn((it) => [k, k === it[0] ? !it[1] : true]);
+    projectsPageSort.setValueFn((it) => [
+      k,
+      k === it[0] ? !it[1] : projectsPageSortKeyInfos[k].defaultSortOrder,
+    ]);
   };
 
   return (
@@ -301,7 +305,7 @@ function SpecificPage({
                 <Button
                   key={k}
                   active={active}
-                  label={projectsPageSortKeysLabels[k]}
+                  label={projectsPageSortKeyInfos[k].label}
                   onClick={() => setSortByKey(k)}
                   size="small"
                 />
@@ -332,7 +336,7 @@ function SpecificPage({
             sortByDate(projects, (proj) =>
               pipe(
                 proj.info,
-                E.map((it) => it.current.savedDate),
+                E.map((it) => it.createdDate),
                 E.getOrElse(() => maxDate)
               )
             );
@@ -346,6 +350,15 @@ function SpecificPage({
         }
         return (
           <>
+            <div className={style.fileInfo}>
+              <div className={classNames(style.infoRow, style.titleRow)}>
+                <div className={style.projectName}>Project Name</div>
+                <div className={style.currentName}>Sprite Name</div>
+                <div className={style.backups}>Num backups</div>
+                <div className={style.dateDistance}>Last modified</div>
+                <div className={style.date} />
+              </div>
+            </div>
             {projects.map((it) => {
               return <ProjectResultC key={it.id.name} result={it} />;
             })}

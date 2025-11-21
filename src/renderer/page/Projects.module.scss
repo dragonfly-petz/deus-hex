@@ -8,6 +8,10 @@
   padding: 5px 10px;
   background-color: styleVar.$themeSecondaryBgColor;
   margin-bottom: 5px;
+
+  &.titleRow {
+    font-weight: bold;
+  }
 }
 
 .projectName {
