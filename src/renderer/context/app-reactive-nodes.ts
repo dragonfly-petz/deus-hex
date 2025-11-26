@@ -55,6 +55,7 @@ export function mkStaticReactiveNodes() {
   );
   const localFontSizeAdjust = new ReactiveNode<number>(0);
   const dropFileHasDrag = new ReactiveNode(false);
+  const localDropFileIsActive = new ReactiveNode(false);
   return {
     currentTabNode,
     flashMessagesNode,
@@ -66,6 +67,7 @@ export function mkStaticReactiveNodes() {
     localFontSizeAdjust,
     dropFileHasDrag,
     projectsPageSort,
+    localDropFileIsActive,
   };
 }
 

@@ -86,7 +86,12 @@ export class IpcHandler<A extends object>
       );
     }
     this.resolveFunctions.delete(arg.id);
-    resolve.resolve(globalErrorReporter.caughtErrorToEitherJoin(arg.result));
+    resolve.resolve(
+      globalErrorReporter.caughtErrorToEitherJoin(
+        arg.result,
+        'Error found in IPC reply: '
+      )
+    );
   }
 
   get(_target: WrapWithCaughtError<A>, property: string): any {

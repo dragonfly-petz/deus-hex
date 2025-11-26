@@ -107,11 +107,12 @@ export class ErrorReporter {
   }
 
   caughtErrorToEitherJoin<A>(
-    val: CaughtErrorOrResult<Either<string, A> | A>
+    val: CaughtErrorOrResult<Either<string, A> | A>,
+    errorPrefix = ''
   ): Either<string, A> {
     if (isCaughtError(val)) {
-      this.caughtHandler(val.err);
-      return E.left(`Caught error: ${val.err.substring(0, 30)}`);
+      this.caughtHandler(`${errorPrefix}${val.err}`);
+      return E.left(`${errorPrefix}Caught error: ${val.err.substring(0, 30)}`);
     }
     if (isObjectWithKey(val, '_tag')) {
       return val;
