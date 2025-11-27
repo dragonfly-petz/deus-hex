@@ -26,13 +26,6 @@ export function GlobalDropFile() {
 }
 
 function GlobalDropFileC() {
-  const localDropFileIsActiveNode = useAppReactiveNodes().localDropFileIsActive;
-
-  const localDropFileIsActive = useReactiveVal(localDropFileIsActiveNode);
-  if (localDropFileIsActive) {
-    return null;
-  }
-
   const dragEnterCounterNode = useMkReactiveNodeMemo(0);
   const isOver = useReactiveVal(
     dragEnterCounterNode.fmapStrict((it) => it > 0)

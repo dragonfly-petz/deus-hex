@@ -194,7 +194,6 @@ function PetzFolderForm({ modalProps }: ModalableProps) {
           You can use the Deus Hex editor and most other Deus Hex tools without
           doing this.
         </p>
-        <br />
         <DropFile
           validExtensions={new Set([''])}
           valueNode={pickedPathNode}
