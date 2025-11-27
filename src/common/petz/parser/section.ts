@@ -9,6 +9,7 @@ import { and, not } from 'fp-ts/Predicate';
 import {
   COMMA,
   eitherW,
+  HASH,
   hSpace,
   isLineBreak,
   lineBreak,
@@ -27,6 +28,8 @@ export const MoveName = 'Move';
 export const ProjectBallName = 'Project Ball';
 
 export const isCommentChar = (c: C.Char) => c === SEMICOLON;
+export const isVariationChar = (c: C.Char) => c === HASH;
+
 export const lineContentChar: P.Parser<C.Char, C.Char> = P.expected(
   P.sat(and(not(isLineBreak))(not(isCommentChar))),
   'not a line break and not a comment char'
@@ -101,7 +104,15 @@ export function lineParser<Tag, A>(
               commentParser,
               P.map((it) => ['comment', it] as const)
             ),
-            () => p
+            () => {
+              return eitherW(
+                pipe(
+                  variationLineParser,
+                  P.map((it) => ['raw', it] as const)
+                ),
+                () => p
+              );
+            }
           );
         }
       );
@@ -126,6 +137,10 @@ export function lineParser<Tag, A>(
 
 const commentParser = pipe(
   S.fold([P.expected(P.sat(isCommentChar), 'a ;'), S.many(notLineBreak)])
+);
+
+const variationLineParser = pipe(
+  S.fold([P.expected(P.sat(isVariationChar), 'a #'), S.many(notLineBreak)])
 );
 
 export function sectionContentLineParser<Tag, A>(
