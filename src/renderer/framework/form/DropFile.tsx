@@ -16,14 +16,26 @@ import { renderResult } from '../result';
 import { ReactiveNode } from '../../../common/reactive/reactive-node';
 import { useAppReactiveNodes } from '../../context/context';
 import { Disposer, sequenceDisposers } from '../../../common/disposable';
+import { FunctionalComponent, renderIf, renderNullableElse } from '../render';
 
 export function DropFile({
   validExtensions,
   valueNode,
+  instruction,
 }: {
   validExtensions: Set<string>;
   valueNode: ReactiveNode<string | null>;
+  instruction?: FunctionalComponent;
 }) {
+  const localDropFileIsActiveNode = useAppReactiveNodes().localDropFileIsActive;
+
+  useEffect(() => {
+    localDropFileIsActiveNode.setValue(true);
+    return () => {
+      localDropFileIsActiveNode.setValue(false);
+    };
+  }, [localDropFileIsActiveNode]);
+
   const dropFileHasDragNode = useAppReactiveNodes().dropFileHasDrag;
 
   const dragEnterCounterNode = useMkReactiveNodeMemo(0);
@@ -114,6 +126,8 @@ export function DropFile({
   const extensions = Array.from(validExtensions).map((it) =>
     it === '' ? 'Directory' : it
   );
+  const isDirectoryPicker =
+    validExtensions.has('') && validExtensions.size === 1;
   return (
     <div className={style.dropFileWrapper}>
       <div
@@ -126,24 +140,34 @@ export function DropFile({
           );
         })}
         <div className={style.instruction}>
-          Drop file/folder anywhere on the screen. Accepted file types:{' '}
-          {extensions.join(', ')}
+          {renderNullableElse(
+            instruction,
+            (a) => a({}),
+            () => (
+              <>
+                Drop file/folder into this blue box. Accepted file types:{' '}
+                {extensions.join(', ')}
+              </>
+            )
+          )}
         </div>
-        <div className={style.filePickerWrapper}>
-          OR:
-          <input
-            type="file"
-            className={style.filePicker}
-            accept={extensions.join(', ')}
-            onChange={(ev) => {
-              setFilePaths(
-                ev.target.files
-                  ? Array.from(ev.target.files).map((f) => f.path)
-                  : []
-              );
-            }}
-          />
-        </div>
+        {renderIf(!isDirectoryPicker, () => (
+          <div className={style.filePickerWrapper}>
+            OR:
+            <input
+              type="file"
+              className={style.filePicker}
+              accept={extensions.join(', ')}
+              onChange={(ev) => {
+                setFilePaths(
+                  ev.target.files
+                    ? Array.from(ev.target.files).map((f) => f.path)
+                    : []
+                );
+              }}
+            />
+          </div>
+        ))}
       </div>
     </div>
   );

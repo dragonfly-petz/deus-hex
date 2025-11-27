@@ -16,6 +16,16 @@ import { Disposer, sequenceDisposers } from '../../common/disposable';
 import { addEventListenerDocument } from '../../common/react';
 
 export function GlobalDropFile() {
+  const localDropFileIsActiveNode = useAppReactiveNodes().localDropFileIsActive;
+
+  const localDropFileIsActive = useReactiveVal(localDropFileIsActiveNode);
+  if (localDropFileIsActive) {
+    return null;
+  }
+  return <GlobalDropFileC />;
+}
+
+function GlobalDropFileC() {
   const dragEnterCounterNode = useMkReactiveNodeMemo(0);
   const isOver = useReactiveVal(
     dragEnterCounterNode.fmapStrict((it) => it > 0)
@@ -23,6 +33,8 @@ export function GlobalDropFile() {
   const dropFileHasDrag = useReactiveVal(useAppReactiveNodes().dropFileHasDrag);
   const domIpc = useDomIpc();
   const appHelper = useAppHelper();
+  const validExtensions = allFileTypeExtensions;
+
   useEffect(() => {
     const disposers = new Array<Disposer>();
 
@@ -55,7 +67,6 @@ export function GlobalDropFile() {
         for (const file of ev.dataTransfer?.files ?? []) {
           paths.push(file.path);
         }
-        const validExtensions = allFileTypeExtensions;
         const filter = paths.filter((it) => {
           const extSplit = it.split('.');
           const ext = extSplit.length > 1 ? extSplit.pop() : null;
@@ -77,11 +88,13 @@ export function GlobalDropFile() {
       })
     );
     return sequenceDisposers(disposers);
-  }, [appHelper, domIpc, dragEnterCounterNode]);
+  }, [appHelper, domIpc, dragEnterCounterNode, validExtensions]);
   if (!isOver || dropFileHasDrag) return null;
   return (
     <div className={style.wrapper}>
-      <div className={style.info}>Drop file anywhere to open</div>
+      <div className={style.info}>
+        Drop file ({validExtensions.join(', ')}) anywhere to open
+      </div>
     </div>
   );
 }

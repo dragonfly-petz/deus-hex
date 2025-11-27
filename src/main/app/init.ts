@@ -12,6 +12,9 @@ import { RemoteObject } from '../../common/reactive/remote-object';
 import { isDev } from './util';
 import { globalLogger } from '../../common/logger';
 import { isNotNully, isNully } from '../../common/null';
+import { ReactiveNode } from '../../common/reactive/reactive-node';
+import { defaultUpdaterState } from '../../common/updater-state';
+import { checkForUpdates } from './updater';
 
 const _debugEditorFile =
   'C:\\Users\\franc\\Documents\\Petz\\Petz 4\\Resource\\Catz\\Calico.cat';
@@ -80,15 +83,29 @@ export async function init(domIpcHolder: DomIpcHolder) {
     userSettingsStore.listenable
   );
 
+  const updaterStateNode = new ReactiveNode(defaultUpdaterState);
+
   app.on('window-all-closed', () => {
     userSettingsRemote.dispose();
     app.releaseSingleInstanceLock();
     app.quit();
   });
-  const mainIpc = mkAndConnectMainIpc(userSettingsRemote, domIpcHolder);
+  const mainIpc = mkAndConnectMainIpc(
+    userSettingsRemote,
+    updaterStateNode,
+    domIpcHolder
+  );
+
+  checkForUpdates(updaterStateNode);
 
   createWindowWithParams = async (params: CreateWindowParams | null) => {
-    return createWindow(domIpcHolder, userSettingsRemote, mainIpc, params);
+    return createWindow(
+      domIpcHolder,
+      userSettingsRemote,
+      mainIpc,
+      params,
+      updaterStateNode
+    );
   };
   await createWindowWithParams(argVToWindowParams(process.argv) ?? debugParams);
 }

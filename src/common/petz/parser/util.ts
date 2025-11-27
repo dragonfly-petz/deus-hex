@@ -6,6 +6,7 @@ import { pipe } from 'fp-ts/function';
 
 export const SEMICOLON = ';';
 export const COMMA = ',';
+export const HASH = '#';
 
 const lineBreakRe = /^\n$/;
 const hSpaceRe = /^[ \t]$/;

@@ -61,6 +61,15 @@ function removeSymbolsNumber(buf: Buffer) {
   return num;
 }
 
+export async function parsePEEither(buffer: Buffer) {
+  try {
+    const pe = await parsePE(buffer);
+    return E.right(pe);
+  } catch (err) {
+    return E.left(`Could not parse as PE file: ${String(err)}`);
+  }
+}
+
 export async function parsePE(buffer: Buffer) {
   // pe-library doesn't like this to exist...
   const num = removeSymbolsNumber(buffer);
@@ -304,9 +313,12 @@ export async function setBreedId(pe: PE.NtExecutable, breedId: number) {
 }
 
 export async function getResourceFileInfo(buffer: Buffer) {
-  const pe = await parsePE(buffer);
+  const pe = await parsePEEither(buffer);
+  if (E.isLeft(pe)) {
+    return pe;
+  }
   return pipe(
-    getResourceData(pe),
+    getResourceData(pe.right),
     E.map((res) => {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       const itemName = res.rcDataAndEntry.rcData.spriteName.split('_').pop()!;

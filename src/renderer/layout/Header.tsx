@@ -1,13 +1,27 @@
 import style from './layout.module.scss';
 import { Tabs } from './Tabs';
 import { Button } from '../framework/Button';
-import { useAppContext, useAppReactiveNodes } from '../context/context';
+import {
+  useAppContext,
+  useAppReactiveNodes,
+  useMainIpc,
+} from '../context/context';
 import { Heading } from './text';
 import logoImg from '../../../assets/logoImage.png';
+import { ModalableProps, useModal } from '../framework/Modal';
+import {
+  Panel,
+  PanelBody,
+  PanelButtons,
+  PanelHeader,
+  PanelSpacer,
+} from './Panel';
+import { UpdaterStateC } from './UpdaterState';
 
 export function Header() {
   const { appVersion } = useAppContext();
   const { localFontSizeAdjust } = useAppReactiveNodes();
+  const aboutModalNode = useModal({ Content: AboutModal });
 
   return (
     <div className={style.header}>
@@ -19,6 +33,7 @@ export function Header() {
           <Heading>Deus Hex</Heading>
         </div>
         <div className={style.version}>Beta v{appVersion}</div>
+        <UpdaterStateC />
       </div>
       <div className={style.tabsWrapper}>
         <Tabs />
@@ -45,7 +60,64 @@ export function Header() {
             localFontSizeAdjust.setValueFn(() => 0);
           }}
         />
+        <Button
+          tooltip="About Deus Hex"
+          icon="faInfo"
+          onClick={() => {
+            aboutModalNode.setValue(true);
+          }}
+        />
       </div>
     </div>
+  );
+}
+
+function AboutModal({ modalProps }: ModalableProps) {
+  const mainIpc = useMainIpc();
+
+  return (
+    <Panel>
+      <PanelHeader>About Deus Hex</PanelHeader>
+      <PanelBody>
+        <h2>Documentation & Resources</h2>
+        <p>
+          You can find out more about Deus Hex{' '}
+          <a
+            onClick={() =>
+              mainIpc.openLinkInBrowser(
+                'https://petzhexing.weebly.com/deus-hex.html'
+              )
+            }
+          >
+            on this website
+          </a>
+          .
+        </p>
+        <PanelSpacer />
+        <h3>Contributing to Deus Hex</h3>
+        <p>
+          Do you know CSS, HTML, React or TypeScript? Deus Hex is open source
+          and welcomes new contributors. Visit the{' '}
+          <a
+            onClick={() =>
+              mainIpc.openLinkInBrowser(
+                'https://github.com/dragonfly-petz/deus-hex'
+              )
+            }
+          >
+            Git repository
+          </a>{' '}
+          for more information.
+        </p>
+      </PanelBody>
+      <PanelButtons>
+        <Button
+          label="Close"
+          onClick={() => {
+            modalProps?.closeModal();
+          }}
+        />
+      </PanelButtons>
+    </Panel>
   );
 }

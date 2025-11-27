@@ -1,6 +1,7 @@
 import { app, ipcMain, shell } from 'electron';
 import { pipe } from 'fp-ts/function';
 import path from 'path';
+import { autoUpdater } from 'electron-updater';
 import {
   parseAddBallsBreed,
   serializeClothingAddBalls,
@@ -38,6 +39,8 @@ import {
 } from './resource/project-manager';
 import { createWindow, DomIpcHolder } from './create-window';
 import { FileWatcher } from './file/file-watcher';
+import { ReactiveNode } from '../../common/reactive/reactive-node';
+import { UpdaterState } from '../../common/updater-state';
 
 export interface SaveResourceChangesOptions {
   backup?: 'explicit' | 'external';
@@ -52,6 +55,7 @@ export class MainIpcBase {
 
   constructor(
     private userSettingsRemote: RemoteObject<UserSettings>,
+    private updaterStateNode: ReactiveNode<UpdaterState>,
     private domIpcHolder: DomIpcHolder
   ) {
     this.fileWatcher = new FileWatcher(domIpcHolder);
@@ -64,6 +68,10 @@ export class MainIpcBase {
 
   async getAppVersion() {
     return app.getVersion();
+  }
+
+  async doQuitAndInstall() {
+    autoUpdater.quitAndInstall();
   }
 
   async isDev() {
@@ -142,6 +150,10 @@ export class MainIpcBase {
     return this.userSettingsRemote.getValue();
   }
 
+  async getUpdaterState() {
+    return this.updaterStateNode.getValue();
+  }
+
   async getProjectManagerFolders() {
     return getProjectManagerFolders();
   }
@@ -203,9 +215,15 @@ export class MainIpcBase {
   }
 
   async openEditor(file: string) {
-    return createWindow(this.domIpcHolder, this.userSettingsRemote, this, {
-      editorTarget: file,
-    });
+    return createWindow(
+      this.domIpcHolder,
+      this.userSettingsRemote,
+      this,
+      {
+        editorTarget: file,
+      },
+      this.updaterStateNode
+    );
   }
 
   async fileToEditorParams(file: string) {
@@ -233,9 +251,14 @@ export type MainIpc = WrapWithCaughtError<MainIpcBase>;
 
 export function mkAndConnectMainIpc(
   userSettingsRemote: RemoteObject<UserSettings>,
+  updaterStateNode: ReactiveNode<UpdaterState>,
   domIpcHolder: DomIpcHolder
 ) {
-  const mainIpc = new MainIpcBase(userSettingsRemote, domIpcHolder);
+  const mainIpc = new MainIpcBase(
+    userSettingsRemote,
+    updaterStateNode,
+    domIpcHolder
+  );
   connectIpc(mainIpc, mainIpcChannel, {
     tag: 'main',
     on: ipcMain.on.bind(ipcMain),

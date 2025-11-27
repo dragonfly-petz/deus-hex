@@ -186,7 +186,19 @@ function PetzFolderForm({ modalProps }: ModalableProps) {
     <Panel>
       <PanelHeader>Set Petz Folder</PanelHeader>
       <PanelBody>
-        <DropFile validExtensions={new Set([''])} valueNode={pickedPathNode} />
+        <p>
+          If you want to use Deus Hex to view your existing Petz files then you
+          should set your Petz folder.
+        </p>
+        <p>
+          You can use the Deus Hex editor and most other Deus Hex tools without
+          doing this.
+        </p>
+        <DropFile
+          validExtensions={new Set([''])}
+          valueNode={pickedPathNode}
+          instruction={() => <>Drop your Petz folder into this blue box.</>}
+        />
       </PanelBody>
       <PanelButtons>
         <Button

@@ -150,7 +150,7 @@ export function RenderQuery<A>({
               <Icon icon="faExclamationTriangle" />
             </div>
             <div className={style.message}>
-              Error: {renderLineBreaks(queryState.value)}
+              Query error: {renderLineBreaks(queryState.value)}
             </div>
           </div>
           <AdditionalOnError />

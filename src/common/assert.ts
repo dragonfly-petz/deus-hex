@@ -5,5 +5,6 @@ export function assert(bool: boolean, msg: string) {
 
 export function assertEqual<A>(a: A, b: A, msg?: string) {
   if (a === b) return;
-  throw new Error(`${msg} Assertion failed: Expected ${a} === ${b}`);
+  const msgR = msg ?? '';
+  throw new Error(`${msgR} Assertion failed: Expected ${a} === ${b}`);
 }

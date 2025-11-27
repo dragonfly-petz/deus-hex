@@ -92,7 +92,7 @@ export const SectionPage = ({
             return <>Project: {id.name}</>;
           })}
           {renderReactive(dataNodes.isParsing, (it) =>
-            it ? <>Parsing...</> : null
+            it ? <span className={style.parsing}>Parsing...</span> : null
           )}
 
           <Button

@@ -47,6 +47,7 @@ export function Layout() {
       }),
     true
   );
+
   // we are doing this because we want to reuse the component where possible, but not when the getdeps function changes as it can contain different hook calls
   const TabCToUse = useMemoWithDeps(
     () =>
