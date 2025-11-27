@@ -1,6 +1,7 @@
 import { app, ipcMain, shell } from 'electron';
 import { pipe } from 'fp-ts/function';
 import path from 'path';
+import { autoUpdater } from 'electron-updater';
 import {
   parseAddBallsBreed,
   serializeClothingAddBalls,
@@ -40,7 +41,6 @@ import { createWindow, DomIpcHolder } from './create-window';
 import { FileWatcher } from './file/file-watcher';
 import { ReactiveNode } from '../../common/reactive/reactive-node';
 import { UpdaterState } from '../../common/updater-state';
-import { autoUpdater } from 'electron-updater';
 
 export interface SaveResourceChangesOptions {
   backup?: 'explicit' | 'external';
