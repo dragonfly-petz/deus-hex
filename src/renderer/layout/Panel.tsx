@@ -12,6 +12,9 @@ export function PanelHeader({ children }: { children: ReactNode }) {
 export function PanelBody({ children }: { children: ReactNode }) {
   return <div className={style.body}>{children}</div>;
 }
+export function PanelSpacer({ children }: { children?: ReactNode }) {
+  return <div className={style.spacer}>{children}</div>;
+}
 
 export function PanelButtons({ children }: { children: ReactNode }) {
   return <div className={style.buttons}>{children}</div>;
