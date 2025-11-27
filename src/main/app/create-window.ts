@@ -1,7 +1,6 @@
 import { BrowserWindow, dialog, ipcMain, shell } from 'electron';
 import { getAssetPath, getPreloadPath, resolveHtmlPath } from './asset-path';
 import MenuBuilder from './menu';
-import { checkForUpdates } from './updater';
 import { isDev } from './util';
 import { globalLogger, Logger, LogLevel } from '../../common/logger';
 import { isNotNully } from '../../common/null';
@@ -158,7 +157,6 @@ export async function createWindow(
     return { action: 'deny' };
   });
   addDomLogHandler(`domWindow<${windowId}>`, window);
-  checkForUpdates(updaterStateNode);
 
   return new Promise<void>((resolve) => {
     window.webContents.once('did-finish-load', async () => {

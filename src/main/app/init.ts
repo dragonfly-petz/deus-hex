@@ -14,6 +14,7 @@ import { globalLogger } from '../../common/logger';
 import { isNotNully, isNully } from '../../common/null';
 import { ReactiveNode } from '../../common/reactive/reactive-node';
 import { defaultUpdaterState } from '../../common/updater-state';
+import { checkForUpdates } from './updater';
 
 const _debugEditorFile =
   'C:\\Users\\franc\\Documents\\Petz\\Petz 4\\Resource\\Catz\\Calico.cat';
@@ -94,6 +95,8 @@ export async function init(domIpcHolder: DomIpcHolder) {
     updaterStateNode,
     domIpcHolder
   );
+
+  checkForUpdates(updaterStateNode);
 
   createWindowWithParams = async (params: CreateWindowParams | null) => {
     return createWindow(

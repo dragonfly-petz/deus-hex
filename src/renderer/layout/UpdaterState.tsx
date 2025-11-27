@@ -120,19 +120,20 @@ function startAnimationChooser(animationChoiceNode: ReactiveNode<string>) {
     animations.push(style.spinAndTwist);
   }
   const chance = new Chance();
-  let timeout: number;
+  let timeout1: number;
+  let timeout2: number;
 
   const doAnimationChoice = () => {
     animationChoiceNode.setValue(chance.pickone(animations));
-    setTimeout(() => {
+    timeout1 = window.setTimeout(() => {
       animationChoiceNode.setValue('');
     }, lengthOfAnimation);
-    // @ts-ignore
-    timeout = setTimeout(doAnimationChoice, gapBetweenAnimations);
+    timeout2 = window.setTimeout(doAnimationChoice, gapBetweenAnimations);
   };
 
   doAnimationChoice();
   return () => {
-    clearTimeout(timeout);
+    clearTimeout(timeout1);
+    clearTimeout(timeout2);
   };
 }
