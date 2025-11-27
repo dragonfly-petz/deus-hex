@@ -1,0 +1,151 @@
+@use '../style/styleVar';
+
+.main {
+  font-size: 1.5rem;
+  position: absolute;
+  background-color: styleVar.$themeSecondaryBgColor;
+  padding: 2px 4px;
+}
+
+.error {
+  color: styleVar.$errorFgColor;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.checking {
+
+  display: flex;
+
+  .icon {
+    margin-right: 4px;
+    animation-name: spin;
+    animation-duration: 1500ms;
+    animation-iteration-count: infinite;
+    animation-timing-function: linear;
+  }
+}
+
+.mainDownloaded {
+
+  top: 5px;
+  left: 5px;
+  background-color: rgba(#94cef6, 0.8);
+  height: 100%;
+  width: 240px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.animationContainer {
+  &.shake {
+    animation-name: tiltShake;
+    animation-duration: 1000ms;
+    animation-iteration-count: infinite;
+    animation-timing-function: linear;
+  }
+
+  &.spinAndTwist {
+    animation-name: spinAndTwist;
+    animation-duration: 2000ms;
+    animation-iteration-count: infinite;
+    animation-timing-function: linear;
+  }
+
+  &.zoom {
+    animation-name: zoom;
+    animation-duration: 2000ms;
+    animation-iteration-count: infinite;
+    animation-timing-function: linear;
+  }
+}
+
+
+@keyframes tiltShake {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  25% {
+    transform: translate(5px, 5px) rotate(5deg);
+  }
+  50% {
+    transform: translate(0, 0) rotate(0deg);
+    filter: hue-rotate(0deg);
+  }
+  75% {
+    transform: translate(-5px, 5px) rotate(-5deg);
+  }
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+    filter: hue-rotate(360deg);
+  }
+}
+
+@keyframes spinAndTwist {
+  0% {
+    transform: rotateZ(0deg);
+  }
+  20% {
+    transform: rotateZ(360deg);
+  }
+  30% {
+    transform: rotateZ(360deg);
+    filter: hue-rotate(0deg);
+  }
+  40% {
+    transform: translate(0, -10px);
+  }
+  50% {
+    transform: translate(0, 0px);
+    filter: hue-rotate(360deg);
+  }
+  60% {
+    transform: rotateX(0);
+  }
+  80% {
+    transform: rotateX(360deg);
+  }
+  100% {
+    transform: rotateX(360deg);
+  }
+}
+
+@keyframes zoom {
+  0% {
+    transform: scale(1);
+  }
+  20% {
+    transform: scale(1.5);
+  }
+  30% {
+    transform: scale(1.3);
+  }
+  40% {
+    transform: scale(1.8);
+  }
+  50% {
+    transform: scale(1.6);
+  }
+  60% {
+    transform: scale(2);
+  }
+  70% {
+    transform: scale(1.8);
+    filter: hue-rotate(0deg);
+  }
+  80% {
+    transform: scale(2.5);
+  }
+  100% {
+    transform: scale(1);
+    filter: hue-rotate(360deg);
+  }
+}

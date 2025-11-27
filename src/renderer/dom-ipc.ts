@@ -8,6 +8,7 @@ import { FlashMessage, FlashMessageProps } from './framework/FlashMessage';
 import { UserSettings } from '../main/app/persisted/user-settings';
 import { Listenable } from '../common/reactive/listener';
 import { FileWatchChange } from '../main/app/file/file-watcher';
+import { UpdaterState } from '../common/updater-state';
 
 export interface DomIpcDeps {
   flashMessagesNode: ReactiveNode<Map<string, FlashMessage>>;
@@ -17,6 +18,8 @@ export class DomIpcBase {
   constructor(private deps: DomIpcDeps) {}
 
   userSettingsListenable = new Listenable<[UserSettings]>();
+
+  updaterStateListenable = new Listenable<[UpdaterState]>();
 
   fileWatchListenable = new Listenable<[FileWatchChange]>();
 
@@ -40,6 +43,10 @@ export class DomIpcBase {
 
   async updateUserSettings(us: UserSettings) {
     this.userSettingsListenable.notify(us);
+  }
+
+  async updateUpdaterState(us: UpdaterState) {
+    this.updaterStateListenable.notify(us);
   }
 
   async onFileWatchChange(change: FileWatchChange) {

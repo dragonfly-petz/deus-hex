@@ -80,11 +80,22 @@ export async function mkAsyncReactiveNodes(
   domIpc: DomIpcBase
 ) {
   const userSettings = throwFromEither(await mainIpc.getUserSettings());
+
   const userSettingsRemote = new RemoteObject(
     userSettings,
     (val) => mainIpc.setUserSettings(val),
     domIpc.userSettingsListenable
   );
+
+  const updaterState = throwFromEither(await mainIpc.getUpdaterState());
+  const updaterStateRemote = new RemoteObject(
+    updaterState,
+    () => {
+      throw new Error('Updater state can only be updated by the main process');
+    },
+    domIpc.updaterStateListenable
+  );
+
   const projectManagerFolders = throwFromEither(
     await mainIpc.getProjectManagerFolders()
   );
@@ -99,9 +110,13 @@ export async function mkAsyncReactiveNodes(
   return [
     {
       userSettingsRemote,
+      updaterStateRemote,
       projectManagerFolders,
       editorParams: new ReactiveNode(editorParams),
     },
-    () => userSettingsRemote.dispose(),
+    () => {
+      userSettingsRemote.dispose();
+      updaterStateRemote.dispose();
+    },
   ] as const;
 }

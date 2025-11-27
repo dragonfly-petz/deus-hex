@@ -11,6 +11,8 @@ import type { FlashMessageProps } from '../../renderer/framework/FlashMessage';
 import { RemoteObject } from '../../common/reactive/remote-object';
 import { UserSettings } from './persisted/user-settings';
 import type { MainIpcBase } from './main-ipc';
+import { ReactiveNode } from '../../common/reactive/reactive-node';
+import { UpdaterState } from '../../common/updater-state';
 import Input = Electron.Input;
 
 export interface CreateWindowParams {
@@ -94,7 +96,8 @@ export async function createWindow(
   domIpcHolder: DomIpcHolder,
   userSettingsRemote: RemoteObject<UserSettings>,
   mainIpc: MainIpcBase,
-  params: CreateWindowParams | null
+  params: CreateWindowParams | null,
+  updaterStateNode: ReactiveNode<UpdaterState>
 ) {
   const windowId = lastWindowId;
   lastWindowId++;
@@ -155,7 +158,7 @@ export async function createWindow(
     return { action: 'deny' };
   });
   addDomLogHandler(`domWindow<${windowId}>`, window);
-  checkForUpdates();
+  checkForUpdates(updaterStateNode);
 
   return new Promise<void>((resolve) => {
     window.webContents.once('did-finish-load', async () => {
@@ -171,10 +174,16 @@ export async function createWindow(
       const userSettingsDisposer = userSettingsRemote.listen((it) => {
         domIpc.updateUserSettings(it);
       }, false);
+
+      const updaterStateDisposer = updaterStateNode.listen((it) => {
+        domIpc.updateUpdaterState(it);
+      }, false);
+
       window.on('close', () => {
         mainIpc.unregisterWindow(windowId);
         holderDisposer();
         userSettingsDisposer();
+        updaterStateDisposer();
       });
 
       resolve();

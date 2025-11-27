@@ -16,6 +16,7 @@ import {
   PanelHeader,
   PanelSpacer,
 } from './Panel';
+import { UpdaterStateC } from './UpdaterState';
 
 export function Header() {
   const { appVersion } = useAppContext();
@@ -32,6 +33,7 @@ export function Header() {
           <Heading>Deus Hex</Heading>
         </div>
         <div className={style.version}>Beta v{appVersion}</div>
+        <UpdaterStateC />
       </div>
       <div className={style.tabsWrapper}>
         <Tabs />
@@ -79,7 +81,7 @@ function AboutModal({ modalProps }: ModalableProps) {
       <PanelBody>
         <h2>Documentation & Resources</h2>
         <p>
-          You can find out more about Deux Hex{' '}
+          You can find out more about Deus Hex{' '}
           <a
             onClick={() =>
               mainIpc.openLinkInBrowser(
@@ -92,7 +94,7 @@ function AboutModal({ modalProps }: ModalableProps) {
           .
         </p>
         <PanelSpacer />
-        <h3>Contributing to Deux Hex</h3>
+        <h3>Contributing to Deus Hex</h3>
         <p>
           Do you know CSS, HTML, React or TypeScript? Deus Hex is open source
           and welcomes new contributors. Visit the{' '}
