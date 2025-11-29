@@ -25,6 +25,14 @@
   left: -15px;
   transform: scaleX(-1);
 
+  &.logoImgDark {
+    transform: scaleX(1);
+
+    img {
+      width: 100px;
+    }
+  }
+
   img {
     width: 110px;
   }
@@ -76,16 +84,17 @@
 .leftBar,
 .rightBar {
   flex-shrink: 0;
-  width: 250px;
+  width: 270px;
   background-color: styleVar.$themeSecondaryBgColor;
   margin: 10px;
   border: solid 2px styleVar.$panelBorderColor;
   border-radius: 10px;
   overflow: auto;
+  padding: 10px;
 }
 
 .rightBar {
-  width: 150px;
+  width: 170px;
 }
 
 .tabs {

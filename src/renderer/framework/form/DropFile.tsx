@@ -145,7 +145,7 @@ export function DropFile({
             (a) => a({}),
             () => (
               <>
-                Drop file/folder into this blue box. Accepted file types:{' '}
+                Drop file/folder into this box. Accepted file types:{' '}
                 {extensions.join(', ')}
               </>
             )

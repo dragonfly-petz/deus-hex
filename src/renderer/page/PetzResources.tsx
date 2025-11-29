@@ -197,7 +197,7 @@ function PetzFolderForm({ modalProps }: ModalableProps) {
         <DropFile
           validExtensions={new Set([''])}
           valueNode={pickedPathNode}
-          instruction={() => <>Drop your Petz folder into this blue box.</>}
+          instruction={() => <>Drop your Petz folder into this box.</>}
         />
       </PanelBody>
       <PanelButtons>
