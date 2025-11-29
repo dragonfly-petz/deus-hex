@@ -93,6 +93,36 @@ function AboutModal({ modalProps }: ModalableProps) {
           </a>
           .
         </p>
+        <p>
+          The editor uses{' '}
+          <a
+            onClick={() => mainIpc.openLinkInBrowser('https://codemirror.net/')}
+          >
+            CodeMirror
+          </a>
+          . The basic controls/hotkeys for it are the ones listed in the
+          {/* eslint-disable-next-line react/no-unescaped-entities */}
+          "standardKeymap" and "defaultKeymap" here:
+          <a
+            onClick={() =>
+              mainIpc.openLinkInBrowser(
+                'https://codemirror.net/docs/ref/#commands'
+              )
+            }
+          >
+            Standard and Default Keymap
+          </a>{' '}
+          and also the search controls listed here:
+          <a
+            onClick={() =>
+              mainIpc.openLinkInBrowser(
+                'https://codemirror.net/docs/ref/#search'
+              )
+            }
+          >
+            Search Keymap
+          </a>
+        </p>
         <PanelSpacer />
         <h3>Contributing to Deus Hex</h3>
         <p>
