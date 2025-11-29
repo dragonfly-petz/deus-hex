@@ -60,7 +60,7 @@ export const globalStyleDefLight = globalStyleDef;
 
 export const globalStyleDefDark = {
   ...globalStyleDef,
-  themePrimaryBgColor: '#bf7a99',
+  themePrimaryBgColor: '#b37892',
   themeSecondaryBgColor: '#7a5665',
 
   themeTertiaryBgColor: '#593a49',

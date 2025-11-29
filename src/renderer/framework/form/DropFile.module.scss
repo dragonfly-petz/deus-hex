@@ -7,6 +7,7 @@
 .dropFile {
   width: 100%;
   height: 100px;
+  transition: background-color 0.3s ease, color 0.3s ease;
   background-color: styleVar.$dropFileBgColor;
   color: white;
   display: flex;
