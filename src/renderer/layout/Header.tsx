@@ -5,6 +5,7 @@ import {
   useAppContext,
   useAppReactiveNodes,
   useMainIpc,
+  useUserSetting,
 } from '../context/context';
 import { Heading } from './text';
 import logoImg from '../../../assets/logoImage.png';
@@ -22,7 +23,8 @@ export function Header() {
   const { appVersion } = useAppContext();
   const { localFontSizeAdjust } = useAppReactiveNodes();
   const aboutModalNode = useModal({ Content: AboutModal });
-
+  const { userSettingsRemote } = useAppReactiveNodes();
+  const isDarkMode = useUserSetting('darkMode');
   return (
     <div className={style.header}>
       <div className={style.logoImg}>
@@ -58,6 +60,15 @@ export function Header() {
           icon="faSync"
           onClick={() => {
             localFontSizeAdjust.setValueFn(() => 0);
+          }}
+        />
+        <Button
+          tooltip="Toggle dark/light"
+          icon={isDarkMode ? 'faSun' : 'faMoon'}
+          onClick={() => {
+            userSettingsRemote.setRemotePartialFn((it) => ({
+              darkMode: !it.darkMode,
+            }));
           }}
         />
         <Button

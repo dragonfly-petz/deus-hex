@@ -9,6 +9,7 @@ export interface UserSettings {
   fontSize: number;
   showLineNumbers: boolean;
   petzFolder: string | null;
+  darkMode: boolean;
 }
 
 assertTypesEqual<UserSettings, MigrationFinal<typeof userSettingsMigration>>(
@@ -25,6 +26,10 @@ export const userSettingsMigration = baseMigration(() => {
   .next((it) => ({
     ...it,
     showLineNumbers: true,
+  }))
+  .next((it) => ({
+    ...it,
+    darkMode: false,
   }));
 
 export const userSettingsDefault = userSettingsMigration.default(null);

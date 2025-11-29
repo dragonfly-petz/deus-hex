@@ -1,4 +1,4 @@
-import { EditorState } from '@codemirror/state';
+import { Compartment, EditorState } from '@codemirror/state';
 import { EditorView, keymap } from '@codemirror/view';
 import { basicSetup } from 'codemirror';
 import {
@@ -8,6 +8,8 @@ import {
   isolateHistory,
 } from '@codemirror/commands';
 import { isRight } from 'fp-ts/Either';
+import { oneDark } from '@codemirror/theme-one-dark';
+import { useMemo } from 'react';
 import { useMemoRef } from '../hooks/use-memo-ref';
 import { ReactiveNode } from '../../common/reactive/reactive-node';
 import style from './CodeMirror.module.scss';
@@ -16,7 +18,11 @@ import { isNully } from '../../common/null';
 import { voidFn } from '../../common/function';
 import { ReactiveVal } from '../../common/reactive/reactive-interface';
 import { ParsedLnzResult } from '../../common/petz/parser/main';
-import { useAppReactiveNodes, useUserSetting } from '../context/context';
+import {
+  useAppReactiveNodes,
+  useUserSetting,
+  useUserSettingNode,
+} from '../context/context';
 import { ballRefGutter } from './BallRefGutter';
 import { parsedLnzState, parsedLnzUpdateEffect } from './gutter-helper';
 import { jumpToLine } from './code-mirror-helper';
@@ -34,7 +40,11 @@ export function CodeMirror({
   parsedData: ReactiveVal<ParsedLnzResult>;
 }) {
   const indentWithTabCustom = { ...indentWithTab, run: insertTab };
+  const useDarkMode = useUserSetting('darkMode');
+  const theme = useDarkMode ? oneDark : [];
+  const themeCompartment = useMemo(() => new Compartment(), []);
 
+  const darkModeNode = useUserSettingNode('darkMode');
   const { refSetter, resultRef } = useMemoRef((div: HTMLDivElement) => {
     const startState = EditorState.create({
       doc: valueNode.getValue(),
@@ -61,6 +71,7 @@ export function CodeMirror({
         linesSimpleLanguage,
         linesCommentSyntax,
         customSearchPanelExtension(),
+        themeCompartment.of(theme),
       ],
     });
     const view = new EditorView({
@@ -91,6 +102,15 @@ export function CodeMirror({
     const val = isRight(it) ? it.right : null;
     view.dispatch({
       effects: parsedLnzUpdateEffect.of(val),
+    });
+  });
+
+  useListenReactiveVal(darkModeNode, (it) => {
+    const view = resultRef.current;
+    if (isNully(view)) return;
+    console.log('darkModeNode', it);
+    view.dispatch({
+      effects: themeCompartment.reconfigure(it ? oneDark : []),
     });
   });
 
