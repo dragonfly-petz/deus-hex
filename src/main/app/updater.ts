@@ -5,6 +5,7 @@ import { ReactiveNode } from '../../common/reactive/reactive-node';
 import { isDev } from './util';
 import { globalErrorReporter } from '../../common/error';
 
+const DEBUG_UPDATER = false;
 export function checkForUpdates(updaterStateNode: ReactiveNode<UpdaterState>) {
   log.transports.file.level = 'info';
   autoUpdater.logger = log;
@@ -42,7 +43,7 @@ export function checkForUpdates(updaterStateNode: ReactiveNode<UpdaterState>) {
 
   autoUpdater.checkForUpdates();
 
-  if (isDev()) {
+  if (isDev() && DEBUG_UPDATER) {
     mockUpdater(updaterStateNode);
   }
 }
@@ -55,7 +56,7 @@ function wait(ms: number): Promise<null> {
 export async function mockUpdater(
   updaterStateNode: ReactiveNode<UpdaterState>
 ) {
-  await wait(2e3);
+  await wait(5e3);
   const e = new Error('Mock updater failure');
   updaterStateNode.setValue({ tag: 'error', error: `Updater error: ${e}` });
   globalErrorReporter.handleCaught(e);

@@ -112,8 +112,8 @@ function UpdateModal({ modalProps }: ModalableProps) {
 }
 
 function startAnimationChooser(animationChoiceNode: ReactiveNode<string>) {
-  const gapBetweenAnimations = isDev() ? 10e3 : 15 * 60e3;
-  const lengthOfAnimation = 5e3;
+  const gapBetweenAnimations = isDev() ? 15e3 : 15 * 60e3;
+  const lengthOfAnimation = 10e3;
   const animations = [style.shake, style.spinAndTwist, style.zoom];
   if (isDev()) {
     animations.length = 0;
