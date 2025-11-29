@@ -95,6 +95,7 @@ export const globalStyleDefDark = {
 export const globalSh = new StyleVarHelper(globalStyleDefLight, globalStyleVar);
 export type GlobalStyleVarName = keyof typeof globalStyleDef;
 
+// use this to give an easy rep of the variables in the console
 // _produceDebugStyleVar();
 
 function _produceDebugStyleVar() {
