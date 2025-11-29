@@ -94,7 +94,6 @@ export const SectionPage = ({
           {renderReactive(dataNodes.isParsing, (it) =>
             it ? <span className={style.parsing}>Parsing...</span> : null
           )}
-
           <Button
             onClick={() => {
               userSettingsRemote.setRemotePartialFn((it) => ({
@@ -104,19 +103,30 @@ export const SectionPage = ({
             active={showLineNumbers}
             label="Toggle line numbers"
           />
-          {/*       <div className={style.headerFilePath}>
-            File Path: {fileInfo.filePath}
-          </div> */}
-          {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
-          <a
-            onClick={() =>
-              mainIpc.openLinkInBrowser(
-                'https://codemirror.net/docs/ref/#commands'
-              )
-            }
-          >
-            Editor command reference (standardKeymap and defaultKeymap)
-          </a>
+          <div className={style.help}>
+            Editor commands:{' '}
+            <a
+              onClick={() =>
+                mainIpc.openLinkInBrowser(
+                  'https://codemirror.net/docs/ref/#commands'
+                )
+              }
+            >
+              {' '}
+              standardKeymap & defaultKeymap
+            </a>{' '}
+            &{' '}
+            <a
+              onClick={() =>
+                mainIpc.openLinkInBrowser(
+                  'https://codemirror.net/docs/ref/#search'
+                )
+              }
+            >
+              {' '}
+              search
+            </a>
+          </div>
         </div>
 
         {run(() => {
