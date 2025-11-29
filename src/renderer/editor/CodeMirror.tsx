@@ -24,6 +24,7 @@ import { classNames } from '../../common/react';
 import { omissionHighlighter } from './omission-highlighter';
 import { globalErrorReporter } from '../../common/error';
 import { linesCommentSyntax, linesSimpleLanguage } from './language';
+import { customSearchPanelExtension } from './search-panel';
 
 export function CodeMirror({
   valueNode,
@@ -59,6 +60,7 @@ export function CodeMirror({
         ),
         linesSimpleLanguage,
         linesCommentSyntax,
+        customSearchPanelExtension(),
       ],
     });
     const view = new EditorView({
