@@ -101,7 +101,8 @@ export const SectionPage = ({
               }));
             }}
             active={showLineNumbers}
-            label="Toggle line numbers"
+            icon="faListOl"
+            tooltip="Toggle line numbers"
           />
           <div className={style.help}>
             Editor commands:{' '}
