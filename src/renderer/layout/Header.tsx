@@ -9,6 +9,8 @@ import {
 } from '../context/context';
 import { Heading } from './text';
 import logoImg from '../../../assets/logoImage.png';
+import logoImgDark from '../../../assets/logoImageDark.png';
+
 import { ModalableProps, useModal } from '../framework/Modal';
 import {
   Panel,
@@ -18,6 +20,7 @@ import {
   PanelSpacer,
 } from './Panel';
 import { UpdaterStateC } from './UpdaterState';
+import { classNames } from '../../common/react';
 
 export function Header() {
   const { appVersion } = useAppContext();
@@ -27,8 +30,13 @@ export function Header() {
   const isDarkMode = useUserSetting('darkMode');
   return (
     <div className={style.header}>
-      <div className={style.logoImg}>
-        <img src={logoImg} alt="Logo" />
+      <div
+        className={classNames(
+          style.logoImg,
+          isDarkMode ? style.logoImgDark : null
+        )}
+      >
+        <img src={isDarkMode ? logoImgDark : logoImg} alt="Logo" />
       </div>
       <div className={style.logoArea}>
         <div className={style.logo}>

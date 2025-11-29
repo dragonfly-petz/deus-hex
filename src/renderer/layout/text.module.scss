@@ -2,7 +2,7 @@
 
 .heading {
   font-size: 3.5rem;
-  color: white;
+  color: styleVar.$headerFontColor;
   -webkit-text-stroke-width: styleVar.$headerFontOutlineSize;
   -webkit-text-stroke-color: styleVar.$headerFontOutlineColor;
   font-family: styleVar.$headingFont;

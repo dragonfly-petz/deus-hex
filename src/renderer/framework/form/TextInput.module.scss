@@ -1,8 +1,10 @@
 @use '../../style/mixins';
+@use '../../style/styleVar';
 
 .input {
   width: 100%;
-  background-color: white;
+  color: styleVar.$editorPrimaryFontColor;
+  background-color: styleVar.$editorBg;
   font-size: 2rem;
   padding: 4px 6px;
   @include mixins.defaultStates {

@@ -221,6 +221,7 @@ export function NewProjectForm({
         ))}
       </PanelBody>
       <PanelButtons>
+        <Button label="Cancel" onClick={closeModal} />
         <Button
           label="Save"
           onClick={() => {
