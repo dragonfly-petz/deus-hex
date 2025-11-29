@@ -117,7 +117,7 @@ function startAnimationChooser(animationChoiceNode: ReactiveNode<string>) {
   const animations = [style.shake, style.spinAndTwist, style.zoom];
   if (isDev()) {
     animations.length = 0;
-    animations.push(style.spinAndTwist);
+    animations.push(style.zoom);
   }
   const chance = new Chance();
   let timeout1: number;
