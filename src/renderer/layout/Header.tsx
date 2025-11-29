@@ -63,7 +63,7 @@ export function Header() {
           }}
         />
         <Button
-          tooltip="Toggle dark/light"
+          tooltip={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
           icon={isDarkMode ? 'faSun' : 'faMoon'}
           onClick={() => {
             userSettingsRemote.setRemotePartialFn((it) => ({

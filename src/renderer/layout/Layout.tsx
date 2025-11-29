@@ -1,6 +1,10 @@
 import { useEffect } from 'react';
 import style from './layout.module.scss';
-import { useAppReactiveNodes } from '../context/context';
+import {
+  useAppReactiveNodes,
+  useUserSetting,
+  useUserSettingNode,
+} from '../context/context';
 import {
   sequenceReactiveProperties,
   useListenReactiveVal,
@@ -8,7 +12,11 @@ import {
 } from '../reactive-state/reactive-hooks';
 import { tabs, TabSettings } from './Tabs';
 import { FlashMessages } from '../framework/FlashMessage';
-import { globalSh } from '../framework/global-style-var';
+import {
+  globalSh,
+  globalStyleDefDark,
+  globalStyleDefLight,
+} from '../framework/global-style-var';
 import { Header } from './Header';
 import { emptyComponent, FunctionalComponent } from '../framework/render';
 import { GlobalModals } from '../framework/Modal';
@@ -18,6 +26,18 @@ import { useMemoWithDeps } from '../hooks/disposable-memo';
 
 export function Layout() {
   const { currentTabNode, userSettingsRemote } = useAppReactiveNodes();
+
+  const darkMode = useUserSetting('darkMode');
+
+  useListenReactiveVal(
+    useUserSettingNode('darkMode'),
+    (isDark) => {
+      globalSh.updateCurrentStyle(
+        isDark ? globalStyleDefDark : globalStyleDefLight
+      );
+    },
+    true
+  );
   const currentTab = useReactiveVal(currentTabNode);
   const {
     useGetDeps,
@@ -66,7 +86,7 @@ export function Layout() {
     [useGetDeps]
   );
   return (
-    <div className={style.main}>
+    <div className={classNames(style.main, darkMode ? style.darkMode : null)}>
       <Header />
       <div className={style.mainContent}>
         <TabCToUse />
