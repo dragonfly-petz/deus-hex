@@ -79,16 +79,16 @@ export const globalStyleDefDark = {
   primaryFontFadeColor: '#999',
   secondaryFontColor: '#111',
   tertiaryFontColor: '#f3f3f3',
-  omissionLineBg: '#ebebeb',
-  omissionValBg: '#d0d0d0',
+  omissionLineBg: '#4e5060',
+  omissionValBg: '#707288',
 };
-
-produceStyleVar();
 
 export const globalSh = new StyleVarHelper(globalStyleDefLight, globalStyleVar);
 export type GlobalStyleVarName = keyof typeof globalStyleDef;
 
-function produceStyleVar() {
+// _produceDebugStyleVar();
+
+function _produceDebugStyleVar() {
   const rows = new Array<string>();
   for (const k of Object.keys(globalStyleDef)) {
     rows.push(`$${k}: declareVar(${k});`);

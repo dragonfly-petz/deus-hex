@@ -8,7 +8,6 @@ import {
   isolateHistory,
 } from '@codemirror/commands';
 import { isRight } from 'fp-ts/Either';
-import { oneDark } from '@codemirror/theme-one-dark';
 import { useMemo } from 'react';
 import { useMemoRef } from '../hooks/use-memo-ref';
 import { ReactiveNode } from '../../common/reactive/reactive-node';
@@ -31,6 +30,7 @@ import { omissionHighlighter } from './omission-highlighter';
 import { globalErrorReporter } from '../../common/error';
 import { linesCommentSyntax, linesSimpleLanguage } from './language';
 import { customSearchPanelExtension } from './search-panel';
+import { getTheme } from './themes';
 
 export function CodeMirror({
   valueNode,
@@ -41,7 +41,7 @@ export function CodeMirror({
 }) {
   const indentWithTabCustom = { ...indentWithTab, run: insertTab };
   const useDarkMode = useUserSetting('darkMode');
-  const theme = useDarkMode ? oneDark : [];
+  const theme = getTheme(useDarkMode);
   const themeCompartment = useMemo(() => new Compartment(), []);
 
   const darkModeNode = useUserSettingNode('darkMode');
@@ -108,9 +108,8 @@ export function CodeMirror({
   useListenReactiveVal(darkModeNode, (it) => {
     const view = resultRef.current;
     if (isNully(view)) return;
-    console.log('darkModeNode', it);
     view.dispatch({
-      effects: themeCompartment.reconfigure(it ? oneDark : []),
+      effects: themeCompartment.reconfigure(getTheme(it)),
     });
   });
 

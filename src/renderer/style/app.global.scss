@@ -5,6 +5,10 @@ html {
   font-size: styleVar.$htmlFontSize;
 }
 
+.cm-editor .cm-content ::selection {
+  // background-color: #ffcc00 !important;
+}
+
 body {
   font-size: 2rem;
   -webkit-font-smoothing: antialiased;
