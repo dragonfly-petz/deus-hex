@@ -23,6 +23,7 @@ import { jumpToLine } from './code-mirror-helper';
 import { classNames } from '../../common/react';
 import { omissionHighlighter } from './omission-highlighter';
 import { globalErrorReporter } from '../../common/error';
+import { linesCommentSyntax, linesSimpleLanguage } from './language';
 
 export function CodeMirror({
   valueNode,
@@ -32,6 +33,7 @@ export function CodeMirror({
   parsedData: ReactiveVal<ParsedLnzResult>;
 }) {
   const indentWithTabCustom = { ...indentWithTab, run: insertTab };
+
   const { refSetter, resultRef } = useMemoRef((div: HTMLDivElement) => {
     const startState = EditorState.create({
       doc: valueNode.getValue(),
@@ -55,6 +57,8 @@ export function CodeMirror({
         EditorView.exceptionSink.of((it) =>
           globalErrorReporter.handleCaught(it)
         ),
+        linesSimpleLanguage,
+        linesCommentSyntax,
       ],
     });
     const view = new EditorView({
