@@ -52,9 +52,40 @@ const globalStyleDef = {
   // local
   localVar1: null,
 };
+export const globalStyleDefLight = globalStyleDef;
+
+export const globalStyleDefDark = {
+  ...globalStyleDef,
+  themePrimaryBgColor: '#c0e2fa',
+  themeSecondaryBgColor: '#94cef6',
+
+  themeTertiaryBgColor: '#1e455d',
+
+  headerFontColor: 'white',
+  headerFontOutlineColor: '#6aabe2',
+  headerFontOutlineSize: '2px',
+
+  buttonBgColor: '#dff1fd',
+  buttonBgHoverColor: '#e8f5fe',
+  buttonBgActiveColor: '#e8f5fe',
+
+  buttonFontColor: '#69afdb',
+  buttonFontHoverColor: '#68aedb',
+  buttonFontActiveColor: '#1b6291',
+
+  panelBorderColor: '#3d92dd',
+
+  primaryFontColor: '#1c4966',
+  primaryFontFadeColor: '#999',
+  secondaryFontColor: '#111',
+  tertiaryFontColor: '#f3f3f3',
+  omissionLineBg: '#ebebeb',
+  omissionValBg: '#d0d0d0',
+};
+
 produceStyleVar();
 
-export const globalSh = new StyleVarHelper(globalStyleDef, globalStyleVar);
+export const globalSh = new StyleVarHelper(globalStyleDefLight, globalStyleVar);
 export type GlobalStyleVarName = keyof typeof globalStyleDef;
 
 function produceStyleVar() {

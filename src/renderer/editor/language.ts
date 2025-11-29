@@ -1,5 +1,6 @@
 import { StreamLanguage, StreamParser } from '@codemirror/language';
 import { EditorState } from '@codemirror/state';
+import { isTruthy } from '../../common/boolean';
 
 const COMMENT_PREFIX = ';';
 
@@ -9,16 +10,34 @@ const linesSimpleParser: StreamParser<null> = {
   },
 
   token(stream, _state) {
-    // If we're currently at the start of a comment, style the rest as comment
-    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-    if (stream.match(COMMENT_PREFIX)) {
+    // Handle headers (allow leading spaces)
+    if (stream.sol()) {
+      stream.eatSpace();
+      if (stream.peek() === '[') {
+        stream.next(); // consume '['
+        // consume until closing ']' or EOL
+        while (!stream.eol() && stream.peek() !== ']') {
+          stream.next();
+        }
+        if (stream.peek() === ']') stream.next(); // consume ']'
+        return 'namespace';
+      }
+
+      // Leading-space comments like "  ; comment"
+      if (isTruthy(stream.match(COMMENT_PREFIX))) {
+        stream.skipToEnd();
+        return 'comment';
+      }
+    }
+
+    // Inline comment starting at current position
+    if (isTruthy(stream.match(COMMENT_PREFIX))) {
       stream.skipToEnd();
       return 'comment'; // maps to tags.comment
     }
 
     // Otherwise, consume normal text up to the next comment or end of line
-    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-    while (!stream.eol() && !stream.match(COMMENT_PREFIX, false)) {
+    while (!stream.eol() && !isTruthy(stream.match(COMMENT_PREFIX, false))) {
       stream.next();
     }
     return null; // plain text (no special style)
