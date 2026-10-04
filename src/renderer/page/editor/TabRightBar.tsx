@@ -13,6 +13,7 @@ import { E, O } from '../../../common/fp-ts/fp';
 import { ger } from '../../../common/error';
 
 import { OverwriteModalOpts, useOverwriteModal } from './modals';
+import { textSections } from './section-data';
 
 export function TabRightBar({
   actionsNode,
@@ -28,7 +29,7 @@ export function TabRightBar({
       query={fileInfoQuery}
       OnSuccess={({ value }) => {
         const mainIpc = useMainIpc();
-        const sections = Array.from(value.sectionDataNodes.values()).map(
+        const sections = textSections(value.sectionDataNodes).map(
           (it) => it.hasChanged
         );
         const anyChangedNode = sequenceReactiveArray(sections).fmapStrict(

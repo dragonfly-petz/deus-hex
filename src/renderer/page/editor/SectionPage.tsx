@@ -6,7 +6,6 @@ import {
 } from '../../../common/petz/file-types';
 import {
   getSingleResourceEntryById,
-  ResourceEntryId,
   resourceEntryIdToStringKey,
 } from '../../../common/petz/codecs/rsrc-utility';
 import { E } from '../../../common/fp-ts/fp';
@@ -19,25 +18,11 @@ import { CodeMirror } from '../../editor/CodeMirror';
 import { bytesToString } from '../../../common/buffer';
 import { isNever } from '../../../common/type-assertion';
 import type { NavigationDeps } from './get-deps';
-import { ReactiveNode } from '../../../common/reactive/reactive-node';
-import { ReactiveVal } from '../../../common/reactive/reactive-interface';
-import { ParsedLnzResult } from '../../../common/petz/parser/main';
 import { useAppReactiveNodes, useMainIpc } from '../../context/context';
 import { Button } from '../../framework/Button';
 import { useReactiveVal } from '../../reactive-state/reactive-hooks';
 import { renderNullable } from '../../framework/render';
-
-export interface SectionDataNodes {
-  data: Uint8Array;
-  original: string;
-  // nasty hack to get around recreating the hasChanged node
-  originalHolder: { original: string };
-  editNode: ReactiveNode<string>;
-  parsedData: ReactiveVal<ParsedLnzResult>;
-  isParsing: ReactiveVal<boolean>;
-  hasChanged: ReactiveVal<boolean>;
-  id: ResourceEntryId;
-}
+import { SectionDataNodes } from './section-data';
 
 export function getSectionDataNodes(
   fileInfo: NavigationDeps['fileInfo'],
@@ -55,7 +40,7 @@ export function getSectionDataNodes(
   const asEither = E.fromNullable('Section not found')(entWithIdM);
   return pipe(
     asEither,
-    E.chain((entWithId) => {
+    E.chain((entWithId): E.Either<string, SectionDataNodes> => {
       const stringKey = resourceEntryIdToStringKey(entWithId.id);
       const node = fileInfo.sectionDataNodes.get(stringKey);
       if (isNully(node)) {
@@ -63,10 +48,7 @@ export function getSectionDataNodes(
           `Expected to find data nodes for section key ${stringKey}`
         );
       }
-      return E.of({
-        dataNodes: node,
-        sectionType: resourceDataSections[sectionName].type,
-      });
+      return E.of(node);
     })
   );
 }
@@ -84,16 +66,18 @@ export const SectionPage = ({
   );
   const dataNodesE = getSectionDataNodes(fileInfo, sectionName);
   const mainIpc = useMainIpc();
-  return renderResult(dataNodesE, ({ dataNodes, sectionType }) => {
+  return renderResult(dataNodesE, (dataNodes) => {
     return (
       <>
         <div className={style.heading}>
           {renderNullable(projectId, (id) => {
             return <>Project: {id.name}</>;
           })}
-          {renderReactive(dataNodes.isParsing, (it) =>
-            it ? <span className={style.parsing}>Parsing...</span> : null
-          )}
+          {dataNodes.type === 'ascii'
+            ? renderReactive(dataNodes.isParsing, (it) =>
+                it ? <span className={style.parsing}>Parsing...</span> : null
+              )
+            : null}
           <Button
             onClick={() => {
               userSettingsRemote.setRemotePartialFn((it) => ({
@@ -131,7 +115,7 @@ export const SectionPage = ({
         </div>
 
         {run(() => {
-          switch (sectionType) {
+          switch (dataNodes.type) {
             case 'ascii':
               return (
                 <div className={style.editorTextAreaWrapper}>
@@ -180,7 +164,7 @@ export const SectionPage = ({
               );
             }
             default: {
-              return isNever(sectionType);
+              return isNever(dataNodes);
             }
           }
         })}
