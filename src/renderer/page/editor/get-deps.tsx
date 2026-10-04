@@ -15,13 +15,9 @@ import { isNotNully, isNully, nullable } from '../../../common/null';
 import { E } from '../../../common/fp-ts/fp';
 import { useMkQueryMemo } from '../../framework/Query';
 import {
-  getAllDataEntriesWithId,
   getSingleResourceEntryById,
-  resDataEntryToString,
-  ResDataEntryWithId,
   resourceEntryIdToStringKey,
 } from '../../../common/petz/codecs/rsrc-utility';
-import { stringToBytes } from '../../../common/buffer';
 import { useDisposableEffectWithDeps } from '../../hooks/disposable-memo';
 import { Disposer } from '../../../common/disposable';
 import { ger } from '../../../common/error';
@@ -29,7 +25,6 @@ import { applyAntiPetWorkshopReplacements } from '../../../common/petz/transform
 import { ActionsNode } from '../../layout/ActionBar';
 import { Result } from '../../../common/result';
 import {
-  EditorFileInfo,
   EditorParams,
   ProjectId,
 } from '../../../main/app/resource/project-manager';
@@ -48,13 +43,18 @@ import { Banner, BannerBody, BannerButtons } from '../../layout/Banner';
 import { Button } from '../../framework/Button';
 import { safeHead } from '../../../common/array';
 import { ReactiveNode } from '../../../common/reactive/reactive-node';
-import { parseLnz } from '../../../common/petz/parser/main';
 import { FileInfoAndData } from '../../../main/app/pe-files/pe-files-util';
-import { SectionDataNodes, SectionPage } from './SectionPage';
+import { SectionPage } from './SectionPage';
+import {
+  createOrUpdateSections,
+  SectionDataNodesMap,
+  sectionsToSave,
+  textSections,
+} from './section-data';
 
 export interface NavigationDeps {
   fileInfo: FileInfoAndData & {
-    sectionDataNodes: Map<string, SectionDataNodes>;
+    sectionDataNodes: SectionDataNodesMap;
   };
   actionsNode: ActionsNode;
   fileInfoQuery: TabDefs['fileInfoQuery'];
@@ -78,9 +78,10 @@ function SectionName({
     );
     if (isNully(entWithIdM)) return new ReactiveNode(false);
     const key = resourceEntryIdToStringKey(entWithIdM.id);
-    return (
-      fileInfo.sectionDataNodes.get(key)?.hasChanged ?? new ReactiveNode(false)
-    );
+    const section = fileInfo.sectionDataNodes.get(key);
+    return section?.type === 'ascii'
+      ? section.hasChanged
+      : new ReactiveNode(false);
   });
   const hasChanged = useReactiveVal(hasChangedNode);
   return (
@@ -218,7 +219,7 @@ export function useGetDeps() {
   }, [editorFileInfo]);
 
   const sectionDataNodesHolder = useMemo(
-    () => ({ map: new Map<string, SectionDataNodes>() }),
+    () => ({ map: new Map() as SectionDataNodesMap }),
     []
   );
 
@@ -231,10 +232,9 @@ export function useGetDeps() {
     return pipe(
       res,
       E.map((resIn) => {
-        const entries = getAllDataEntriesWithId(resIn.resDirTable);
         sectionDataNodesHolder.map = createOrUpdateSections(
           sectionDataNodesHolder.map,
-          entries,
+          resIn,
           editorFileInfo.right
         );
         const sectionDataNodes = sectionDataNodesHolder.map;
@@ -242,14 +242,7 @@ export function useGetDeps() {
           projectId,
           ...resIn,
           sectionDataNodes,
-          getSectsToSave: () => {
-            return Array.from(sectionDataNodes).map((it) => {
-              return {
-                id: it[1].id,
-                data: new Uint8Array(stringToBytes(it[1].editNode.getValue())),
-              };
-            });
-          },
+          getSectsToSave: () => sectionsToSave(sectionDataNodes),
         };
       })
     );
@@ -286,9 +279,13 @@ export function useGetDeps() {
                     )
                   );
                   if (E.isRight(res)) {
-                    const oldValues = Array.from(
-                      value.sectionDataNodes.entries()
-                    ).map((it) => [it[0], it[1].editNode.getValue()] as const);
+                    const oldValues = textSections(value.sectionDataNodes).map(
+                      (it) =>
+                        [
+                          resourceEntryIdToStringKey(it.id),
+                          it.editNode.getValue(),
+                        ] as const
+                    );
                     const reloadFilePromise = fileInfoQuery.reloadSoft();
                     projectInfoQuery.reloadSoft();
                     const newFileVal = await reloadFilePromise;
@@ -299,7 +296,7 @@ export function useGetDeps() {
                         }
                         const newSect =
                           newFileVal.right.sectionDataNodes.get(sectKey);
-                        if (isNotNully(newSect)) {
+                        if (newSect?.type === 'ascii') {
                           const applyRes = applyAntiPetWorkshopReplacements(
                             originalSectEditNode,
                             newSect.editNode.getValue(),
@@ -366,53 +363,3 @@ export function useGetDeps() {
 }
 
 export type TabDefs = ReturnType<typeof useGetDeps>;
-
-function createOrUpdateSections(
-  oldMap: Map<string, SectionDataNodes>,
-  entries: ResDataEntryWithId[],
-  editorFileInfo: EditorFileInfo
-) {
-  const newMap = new Map<string, SectionDataNodes>();
-  entries.forEach((it) => {
-    const key = resourceEntryIdToStringKey(it.id);
-    const oldEntry = oldMap.get(key);
-    const { data } = it.entry;
-    const original = resDataEntryToString(it.entry);
-    if (isNully(oldEntry)) {
-      const editNode = new ReactiveNode(original);
-      const isParsing = new ReactiveNode(false);
-      const parsedData = editNode
-        .fmapStrict((newVal) => {
-          isParsing.setValue(true);
-          return newVal;
-        })
-        .fmapStrict((newVal) => {
-          const ret = parseLnz(newVal, editorFileInfo.type);
-          isParsing.setValue(false);
-          return ret;
-        }, 2e3);
-      const originalHolder = { original };
-      newMap.set(key, {
-        data,
-        original,
-        originalHolder,
-        editNode,
-        parsedData,
-        isParsing,
-        hasChanged: editNode.fmapStrict(
-          (str) => str !== originalHolder.original
-        ),
-        id: it.id,
-      });
-      return;
-    }
-    oldEntry.originalHolder.original = original;
-    oldEntry.editNode.setValue(original);
-    newMap.set(key, {
-      ...oldEntry,
-      data,
-      original,
-    });
-  });
-  return newMap;
-}

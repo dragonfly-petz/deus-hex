@@ -60,8 +60,8 @@ function SubMenu({
 }) {
   if (name !== currentName) return null;
   const nodes = getSectionDataNodes(fileInfo, name);
-  if (E.isLeft(nodes)) return null;
-  const { dataNodes } = nodes.right;
+  if (E.isLeft(nodes) || nodes.right.type !== 'ascii') return null;
+  const dataNodes = nodes.right;
   return (
     <WithReactiveVal
       node={dataNodes.parsedData}
